@@ -5,7 +5,8 @@ import '../../models/statut_pacte.dart';
 import '../../services/classement_service.dart';
 
 /// Bloc de classement des 3 restaurants proposés, une fois le pacte accepté.
-class BlocClassement extends StatelessWidget {
+/// Réordonnable via flèches haut/bas (le drag & drop natif est laissé pour V2).
+class BlocClassement extends StatefulWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
   final VoidCallback onChanged;
@@ -17,9 +18,23 @@ class BlocClassement extends StatelessWidget {
   });
 
   @override
+  State<BlocClassement> createState() => _BlocClassementState();
+}
+
+class _BlocClassementState extends State<BlocClassement> {
+  late List<int> ordre;
+
+  @override
+  void initState() {
+    super.initState();
+    ordre = List<int>.generate(widget.pacte.restaurantsProposes.length, (i) => i);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final pacte = widget.pacte;
     final monClassement =
-        jeSuisInitiateur ? pacte.classementInitiateur : pacte.classementDestinataire;
+        widget.jeSuisInitiateur ? pacte.classementInitiateur : pacte.classementDestinataire;
 
     if (monClassement != null) {
       return const Text("Classement envoyé. En attente de l'autre participant...",
@@ -32,36 +47,62 @@ class BlocClassement extends StatelessWidget {
         const Text('Classe les 3 restaurants (1 = préféré)',
             style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        for (int i = 0; i < pacte.restaurantsProposes.length; i++)
-          Text('${i + 1}. ${pacte.restaurantsProposes[i].nom}'),
-        const SizedBox(height: 8),
-        const Text(
-          "Version test : le classement est simulé aléatoirement au clic ci-dessous. "
-          "On pourra brancher un vrai glisser-déposer une fois l'UX validée.",
-          style: TextStyle(fontSize: 12, color: Colors.grey),
-        ),
+        for (int position = 0; position < ordre.length; position++)
+          _ligneRestaurant(position),
         const SizedBox(height: 8),
         FilledButton(
           onPressed: _envoyerClassement,
-          child: const Text('Envoyer mon classement (simulation)'),
+          child: const Text('Envoyer mon classement'),
         ),
       ],
     );
   }
 
-  void _envoyerClassement() {
-    final classement = List<int>.generate(pacte.restaurantsProposes.length, (i) => i)
-      ..shuffle();
-    if (jeSuisInitiateur) {
-      pacte.classementInitiateur = classement;
-    } else {
-      pacte.classementDestinataire = classement;
-    }
+  Widget _ligneRestaurant(int position) {
+    final indexRestaurant = ordre[position];
+    final restaurant = widget.pacte.restaurantsProposes[indexRestaurant];
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Text('${position + 1}.', style: const TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(restaurant.nom)),
+          IconButton(
+            onPressed: position == 0 ? null : () => setState(() => _permuter(position, position - 1)),
+            icon: const Icon(Icons.keyboard_arrow_up),
+          ),
+          IconButton(
+            onPressed: position == ordre.length - 1
+                ? null
+                : () => setState(() => _permuter(position, position + 1)),
+            icon: const Icon(Icons.keyboard_arrow_down),
+          ),
+        ],
+      ),
+    );
+  }
 
-    if (pacte.classementInitiateur != null && pacte.classementDestinataire != null) {
-      pacte.restaurantRetenu = calculerRestaurantElu(pacte);
-      pacte.statut = StatutPacte.confirme;
-    }
-    onChanged();
+  void _permuter(int a, int b) {
+    final temp = ordre[a];
+    ordre[a] = ordre[b];
+    ordre[b] = temp;
+  }
+
+  void _envoyerClassement() {
+    final pacte = widget.pacte;
+    setState(() {
+      if (widget.jeSuisInitiateur) {
+        pacte.classementInitiateur = ordre;
+      } else {
+        pacte.classementDestinataire = ordre;
+      }
+
+      if (pacte.classementInitiateur != null && pacte.classementDestinataire != null) {
+        pacte.restaurantRetenu = calculerRestaurantElu(pacte);
+        pacte.statut = StatutPacte.confirme;
+      }
+    });
+    widget.onChanged();
   }
 }

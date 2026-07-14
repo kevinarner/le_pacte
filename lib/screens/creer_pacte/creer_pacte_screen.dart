@@ -113,10 +113,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       ),
     );
 
-    final nomMoi = widget.perspectiveMoi ? 'Moi' : 'Mon ami';
-    final nomAutre = widget.perspectiveMoi ? 'Mon ami' : 'Moi';
-    final remplacantsMoi = widget.perspectiveMoi ? AppStore.remplacantsMoi : AppStore.remplacantsAmi;
-    final remplacantsAutre = widget.perspectiveMoi ? AppStore.remplacantsAmi : AppStore.remplacantsMoi;
+    final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
+    final utilisateurAutre = AppStore.utilisateurAutre(widget.perspectiveMoi);
 
     final pacte = Pacte(
       id: AppStore.nouvelId(),
@@ -124,8 +122,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       date: date,
       dateAutomatique: dateAutomatique,
       restaurantsProposes: restaurants,
-      initiateur: CotePacte(nomTitulaire: nomMoi, listeRemplacants: remplacantsMoi),
-      destinataire: CotePacte(nomTitulaire: nomAutre, listeRemplacants: remplacantsAutre),
+      initiateur: CotePacte(
+        nomTitulaire: utilisateurMoi.nom,
+        listeRemplacants: utilisateurMoi.remplacants,
+      ),
+      destinataire: CotePacte(
+        nomTitulaire: utilisateurAutre.nom,
+        listeRemplacants: utilisateurAutre.remplacants,
+      ),
     );
 
     AppStore.pactes.add(pacte);

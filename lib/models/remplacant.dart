@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 class Remplacant {
   String nom;
-  Remplacant({required this.nom});
+  Uint8List? photo;
+  Remplacant({required this.nom, this.photo});
 }
