@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="stylesheet" href="_ds/organic-d9d69ffc-1019-447d-9c5e-5a6c7c22a4d6/styles.css">
+  <script src="_ds/organic-d9d69ffc-1019-447d-9c5e-5a6c7c22a4d6/_ds_bundle.js"></script>
+  <style>
+    body { margin: 0; background: #e7ddcb; }
+    a { color: var(--color-accent); }
+    a:hover { color: var(--color-accent-700); }
+    ::-webkit-scrollbar { width: 0; height: 0; }
+    @keyframes pacte-fade-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</helmet>
+<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 48px 24px; background: radial-gradient(circle at 30% 20%, #f0e4cf 0%, #e2d5bd 60%, #d9caae 100%); font-family: var(--font-body, 'Figtree', sans-serif);">
+  <div style="display: flex; flex-direction: column; align-items: center; gap: 18px;">
+
+        <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" hint-size="402px,874px" width="402" height="874" style="flex: none;">
+      <div style="height: 100%; display: flex; flex-direction: column; background: var(--color-bg); font-family: var(--font-body);">
+
+        <!-- ============ LOGIN ============ -->
+        <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+          <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 28px; gap: 24px; overflow: auto;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px; margin-bottom: 8px;">
+              <div style="width: 64px; height: 64px; border-radius: 999px; background: var(--color-accent-200); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M8 4L4 8l4 4M16 20l4-4-4-4" stroke="var(--color-accent-800)" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 8h9a4 4 0 014 4v0" stroke="var(--color-accent-800)" stroke-width="2.75" stroke-linecap="round"/><path d="M20 16h-9a4 4 0 01-4-4v0" stroke="var(--color-accent-800)" stroke-width="2.75" stroke-linecap="round"/></svg>
+              </div>
+              <h1 style="font-size: 30px; margin: 4px 0 0;">Le Pacte</h1>
+              <p class="text-muted" style="text-align: center; font-size: 13px; margin: 0; max-width: 260px;">Un rendez-vous fixé loin devant. Aucune nouvelle avant le jour J. Et un doute qui vous accompagne jusqu'au bout&nbsp;: qui, vraiment, sera là&nbsp;?</p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="field">
+                <label>Adresse email</label>
+                <input class="input" type="email" placeholder="toi@exemple.com" value="{{ loginEmail }}" onChange="{{ setLoginEmail }}">
+              </div>
+              <div class="field">
+                <label>Mot de passe</label>
+                <input class="input" type="password" placeholder="••••••••" value="{{ loginPassword }}" onChange="{{ setLoginPassword }}">
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" style="min-height: 46px; font-size: 15px;" onClick="{{ doLogin }}">{{ loginActionLabel }}</button>
+            <div style="text-align: center; font-size: 13px;">
+              <span class="text-muted">{{ loginSwitchPrompt }}</span>
+              <a href="#" onClick="{{ toggleLoginMode }}" style="margin-left: 4px; font-weight: 600;">{{ loginSwitchAction }}</a>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ============ ACCUEIL ============ -->
+        <sc-if value="{{ isAccueil }}" hint-placeholder-val="{{ false }}">
+          <div class="nav" style="padding-top: 58px;">
+            <span class="nav-brand">Le Pacte</span>
+            <button class="btn btn-secondary" style="min-height: 36px; font-size: 12px; gap: 5px;" onClick="{{ togglePerspective }}">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M7 7h11l-3-3M17 17H6l3 3" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Vue&nbsp;: {{ perspectiveLabel }}
+            </button>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 4px 16px 16px;">
+            <sc-if value="{{ hasPactes }}" hint-placeholder-val="{{ true }}">
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <sc-for list="{{ pactesView }}" as="p" hint-placeholder-count="2">
+                  <div class="card elev-sm" style="cursor: pointer; animation: pacte-fade-in .25s ease both;" onClick="{{ p.onOpen }}">
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                      <span class="card-title" style="font-size: 16px;">Pacte avec {{ p.autreNom }}</span>
+                      <span class="tag {{ p.statutTagClass }}">{{ p.statutLabel }}</span>
+                    </div>
+                    <p class="card-body">{{ p.typeLabel }} · {{ p.dateLabel }}</p>
+                    <div class="card-meta">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2.25"/></svg>
+                      {{ p.joursLabel }}
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ hasNoPactes }}" hint-placeholder-val="{{ false }}">
+              <div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 60px 20px;">
+                <div style="width: 56px; height: 56px; border-radius: 999px; background: var(--color-accent-2-100); display: flex; align-items: center; justify-content: center;">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M2 12h20" stroke="var(--color-accent-2-700)" stroke-width="2.75" stroke-linecap="round"/></svg>
+                </div>
+                <p class="text-muted" style="font-size: 13px; margin: 0;">Aucun pacte pour l'instant.<br>Lance-en un — et n'y repense plus.</p>
+              </div>
+            </sc-if>
+          </div>
+          <div style="padding: 0 16px 14px;">
+            <button class="btn btn-primary btn-block" style="min-height: 46px; font-size: 14px; gap: 6px;" onClick="{{ goCreer }}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/></svg>
+              Nouveau pacte
+            </button>
+          </div>
+          <dc-import name="BottomNav" active="accueil" go-accueil="{{ goAccueil }}" go-remplacants="{{ goRemplacants }}" go-profil="{{ goProfil }}" hint-size="100%,64px"></dc-import>
+        </sc-if>
+
+        <!-- ============ REMPLACANTS ============ -->
+        <sc-if value="{{ isRemplacants }}" hint-placeholder-val="{{ false }}">
+          <div class="nav" style="padding-top: 58px;">
+            <span class="nav-brand" style="font-size: 16px;">Mes remplaçants</span>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 14px;">
+            <p class="text-muted" style="font-size: 12.5px; margin: 0;">Les personnes de confiance qui peuvent te représenter le jour J, si tu ne peux pas venir. Minimum 3, pour pouvoir créer ou recevoir un pacte.</p>
+            <sc-if value="{{ remplacantsMinWarning }}" hint-placeholder-val="{{ false }}">
+              <div class="tag tag-accent" style="align-self: flex-start;">Encore {{ remplacantsMissingCount }} pour débloquer les pactes</div>
+            </sc-if>
+            <div class="card" style="padding: 6px 4px;">
+              <sc-for list="{{ remplacantsListe }}" as="r" hint-placeholder-count="3">
+                <div style="display: flex; align-items: center; gap: 10px; padding: 9px 10px;">
+                  <div style="width: 32px; height: 32px; border-radius: 999px; flex: none; overflow: hidden; background: var(--color-accent-2-200);">
+                    <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ r.slotId }}" shape="circle" placeholder="{{ r.initiale }}" hint-size="32px,32px" style="width:32px;height:32px;font-size:9px;"></x-import>
+                  </div>
+                  <span style="flex: 1; font-size: 14.5px; font-weight: 600;">{{ r.nom }}</span>
+                  <button class="btn btn-icon btn-ghost" onClick="{{ r.remove }}" aria-label="Retirer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/></svg>
+                  </button>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <input class="input" placeholder="Nom du remplaçant" value="{{ remplacantNewValue }}" onChange="{{ setRemplacantNewValue }}" style="flex: 1;">
+              <button class="btn btn-secondary btn-icon" onClick="{{ addRemplacant }}" aria-label="Ajouter">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.75" stroke-linecap="round"/></svg>
+              </button>
+            </div>
+          </div>
+          <dc-import name="BottomNav" active="remplacants" go-accueil="{{ goAccueil }}" go-remplacants="{{ goRemplacants }}" go-profil="{{ goProfil }}" hint-size="100%,64px"></dc-import>
+        </sc-if>
+
+        <!-- ============ PROFIL ============ -->
+        <sc-if value="{{ isProfil }}" hint-placeholder-val="{{ false }}">
+          <div class="nav" style="padding-top: 58px;">
+            <span class="nav-brand" style="font-size: 16px;">Profil</span>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 8px 16px 16px; display: flex; flex-direction: column; gap: 18px;">
+            <div style="display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 0 4px;">
+              <div style="width: 76px; height: 76px; border-radius: 999px; overflow: hidden; background: var(--color-accent-200); flex: none;">
+                <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ profilSlotId }}" shape="circle" placeholder="Ta photo" hint-size="76px,76px" style="width:76px;height:76px;"></x-import>
+              </div>
+              <h3 style="margin: 4px 0 0;">{{ profilNom }}</h3>
+              <span class="tag tag-neutral">Perspective de test</span>
+            </div>
+            <div class="card" style="gap: 0; padding: 4px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 10px; border-bottom: 1px solid var(--color-divider);">
+                <span style="font-size: 14px;">Remplaçants enregistrés</span>
+                <span class="tag tag-accent-2">{{ profilRemplacantsCount }}</span>
+              </div>
+              <div style="display: flex; align-items: center; justify-content: space-between; padding: 12px 10px;">
+                <span style="font-size: 14px;">Pactes en cours</span>
+                <span class="tag tag-accent-2">{{ profilPactesCount }}</span>
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-block" style="min-height: 44px;" onClick="{{ togglePerspective }}">Changer de vue ({{ perspectiveLabel }} → {{ otherLabel }})</button>
+            <button class="btn btn-ghost btn-block" style="min-height: 44px;" onClick="{{ logout }}">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="margin-right: 4px;"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Se déconnecter
+            </button>
+          </div>
+          <dc-import name="BottomNav" active="profil" go-accueil="{{ goAccueil }}" go-remplacants="{{ goRemplacants }}" go-profil="{{ goProfil }}" hint-size="100%,64px"></dc-import>
+        </sc-if>
+
+        <!-- ============ CREER PACTE ============ -->
+        <sc-if value="{{ isCreer }}" hint-placeholder-val="{{ false }}">
+          <div class="nav" style="padding-top: 58px;">
+            <button class="btn btn-icon btn-ghost" onClick="{{ goBack }}" aria-label="Retour">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="nav-brand" style="font-size: 16px;">Nouveau pacte</span>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 4px 16px 16px; display: flex; flex-direction: column; gap: 18px;">
+            <p class="text-muted" style="font-size: 12.5px; margin: 0;">De {{ perspectiveLabel }} vers {{ otherLabel }}. Choisis juste un cadre — pas de détails à négocier.</p>
+
+            <div>
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 8px; font-family: var(--font-heading);">Type de repas</div>
+              <div class="seg" style="width: 100%;">
+                <label class="seg-opt" style="flex: 1; justify-content: center;">
+                  <input type="radio" name="type-repas" checked="{{ creerTypeDejeunerChecked }}" onChange="{{ setCreerTypeDejeuner }}">Déjeuner
+                </label>
+                <label class="seg-opt" style="flex: 1; justify-content: center;">
+                  <input type="radio" name="type-repas" checked="{{ creerTypeDinerChecked }}" onChange="{{ setCreerTypeDiner }}">Dîner
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 8px; font-family: var(--font-heading);">Date</div>
+              <label class="radio" style="margin-bottom: 8px;">
+                <input type="radio" name="date-mode" checked="{{ creerDateAutoChecked }}" onChange="{{ setCreerDateAuto }}"><span class="dot"></span>
+                Laisser le hasard choisir
+              </label>
+              <label class="radio">
+                <input type="radio" name="date-mode" checked="{{ creerDateManuelleChecked }}" onChange="{{ setCreerDateManuelle }}"><span class="dot"></span>
+                Je choisis la date
+              </label>
+              <sc-if value="{{ creerShowDatePicker }}" hint-placeholder-val="{{ false }}">
+                <input class="input" type="date" style="margin-top: 10px;" value="{{ creerDateChoisie }}" onChange="{{ setCreerDateChoisie }}">
+              </sc-if>
+            </div>
+
+            <div>
+              <div style="font-size: 12px; font-weight: 700; margin-bottom: 8px; font-family: var(--font-heading);">3 restaurants proposés</div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <sc-for list="{{ creerRestaurants }}" as="r" hint-placeholder-count="3">
+                  <div class="card" style="gap: 8px; padding: 12px;">
+                    <span class="card-kicker">Option {{ r.numero }}</span>
+                    <input class="input" placeholder="Nom du restaurant" value="{{ r.nom }}" onChange="{{ r.setNom }}">
+                    <input class="input" placeholder="Lien (optionnel)" value="{{ r.lien }}" onChange="{{ r.setLien }}">
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" style="min-height: 46px;" disabled="{{ creerSubmitDisabled }}" onClick="{{ submitCreer }}">Envoyer le pacte</button>
+          </div>
+        </sc-if>
+
+        <!-- ============ DETAIL PACTE ============ -->
+        <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+          <div class="nav" style="padding-top: 58px;">
+            <button class="btn btn-icon btn-ghost" onClick="{{ goBack }}" aria-label="Retour">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <span class="nav-brand" style="font-size: 16px;">Pacte avec {{ detail.partenaireNom }}</span>
+          </div>
+          <div style="flex: 1; overflow: auto; padding: 4px 16px 20px; display: flex; flex-direction: column; gap: 16px;">
+
+            <div class="card elev-sm" style="gap: 10px;">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                <span class="card-title" style="font-size: 16px;">{{ detail.typeLabel }}</span>
+                <span class="tag {{ detail.statutTagClass }}">{{ detail.statutLabel }}</span>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 4px; font-size: 13.5px;">
+                <div style="display: flex; gap: 8px;"><span class="text-muted" style="width: 68px; flex: none;">Avec</span><span style="font-weight: 600;">{{ detail.partenaireNom }}</span></div>
+                <div style="display: flex; gap: 8px;"><span class="text-muted" style="width: 68px; flex: none;">Date</span><span style="font-weight: 600;">{{ detail.dateLabel }}</span></div>
+              </div>
+              <sc-if value="{{ detail.hasRestaurantRetenu }}" hint-placeholder-val="{{ false }}">
+                <div style="border-top: 1px solid var(--color-divider); padding-top: 10px; display: flex; flex-direction: column; gap: 4px; font-size: 13.5px;">
+                  <div style="display: flex; gap: 8px;"><span class="text-muted" style="width: 68px; flex: none;">Lieu</span><span style="font-weight: 600;">{{ detail.restaurantRetenuNom }}</span></div>
+                  <sc-if value="{{ detail.hasRestaurantRetenuLien }}" hint-placeholder-val="{{ false }}">
+                    <div style="display: flex; gap: 8px;"><span class="text-muted" style="width: 68px; flex: none;">Lien</span><a href="{{ detail.restaurantRetenuLien }}" target="_blank" style="font-weight: 600;">{{ detail.restaurantRetenuLien }}</a></div>
+                  </sc-if>
+                </div>
+              </sc-if>
+            </div>
+
+            <sc-if value="{{ detail.showBlocReponse }}" hint-placeholder-val="{{ false }}">
+              <div class="card" style="gap: 10px; background: var(--color-accent-100);">
+                <span class="card-title" style="font-size: 15px;">Que veux-tu faire&nbsp;?</span>
+                <button class="btn btn-primary btn-block" style="min-height: 44px; margin-top: 0;" onClick="{{ detail.acceptForMe }}">Accepter pour moi</button>
+                <button class="btn btn-secondary btn-block" style="min-height: 44px;" onClick="{{ detail.openDelegateDialog }}">Accepter et déléguer</button>
+                <button class="btn btn-ghost btn-block" style="min-height: 44px;" disabled="{{ detail.refusDisabled }}" onClick="{{ detail.refuse }}">{{ detail.refusLabel }}</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ detail.showBlocClassement }}" hint-placeholder-val="{{ false }}">
+              <div class="card" style="gap: 10px; background: var(--color-accent-2-100);">
+                <span class="card-title" style="font-size: 15px;">Classe les 3 restaurants</span>
+                <p class="card-body" style="margin: 0;">Le préféré en haut. Les deux classements sont combinés en secret pour choisir le lieu.</p>
+                <sc-if value="{{ detail.classementSubmitted }}" hint-placeholder-val="{{ false }}">
+                  <p style="font-style: italic; font-size: 13px; margin: 4px 0 0;">Classement envoyé. En attente de l'autre participant…</p>
+                </sc-if>
+                <sc-if value="{{ detail.classementEditable }}" hint-placeholder-val="{{ false }}">
+                  <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <sc-for list="{{ detail.classementItems }}" as="c" hint-placeholder-count="3">
+                      <div style="display: flex; align-items: center; gap: 10px; background: var(--color-surface); border-radius: var(--radius-md); padding: 8px 10px;">
+                        <span class="tag tag-accent" style="flex: none;">{{ c.rang }}</span>
+                        <span style="flex: 1; font-size: 14px; font-weight: 600;">{{ c.nom }}</span>
+                        <button class="btn btn-icon btn-ghost" disabled="{{ c.isFirst }}" onClick="{{ c.moveUp }}" aria-label="Monter"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M18 15l-6-6-6 6" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                        <button class="btn btn-icon btn-ghost" disabled="{{ c.isLast }}" onClick="{{ c.moveDown }}" aria-label="Descendre"><svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+                      </div>
+                    </sc-for>
+                    <button class="btn btn-primary btn-block" style="min-height: 44px;" onClick="{{ detail.submitClassement }}">Envoyer mon classement</button>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ detail.showBlocCascade }}" hint-placeholder-val="{{ false }}">
+              <div class="card" style="gap: 10px;">
+                <span class="card-title" style="font-size: 15px;">Le garde-fou anti-désistement</span>
+                <p class="card-body" style="margin: 0;">Des relances automatiques (J-7, J-3, J-1) veillent en coulisses à ce que quelqu'un — titulaire ou remplaçant — soit bien présent, sans jamais te dire qui. Ici, une simulation de l'échéance finale (J-1, 20h)&nbsp;:</p>
+                <button class="btn btn-secondary btn-block" style="min-height: 44px;" onClick="{{ detail.cascadeMaintenu }}">Simuler&nbsp;: rendez-vous maintenu</button>
+                <button class="btn btn-ghost btn-block" style="min-height: 44px;" onClick="{{ detail.cascadeAnnule }}">Simuler&nbsp;: personne trouvée → annulé</button>
+              </div>
+            </sc-if>
+
+            <sc-if value="{{ detail.showEpilogue }}" hint-placeholder-val="{{ false }}">
+              <div class="card elev-sm" style="gap: 6px; align-items: center; text-align: center; padding: 20px 16px;">
+                <span style="font-family: var(--font-heading); font-size: 17px;">{{ detail.epilogueTitle }}</span>
+                <p class="card-body" style="margin: 0;">{{ detail.epilogueBody }}</p>
+              </div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ detail.delegateOpen }}" hint-placeholder-val="{{ false }}">
+            <div class="dialog-backdrop" style="position: absolute;" onClick="{{ detail.closeDelegateDialog }}">
+              <div class="dialog" onClick="{{ detail.stopPropagation }}">
+                <span class="dialog-title">Choisir un remplaçant</span>
+                <p class="dialog-body" style="margin: 0;">L'initiateur recevra la même confirmation, quel que soit ton choix.</p>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <sc-for list="{{ detail.delegateList }}" as="d" hint-placeholder-count="3">
+                    <button class="btn btn-secondary btn-block" style="margin-top: 0; min-height: 42px; justify-content: flex-start;" onClick="{{ d.choose }}">{{ d.nom }}</button>
+                  </sc-for>
+                </div>
+                <div class="dialog-actions">
+                  <button class="btn btn-ghost" onClick="{{ detail.closeDelegateDialog }}">Annuler</button>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </sc-if>
+
+      </div>
+    </x-import>
+
+    <sc-if value="{{ toastMessage }}" hint-placeholder-val="{{ false }}">
+      <div style="background: var(--color-accent-900); color: #fff; font-size: 12.5px; padding: 8px 16px; border-radius: 999px; box-shadow: var(--shadow-md);">{{ toastMessage }}</div>
+    </sc-if>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const STATUT_LABELS = {
+  enAttenteReponse: 'En attente de réponse',
+  refuseContreProposition: 'Contre-proposition envoyée',
+  accepteEnAttenteClassement: 'Classement en cours',
+  confirme: 'Confirmé',
+  maintenu: 'Maintenu',
+  annule: 'Annulé',
+};
+const STATUT_TAG = {
+  enAttenteReponse: 'tag-neutral',
+  refuseContreProposition: 'tag-outline',
+  accepteEnAttenteClassement: 'tag-accent-2',
+  confirme: 'tag-accent',
+  maintenu: 'tag-accent',
+  annule: 'tag-neutral',
+};
+const TYPE_LABELS = { dejeuner: 'Déjeuner', diner: 'Dîner' };
+
+function initiale(nom) { return (nom || '?').trim().charAt(0).toUpperCase(); }
+
+function fmtDate(d) {
+  if (!d) return '—';
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function joursLabel(d) {
+  if (!d) return '';
+  const days = Math.ceil((d.getTime() - Date.now()) / 86400000);
+  if (days > 1) return `Dans ${days} jours`;
+  if (days === 1) return 'Demain';
+  if (days === 0) return "Aujourd'hui";
+  return "Date passée";
+}
+
+function calculerRestaurantElu(pacte) {
+  const n = pacte.restaurants.length;
+  const scores = new Array(n).fill(0);
+  for (let i = 0; i < n; i++) {
+    const rangI = pacte.classementInitiateur.indexOf(i);
+    const rangD = pacte.classementDestinataire.indexOf(i);
+    scores[i] = rangI + rangD;
+  }
+  let best = 0;
+  for (let i = 1; i < n; i++) {
+    if (scores[i] < scores[best]) best = i;
+    else if (scores[i] === scores[best]) {
+      const prefDest = pacte.classementDestinataire[0];
+      if (prefDest === i) best = i;
+    }
+  }
+  return best;
+}
+
+function makeId() { return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+function seedPactes() {
+  const now = Date.now();
+  const dayMs = 86400000;
+  return [
+    {
+      id: 'seed-1',
+      type: 'diner',
+      date: new Date(now + 52 * dayMs),
+      dateAutomatique: true,
+      restaurants: [
+        { nom: 'Le Baratin', lien: 'https://lebaratin.paris' },
+        { nom: 'Chez Georges', lien: '' },
+        { nom: 'Septime', lien: 'https://septime-charonne.fr' },
+      ],
+      restaurantRetenu: null,
+      classementInitiateur: null,
+      classementDestinataire: null,
+      statut: 'enAttenteReponse',
+      nombreRefus: 0,
+      initiateur: { nomTitulaire: 'Moi', listeRemplacants: ['Camille', 'Sacha', 'Lou'], statutPresence: 'titulaire' },
+      destinataire: { nomTitulaire: 'Mon ami', listeRemplacants: ['Nino', 'Alex', 'Jules'], statutPresence: 'titulaire' },
+    },
+    {
+      id: 'seed-2',
+      type: 'dejeuner',
+      date: new Date(now + 12 * dayMs),
+      dateAutomatique: true,
+      restaurants: [
+        { nom: 'Bouillon Pigalle', lien: '' },
+        { nom: 'Le Petit Cambodge', lien: 'https://lepetitcambodge.fr' },
+        { nom: 'Frenchie', lien: '' },
+      ],
+      restaurantRetenu: 1,
+      classementInitiateur: [1, 0, 2],
+      classementDestinataire: [1, 2, 0],
+      statut: 'confirme',
+      nombreRefus: 0,
+      initiateur: { nomTitulaire: 'Mon ami', listeRemplacants: ['Nino', 'Alex', 'Jules'], statutPresence: 'titulaire' },
+      destinataire: { nomTitulaire: 'Moi', listeRemplacants: ['Camille', 'Sacha', 'Lou'], statutPresence: 'titulaire' },
+    },
+  ];
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: 'login',
+    loginMode: 'login',
+    loginEmail: '',
+    loginPassword: '',
+    perspectiveMoi: true,
+    pactes: seedPactes(),
+    selectedPacteId: null,
+    remplacantsMoi: ['Camille', 'Sacha', 'Lou'],
+    remplacantsAmi: ['Nino', 'Alex', 'Jules'],
+    remplacantNewValue: '',
+    creerType: 'diner',
+    creerDateAutomatique: true,
+    creerDateChoisie: '',
+    creerRestaurants: [{ nom: '', lien: '' }, { nom: '', lien: '' }, { nom: '', lien: '' }],
+    draftClassement: {},
+    delegateOpen: false,
+    toastMessage: null,
+  };
+
+  toast(msg) {
+    this.setState({ toastMessage: msg });
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.setState({ toastMessage: null }), 2200);
+  }
+
+  goTo(screen) { this.setState({ screen }); }
+
+  renderVals() {
+    const s = this.state;
+    const perspectiveLabel = s.perspectiveMoi ? 'Moi' : 'Mon ami';
+    const otherLabel = s.perspectiveMoi ? 'Mon ami' : 'Moi';
+    const monNom = perspectiveLabel;
+
+    const pactesView = s.pactes.map((p) => {
+      const jeSuisInitiateur = p.initiateur.nomTitulaire === monNom;
+      const autreNom = jeSuisInitiateur ? p.destinataire.nomTitulaire : p.initiateur.nomTitulaire;
+      return {
+        id: p.id,
+        autreNom,
+        typeLabel: TYPE_LABELS[p.type],
+        statutLabel: STATUT_LABELS[p.statut],
+        statutTagClass: STATUT_TAG[p.statut],
+        dateLabel: fmtDate(p.date),
+        joursLabel: joursLabel(p.date),
+        onOpen: () => this.setState({ screen: 'detail', selectedPacteId: p.id }),
+      };
+    });
+
+    const remplacantsCourants = s.perspectiveMoi ? s.remplacantsMoi : s.remplacantsAmi;
+    const perspKey = s.perspectiveMoi ? 'moi' : 'ami';
+    const remplacantsListe = remplacantsCourants.map((nom, i) => ({
+      nom, initiale: initiale(nom),
+      slotId: `rep-${perspKey}-${nom.toLowerCase().replace(/[^a-z0-9]/g, '')}`,
+      remove: () => {
+        const key = s.perspectiveMoi ? 'remplacantsMoi' : 'remplacantsAmi';
+        const next = this.state[key].filter((_, idx) => idx !== i);
+        this.setState({ [key]: next });
+      },
+    }));
+
+    const creerRestaurants = s.creerRestaurants.map((r, i) => ({
+      numero: i + 1, nom: r.nom, lien: r.lien,
+      setNom: (e) => {
+        const next = s.creerRestaurants.slice();
+        next[i] = { ...next[i], nom: e.target.value };
+        this.setState({ creerRestaurants: next });
+      },
+      setLien: (e) => {
+        const next = s.creerRestaurants.slice();
+        next[i] = { ...next[i], lien: e.target.value };
+        this.setState({ creerRestaurants: next });
+      },
+    }));
+    const creerCanSubmit = (!s.creerDateAutomatique ? !!s.creerDateChoisie : true)
+      && s.creerRestaurants.every((r) => r.nom.trim() !== '');
+
+    // ---- detail view ----
+    let detail = null;
+    const pacte = s.pactes.find((p) => p.id === s.selectedPacteId);
+    if (pacte) {
+      const jeSuisInitiateur = pacte.initiateur.nomTitulaire === monNom;
+      const cotePartenaire = jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
+      const coteMoi = jeSuisInitiateur ? pacte.initiateur : pacte.destinataire;
+
+      const showBlocReponse = !jeSuisInitiateur && pacte.statut === 'enAttenteReponse';
+      const showBlocClassement = pacte.statut === 'accepteEnAttenteClassement';
+      const showBlocCascade = pacte.statut === 'confirme';
+      const showEpilogue = pacte.statut === 'maintenu' || pacte.statut === 'annule';
+
+      const monClassementSoumis = jeSuisInitiateur ? pacte.classementInitiateur : pacte.classementDestinataire;
+      const classementSubmitted = !!monClassementSoumis;
+      const draftKey = pacte.id + '_' + (jeSuisInitiateur ? 'i' : 'd');
+      if (!s.draftClassement[draftKey]) {
+        s.draftClassement[draftKey] = pacte.restaurants.map((_, i) => i);
+      }
+      const draft = s.draftClassement[draftKey];
+      const classementItems = draft.map((restIdx, rang) => ({
+        rang: rang + 1,
+        nom: pacte.restaurants[restIdx].nom,
+        isFirst: rang === 0,
+        isLast: rang === draft.length - 1,
+        moveUp: () => {
+          const next = draft.slice();
+          [next[rang - 1], next[rang]] = [next[rang], next[rang - 1]];
+          this.setState({ draftClassement: { ...s.draftClassement, [draftKey]: next } });
+        },
+        moveDown: () => {
+          const next = draft.slice();
+          [next[rang], next[rang + 1]] = [next[rang + 1], next[rang]];
+          this.setState({ draftClassement: { ...s.draftClassement, [draftKey]: next } });
+        },
+      }));
+
+      detail = {
+        id: pacte.id,
+        partenaireNom: cotePartenaire.nomTitulaire,
+        typeLabel: TYPE_LABELS[pacte.type],
+        dateLabel: fmtDate(pacte.date),
+        statutLabel: STATUT_LABELS[pacte.statut],
+        statutTagClass: STATUT_TAG[pacte.statut],
+        hasRestaurantRetenu: pacte.restaurantRetenu !== null,
+        restaurantRetenuNom: pacte.restaurantRetenu !== null ? pacte.restaurants[pacte.restaurantRetenu].nom : '',
+        hasRestaurantRetenuLien: pacte.restaurantRetenu !== null && !!pacte.restaurants[pacte.restaurantRetenu].lien,
+        restaurantRetenuLien: pacte.restaurantRetenu !== null ? pacte.restaurants[pacte.restaurantRetenu].lien : '',
+        showBlocReponse,
+        showBlocClassement,
+        showBlocCascade,
+        showEpilogue,
+        epilogueTitle: pacte.statut === 'maintenu' ? 'Rendez-vous maintenu' : 'Rendez-vous annulé',
+        epilogueBody: pacte.statut === 'maintenu'
+          ? "Quelqu'un sera là, des deux côtés. Qui exactement ? Tu le sauras en arrivant."
+          : "Personne n'a été trouvé à temps d'un des deux côtés. Le pacte s'arrête ici.",
+        refusDisabled: pacte.nombreRefus >= 2,
+        refusLabel: pacte.nombreRefus >= 2 ? 'Refuser (limite atteinte)' : `Refuser et proposer une autre date (${pacte.nombreRefus}/2)`,
+        classementSubmitted,
+        classementEditable: !classementSubmitted,
+        classementItems,
+        submitClassement: () => {
+          const key = jeSuisInitiateur ? 'classementInitiateur' : 'classementDestinataire';
+          pacte[key] = draft.slice();
+          if (pacte.classementInitiateur && pacte.classementDestinataire) {
+            pacte.restaurantRetenu = calculerRestaurantElu(pacte);
+            pacte.statut = 'confirme';
+          }
+          this.toast('Classement envoyé');
+          this.forceUpdate();
+        },
+        acceptForMe: () => {
+          coteMoi.statutPresence = 'titulaire';
+          pacte.statut = 'accepteEnAttenteClassement';
+          this.toast('Pacte accepté');
+          this.forceUpdate();
+        },
+        refuse: () => {
+          if (pacte.nombreRefus >= 2) return;
+          pacte.nombreRefus += 1;
+          pacte.statut = 'refuseContreProposition';
+          this.toast('Contre-proposition envoyée');
+          this.forceUpdate();
+        },
+        openDelegateDialog: () => this.setState({ delegateOpen: true }),
+        closeDelegateDialog: () => this.setState({ delegateOpen: false }),
+        stopPropagation: (e) => e.stopPropagation(),
+        delegateOpen: s.delegateOpen,
+        delegateList: coteMoi.listeRemplacants.map((nom) => ({
+          nom,
+          choose: () => {
+            coteMoi.statutPresence = 'remplacantSollicite';
+            pacte.statut = 'accepteEnAttenteClassement';
+            this.setState({ delegateOpen: false });
+            this.toast('Remplaçant sollicité — pacte accepté');
+          },
+        })),
+        cascadeMaintenu: () => { pacte.statut = 'maintenu'; this.forceUpdate(); },
+        cascadeAnnule: () => { pacte.statut = 'annule'; this.forceUpdate(); },
+      };
+    }
+
+    return {
+      screen: s.screen,
+      isLogin: s.screen === 'login',
+      isAccueil: s.screen === 'accueil',
+      isRemplacants: s.screen === 'remplacants',
+      isProfil: s.screen === 'profil',
+      isCreer: s.screen === 'creer',
+      isDetail: s.screen === 'detail',
+
+      loginEmail: s.loginEmail,
+      setLoginEmail: (e) => this.setState({ loginEmail: e.target.value }),
+      loginPassword: s.loginPassword,
+      setLoginPassword: (e) => this.setState({ loginPassword: e.target.value }),
+      loginActionLabel: s.loginMode === 'login' ? 'Se connecter' : 'Créer mon compte',
+      loginSwitchPrompt: s.loginMode === 'login' ? "Pas encore de compte ?" : 'Déjà un compte ?',
+      loginSwitchAction: s.loginMode === 'login' ? "S'inscrire" : 'Se connecter',
+      toggleLoginMode: (e) => { e.preventDefault(); this.setState({ loginMode: s.loginMode === 'login' ? 'signup' : 'login' }); },
+      doLogin: () => this.setState({ screen: 'accueil' }),
+
+      perspectiveLabel, otherLabel,
+      togglePerspective: () => this.setState({ perspectiveMoi: !s.perspectiveMoi }),
+
+      goAccueil: () => this.setState({ screen: 'accueil' }),
+      goRemplacants: () => this.setState({ screen: 'remplacants' }),
+      goProfil: () => this.setState({ screen: 'profil' }),
+      goCreer: () => this.setState({ screen: 'creer' }),
+      goBack: () => this.setState({ screen: 'accueil', selectedPacteId: null, delegateOpen: false }),
+      logout: () => this.setState({ screen: 'login' }),
+
+      hasPactes: pactesView.length > 0,
+      hasNoPactes: pactesView.length === 0,
+      pactesView,
+
+      remplacantsListe,
+      remplacantsMinWarning: remplacantsCourants.length < 3,
+      remplacantsMissingCount: Math.max(0, 3 - remplacantsCourants.length),
+      remplacantNewValue: s.remplacantNewValue,
+      setRemplacantNewValue: (e) => this.setState({ remplacantNewValue: e.target.value }),
+      addRemplacant: () => {
+        const nom = s.remplacantNewValue.trim();
+        if (!nom) return;
+        const key = s.perspectiveMoi ? 'remplacantsMoi' : 'remplacantsAmi';
+        this.setState({ [key]: [...this.state[key], nom], remplacantNewValue: '' });
+        this.toast('Remplaçant ajouté');
+      },
+
+      profilNom: monNom,
+      profilInitiale: initiale(monNom),
+      profilSlotId: `profil-${perspKey}`,
+      profilRemplacantsCount: remplacantsCourants.length,
+      profilPactesCount: pactesView.length,
+
+      creerTypeDejeunerChecked: s.creerType === 'dejeuner',
+      setCreerTypeDejeuner: () => this.setState({ creerType: 'dejeuner' }),
+      creerTypeDinerChecked: s.creerType === 'diner',
+      setCreerTypeDiner: () => this.setState({ creerType: 'diner' }),
+      creerDateAutoChecked: s.creerDateAutomatique,
+      setCreerDateAuto: () => this.setState({ creerDateAutomatique: true }),
+      creerDateManuelleChecked: !s.creerDateAutomatique,
+      setCreerDateManuelle: () => this.setState({ creerDateAutomatique: false }),
+      creerShowDatePicker: !s.creerDateAutomatique,
+      creerDateChoisie: s.creerDateChoisie,
+      setCreerDateChoisie: (e) => this.setState({ creerDateChoisie: e.target.value }),
+      creerRestaurants,
+      creerSubmitDisabled: !creerCanSubmit,
+      submitCreer: () => {
+        if (!creerCanSubmit) return;
+        const date = s.creerDateAutomatique
+          ? new Date(Date.now() + (45 + Math.floor(Math.random() * 30)) * 86400000)
+          : new Date(s.creerDateChoisie);
+        const remplacantsMoiListe = s.remplacantsMoi;
+        const remplacantsAmiListe = s.remplacantsAmi;
+        const nouveau = {
+          id: makeId(),
+          type: s.creerType,
+          date,
+          dateAutomatique: s.creerDateAutomatique,
+          restaurants: s.creerRestaurants.map((r) => ({ nom: r.nom.trim(), lien: r.lien.trim() })),
+          restaurantRetenu: null,
+          classementInitiateur: null,
+          classementDestinataire: null,
+          statut: 'enAttenteReponse',
+          nombreRefus: 0,
+          initiateur: { nomTitulaire: monNom, listeRemplacants: s.perspectiveMoi ? remplacantsMoiListe : remplacantsAmiListe, statutPresence: 'titulaire' },
+          destinataire: { nomTitulaire: otherLabel, listeRemplacants: s.perspectiveMoi ? remplacantsAmiListe : remplacantsMoiListe, statutPresence: 'titulaire' },
+        };
+        this.setState({
+          pactes: [...s.pactes, nouveau],
+          screen: 'accueil',
+          creerRestaurants: [{ nom: '', lien: '' }, { nom: '', lien: '' }, { nom: '', lien: '' }],
+          creerDateChoisie: '',
+          creerType: 'diner',
+          creerDateAutomatique: true,
+        });
+        this.toast('Pacte envoyé');
+      },
+
+      detail,
+      toastMessage: s.toastMessage,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
