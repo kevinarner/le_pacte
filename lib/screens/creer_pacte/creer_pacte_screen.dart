@@ -10,6 +10,7 @@ import '../../theme/app_theme.dart';
 
 const _nomRestaurant = 'Au père Lapin';
 const _lienRestaurant = 'https://www.auperelapin.com/';
+const _lienTelechargementApp = 'https://kevinarner.github.io/le_pacte/';
 
 const _joursSemaine = [
   'lundi',
@@ -59,6 +60,10 @@ class CreerPacteScreen extends StatefulWidget {
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
   TypeRepas type = TypeRepas.diner;
   DateTime? dateChoisie;
+  final prenomDestinataireController = TextEditingController();
+  final nomDestinataireController = TextEditingController();
+  final telephoneDestinataireController = TextEditingController();
+  final emailDestinataireController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
@@ -72,6 +77,63 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         children: [
           Text('Initiateur : $nomMoi → destinataire : $nomAutre',
               style: Theme.of(context).textTheme.bodySmall),
+          const SizedBox(height: 16),
+          const Text('Avec qui souhaitez-vous faire ce pacte ?',
+              style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: prenomDestinataireController,
+                  decoration: const InputDecoration(labelText: 'Prénom'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: nomDestinataireController,
+                  decoration: const InputDecoration(labelText: 'Nom'),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: telephoneDestinataireController,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Numéro de téléphone (optionnel)'),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: emailDestinataireController,
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _inviterParSms,
+                icon: const Icon(Icons.sms_outlined, size: 18),
+                label: const Text('Inviter par SMS'),
+              ),
+              OutlinedButton.icon(
+                onPressed: _inviterParEmail,
+                icon: const Icon(Icons.email_outlined, size: 18),
+                label: const Text('Inviter par email'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
           const SizedBox(height: 16),
           const Text('Type de repas', style: TextStyle(fontWeight: FontWeight.bold)),
           RadioListTile<TypeRepas>(
@@ -140,10 +202,52 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
-  bool _peutValider() => dateChoisie != null;
+  bool _peutValider() =>
+      dateChoisie != null &&
+      prenomDestinataireController.text.trim().isNotEmpty &&
+      nomDestinataireController.text.trim().isNotEmpty;
 
   Future<void> _ouvrirLienRestaurant() async {
     await launchUrl(Uri.parse(_lienRestaurant), webOnlyWindowName: '_blank');
+  }
+
+  String get _nomCompletDestinataire {
+    final prenom = prenomDestinataireController.text.trim();
+    final nom = nomDestinataireController.text.trim();
+    return [prenom, nom].where((s) => s.isNotEmpty).join(' ');
+  }
+
+  String _messageInvitation() {
+    final prenom = prenomDestinataireController.text.trim();
+    final salutation = prenom.isNotEmpty ? 'Salut $prenom' : 'Salut';
+    return "$salutation, je t'invite à faire un pacte avec moi sur Le Pacte ! "
+        'Télécharge l\'application ici : $_lienTelechargementApp';
+  }
+
+  Future<void> _inviterParSms() async {
+    final numero = telephoneDestinataireController.text.trim();
+    if (numero.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Renseigne le numéro de téléphone pour inviter par SMS.')),
+      );
+      return;
+    }
+    await launchUrl(Uri(scheme: 'sms', path: numero, queryParameters: {'body': _messageInvitation()}));
+  }
+
+  Future<void> _inviterParEmail() async {
+    final email = emailDestinataireController.text.trim();
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Renseigne l\'adresse email pour inviter par email.')),
+      );
+      return;
+    }
+    await launchUrl(Uri(
+      scheme: 'mailto',
+      path: email,
+      queryParameters: {'subject': 'Invitation à un pacte', 'body': _messageInvitation()},
+    ));
   }
 
   void _creerPacte() {
@@ -167,7 +271,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         listeRemplacants: utilisateurMoi.remplacants,
       ),
       destinataire: CotePacte(
-        nomTitulaire: utilisateurAutre.nom,
+        nomTitulaire: _nomCompletDestinataire,
         listeRemplacants: utilisateurAutre.remplacants,
       ),
     );
