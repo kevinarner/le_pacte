@@ -16,7 +16,6 @@ class CreerPacteScreen extends StatefulWidget {
 
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
   TypeRepas type = TypeRepas.diner;
-  bool dateAutomatique = true;
   DateTime? dateChoisie;
   final List<TextEditingController> nomsRestaurants =
       List.generate(3, (_) => TextEditingController());
@@ -51,27 +50,22 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           ),
           const SizedBox(height: 8),
           const Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
-          SwitchListTile(
-            title: const Text("Laisser l'application choisir la date"),
-            value: dateAutomatique,
-            onChanged: (v) => setState(() => dateAutomatique = v),
+          ListTile(
+            title: Text(dateChoisie == null
+                ? 'Choisir une date'
+                : 'Date : ${dateChoisie!.day}/${dateChoisie!.month}/${dateChoisie!.year}'),
+            trailing: const Icon(Icons.calendar_today),
+            onTap: () async {
+              final d = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now().add(const Duration(days: 60)),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+                locale: const Locale('fr', 'FR'),
+              );
+              if (d != null) setState(() => dateChoisie = d);
+            },
           ),
-          if (!dateAutomatique)
-            ListTile(
-              title: Text(dateChoisie == null
-                  ? 'Choisir une date'
-                  : 'Date : ${dateChoisie!.day}/${dateChoisie!.month}/${dateChoisie!.year}'),
-              trailing: const Icon(Icons.calendar_today),
-              onTap: () async {
-                final d = await showDatePicker(
-                  context: context,
-                  initialDate: DateTime.now().add(const Duration(days: 60)),
-                  firstDate: DateTime.now(),
-                  lastDate: DateTime.now().add(const Duration(days: 365)),
-                );
-                if (d != null) setState(() => dateChoisie = d);
-              },
-            ),
           const SizedBox(height: 16),
           const Text('3 restaurants proposés', style: TextStyle(fontWeight: FontWeight.bold)),
           for (int i = 0; i < 3; i++) ...[
@@ -96,14 +90,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   }
 
   bool _peutValider() {
-    if (!dateAutomatique && dateChoisie == null) return false;
+    if (dateChoisie == null) return false;
     return nomsRestaurants.every((c) => c.text.trim().isNotEmpty);
   }
 
   void _creerPacte() {
-    final date = dateAutomatique
-        ? DateTime.now().add(Duration(days: 45 + (DateTime.now().millisecond % 30)))
-        : dateChoisie;
+    final date = dateChoisie;
 
     final restaurants = List.generate(
       3,
@@ -120,7 +112,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       id: AppStore.nouvelId(),
       type: type,
       date: date,
-      dateAutomatique: dateAutomatique,
+      dateAutomatique: false,
       restaurantsProposes: restaurants,
       initiateur: CotePacte(
         nomTitulaire: utilisateurMoi.nom,
