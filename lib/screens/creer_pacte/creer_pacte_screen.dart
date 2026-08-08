@@ -102,7 +102,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           TextField(
             controller: telephoneDestinataireController,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Numéro de téléphone (optionnel)'),
+            decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
           ),
           const SizedBox(height: 8),
           TextField(
