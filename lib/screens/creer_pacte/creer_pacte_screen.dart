@@ -18,9 +18,9 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   TypeRepas type = TypeRepas.diner;
   DateTime? dateChoisie;
   final List<TextEditingController> nomsRestaurants =
-      List.generate(3, (_) => TextEditingController());
+      [TextEditingController(text: 'Au père Lapin')];
   final List<TextEditingController> liensRestaurants =
-      List.generate(3, (_) => TextEditingController());
+      [TextEditingController(text: 'https://www.auperelapin.com/')];
 
   @override
   Widget build(BuildContext context) {
@@ -67,18 +67,21 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             },
           ),
           const SizedBox(height: 16),
-          const Text('3 restaurants proposés', style: TextStyle(fontWeight: FontWeight.bold)),
-          for (int i = 0; i < 3; i++) ...[
-            const SizedBox(height: 8),
-            TextField(
-              controller: nomsRestaurants[i],
-              decoration: InputDecoration(labelText: 'Nom du restaurant ${i + 1}'),
-            ),
-            TextField(
-              controller: liensRestaurants[i],
-              decoration: const InputDecoration(labelText: 'Lien du site (optionnel)'),
-            ),
-          ],
+          const Text('1 restaurant proposé', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          const Text(
+            "D'autres restaurant vont être proposés bientôt",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: nomsRestaurants[0],
+            decoration: const InputDecoration(labelText: 'Nom du restaurant'),
+          ),
+          TextField(
+            controller: liensRestaurants[0],
+            decoration: const InputDecoration(labelText: 'Lien du site (optionnel)'),
+          ),
           const SizedBox(height: 24),
           FilledButton(
             onPressed: _peutValider() ? _creerPacte : null,
@@ -97,13 +100,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   void _creerPacte() {
     final date = dateChoisie;
 
-    final restaurants = List.generate(
-      3,
-      (i) => Restaurant(
-        nom: nomsRestaurants[i].text.trim(),
-        lien: liensRestaurants[i].text.trim(),
+    final restaurants = [
+      Restaurant(
+        nom: nomsRestaurants[0].text.trim(),
+        lien: liensRestaurants[0].text.trim(),
       ),
-    );
+    ];
 
     final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
     final utilisateurAutre = AppStore.utilisateurAutre(widget.perspectiveMoi);
