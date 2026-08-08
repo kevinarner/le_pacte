@@ -40,6 +40,9 @@ dependencies:
   # Sélection de photo (profil et remplaçants) depuis la galerie.
   image_picker: ^1.1.2
 
+  # Ouvrir le lien du site d'un restaurant dans le navigateur.
+  url_launcher: ^6.3.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,10 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../theme/app_theme.dart';
+
+const _nomRestaurant = 'Au père Lapin';
+const _lienRestaurant = 'https://www.auperelapin.com/';
+
+const _joursSemaine = [
+  'lundi',
+  'mardi',
+  'mercredi',
+  'jeudi',
+  'vendredi',
+  'samedi',
+  'dimanche',
+];
+const _moisAnnee = [
+  'janvier',
+  'février',
+  'mars',
+  'avril',
+  'mai',
+  'juin',
+  'juillet',
+  'août',
+  'septembre',
+  'octobre',
+  'novembre',
+  'décembre',
+];
+
+String _formaterDateEnToutesLettres(DateTime d) =>
+    '${_joursSemaine[d.weekday - 1]} ${d.day} ${_moisAnnee[d.month - 1]} ${d.year}';
+
+bool _estJourAutorise(DateTime d) => d.weekday <= DateTime.wednesday;
+
+DateTime _prochainJourAutorise(DateTime d) {
+  var date = d;
+  while (!_estJourAutorise(date)) {
+    date = date.add(const Duration(days: 1));
+  }
+  return date;
+}
 
 class CreerPacteScreen extends StatefulWidget {
   final bool perspectiveMoi;
@@ -17,10 +59,6 @@ class CreerPacteScreen extends StatefulWidget {
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
   TypeRepas type = TypeRepas.diner;
   DateTime? dateChoisie;
-  final List<TextEditingController> nomsRestaurants =
-      [TextEditingController(text: 'Au père Lapin')];
-  final List<TextEditingController> liensRestaurants =
-      [TextEditingController(text: 'https://www.auperelapin.com/')];
 
   @override
   Widget build(BuildContext context) {
@@ -53,15 +91,16 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           ListTile(
             title: Text(dateChoisie == null
                 ? 'Choisir une date'
-                : 'Date : ${dateChoisie!.day}/${dateChoisie!.month}/${dateChoisie!.year}'),
+                : 'Date : ${_formaterDateEnToutesLettres(dateChoisie!)}'),
             trailing: const Icon(Icons.calendar_today),
             onTap: () async {
               final d = await showDatePicker(
                 context: context,
-                initialDate: DateTime.now().add(const Duration(days: 60)),
+                initialDate: _prochainJourAutorise(DateTime.now().add(const Duration(days: 60))),
                 firstDate: DateTime.now(),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
                 locale: const Locale('fr', 'FR'),
+                selectableDayPredicate: _estJourAutorise,
               );
               if (d != null) setState(() => dateChoisie = d);
             },
@@ -73,14 +112,23 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             "D'autres restaurant vont être proposés bientôt",
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: nomsRestaurants[0],
-            decoration: const InputDecoration(labelText: 'Nom du restaurant'),
-          ),
-          TextField(
-            controller: liensRestaurants[0],
-            decoration: const InputDecoration(labelText: 'Lien du site (optionnel)'),
+          const SizedBox(height: 12),
+          const Text('Nom du restaurant', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          const SizedBox(height: 4),
+          const Text(_nomRestaurant, style: TextStyle(fontSize: 16)),
+          const SizedBox(height: 12),
+          const Text('Lien du site web', style: TextStyle(fontSize: 12, color: Colors.black54)),
+          const SizedBox(height: 4),
+          InkWell(
+            onTap: _ouvrirLienRestaurant,
+            child: const Text(
+              _lienRestaurant,
+              style: TextStyle(
+                fontSize: 16,
+                color: AppColors.terracotta,
+                decoration: TextDecoration.underline,
+              ),
+            ),
           ),
           const SizedBox(height: 24),
           FilledButton(
@@ -92,19 +140,17 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
-  bool _peutValider() {
-    if (dateChoisie == null) return false;
-    return nomsRestaurants.every((c) => c.text.trim().isNotEmpty);
+  bool _peutValider() => dateChoisie != null;
+
+  Future<void> _ouvrirLienRestaurant() async {
+    await launchUrl(Uri.parse(_lienRestaurant), webOnlyWindowName: '_blank');
   }
 
   void _creerPacte() {
     final date = dateChoisie;
 
     final restaurants = [
-      Restaurant(
-        nom: nomsRestaurants[0].text.trim(),
-        lien: liensRestaurants[0].text.trim(),
-      ),
+      Restaurant(nom: _nomRestaurant, lien: _lienRestaurant),
     ];
 
     final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
