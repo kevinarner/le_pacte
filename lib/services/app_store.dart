@@ -1,5 +1,4 @@
 import '../models/pacte.dart';
-import '../models/remplacant.dart';
 import '../models/utilisateur.dart';
 
 /// Stockage en mémoire (mock — à remplacer par un repository Firebase
@@ -9,22 +8,8 @@ class AppStore {
 
   // Deux identités simulées pour tester les deux côtés du pacte
   // sans avoir besoin de deux appareils.
-  static final Utilisateur moi = Utilisateur(
-    nom: 'Moi',
-    remplacants: [
-      Remplacant(nom: 'Camille'),
-      Remplacant(nom: 'Sacha'),
-      Remplacant(nom: 'Lou'),
-    ],
-  );
-  static final Utilisateur ami = Utilisateur(
-    nom: 'Mon ami',
-    remplacants: [
-      Remplacant(nom: 'Nino'),
-      Remplacant(nom: 'Alex'),
-      Remplacant(nom: 'Jules'),
-    ],
-  );
+  static final Utilisateur moi = Utilisateur(nom: 'Moi');
+  static final Utilisateur ami = Utilisateur(nom: 'Mon ami');
 
   static Utilisateur utilisateurCourant(bool perspectiveMoi) => perspectiveMoi ? moi : ami;
   static Utilisateur utilisateurAutre(bool perspectiveMoi) => perspectiveMoi ? ami : moi;

@@ -3,9 +3,8 @@ import 'package:flutter/material.dart';
 import '../../screens/login/login_screen.dart';
 import '../accueil/accueil_screen.dart';
 import '../profil/profil_screen.dart';
-import '../remplacants/remplacants_screen.dart';
 
-/// Coquille principale : nav basse (Pactes / Remplaçants / Profil).
+/// Coquille principale : nav basse (Pactes / Profil).
 /// Créer un pacte et Détail d'un pacte s'ouvrent par-dessus, sans nav basse.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
@@ -37,7 +36,6 @@ class _RootShellState extends State<RootShell> {
         onChangerPerspective: changerPerspective,
         onChanged: refresh,
       ),
-      RemplacantsScreen(perspectiveMoi: perspectiveMoi, onChanged: refresh),
       ProfilScreen(
         perspectiveMoi: perspectiveMoi,
         onChangerPerspective: changerPerspective,
@@ -53,7 +51,6 @@ class _RootShellState extends State<RootShell> {
         onTap: (i) => setState(() => index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Pactes'),
-          BottomNavigationBarItem(icon: Icon(Icons.people_outline), label: 'Remplaçants'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
         ],
       ),

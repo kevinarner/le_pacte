@@ -72,8 +72,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
           Card(
             child: Column(
               children: [
-                _ligneStat('Remplaçants enregistrés', utilisateur.remplacants.length),
-                const Divider(height: 1),
                 _ligneStat('Pactes en cours', pactesEnCours),
               ],
             ),

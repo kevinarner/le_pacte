@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
-import '../../models/remplacant.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/statut_presence.dart';
+import 'choisir_remplacant_screen.dart';
 
 /// Bloc affiché quand le destinataire doit répondre à un pacte :
 /// les 3 options (accepter, déléguer, refuser).
@@ -50,17 +50,9 @@ class BlocReponse extends StatelessWidget {
   }
 
   void _choisirRemplacant(BuildContext context) async {
-    final choix = await showDialog<Remplacant>(
-      context: context,
-      builder: (_) => SimpleDialog(
-        title: const Text('Choisir un remplaçant'),
-        children: pacte.destinataire.listeRemplacants
-            .map((r) => SimpleDialogOption(
-                  onPressed: () => Navigator.pop(context, r),
-                  child: Text(r.nom),
-                ))
-            .toList(),
-      ),
+    final choix = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ChoisirRemplacantScreen(cote: pacte.destinataire)),
     );
     if (choix != null) {
       // L'initiateur reçoit la même notification que "accepte pour soi" —
