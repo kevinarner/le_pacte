@@ -45,17 +45,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final nomMoi = widget.perspectiveMoi ? 'Moi' : 'Mon ami';
-    final nomAutre = widget.perspectiveMoi ? 'Mon ami' : 'Moi';
-
     return Scaffold(
       appBar: AppBar(title: const Text('Nouveau pacte')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Initiateur : $nomMoi → destinataire : $nomAutre',
-              style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 16),
           const Text('Avec qui souhaitez-vous faire ce pacte ?',
               style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
@@ -182,6 +176,24 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             ),
           ),
           const SizedBox(height: 24),
+          if (_erreursValidation().isNotEmpty) ...[
+            for (final erreur in _erreursValidation())
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(erreur,
+                          style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                    ),
+                  ],
+                ),
+              ),
+            const SizedBox(height: 8),
+          ],
           FilledButton(
             onPressed: _peutValider() ? _creerPacte : null,
             child: const Text('Envoyer le pacte'),
@@ -191,11 +203,25 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
-  bool _peutValider() =>
-      dateChoisie != null &&
-      prenomDestinataireController.text.trim().isNotEmpty &&
-      nomDestinataireController.text.trim().isNotEmpty &&
-      remplacants.where((r) => r.estRempli).length >= _minimumRemplacants;
+  List<String> _erreursValidation() {
+    final erreurs = <String>[];
+    if (prenomDestinataireController.text.trim().isEmpty ||
+        nomDestinataireController.text.trim().isEmpty) {
+      erreurs.add('Renseigne le prénom et le nom de la personne avec qui tu fais ce pacte.');
+    }
+    final nombreRemplacantsValides = remplacants.where((r) => r.estRempli).length;
+    if (nombreRemplacantsValides < _minimumRemplacants) {
+      final manquants = _minimumRemplacants - nombreRemplacantsValides;
+      erreurs.add(
+          'Ajoute encore $manquants remplaçant${manquants > 1 ? 's' : ''} (prénom et nom requis).');
+    }
+    if (dateChoisie == null) {
+      erreurs.add('Choisis une date pour le pacte.');
+    }
+    return erreurs;
+  }
+
+  bool _peutValider() => _erreursValidation().isEmpty;
 
   Future<void> _ouvrirLienRestaurant() async {
     await launchUrl(Uri.parse(_lienRestaurant), webOnlyWindowName: '_blank');
