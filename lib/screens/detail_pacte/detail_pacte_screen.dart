@@ -6,6 +6,7 @@ import '../../models/type_repas.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../widgets/ligne_info.dart';
+import 'bloc_attente.dart';
 import 'bloc_cascade.dart';
 import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
@@ -29,6 +30,20 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
         (widget.perspectiveMoi ? 'Moi' : 'Mon ami');
     final cotePartenaire = jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
     final tag = statutTag(pacte.statut);
+
+    // C'est mon tour de choisir/contre-proposer une date ?
+    final estMonTourDate =
+        (jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
+            (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateDestinataire);
+    // C'est mon tour de répondre (accepter/déléguer/refuser) ?
+    final estMonTourReponse = !jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse;
+    // Le pacte est en cours de négociation mais ce n'est pas mon tour :
+    // on attend une action de l'autre partie.
+    final jAttendsLAutrePartie = !estMonTourDate &&
+        !estMonTourReponse &&
+        (pacte.statut == StatutPacte.enAttenteChoixDateDestinataire ||
+            pacte.statut == StatutPacte.enAttenteChoixDateInitiateur ||
+            pacte.statut == StatutPacte.enAttenteReponse);
 
     return Scaffold(
       appBar: AppBar(title: Text('Pacte avec ${cotePartenaire.nomTitulaire}')),
@@ -86,8 +101,7 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           const SizedBox(height: 20),
 
           // --- Cas : c'est mon tour de choisir (ou contre-proposer) une date ---
-          if ((jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
-              (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateDestinataire))
+          if (estMonTourDate)
             BlocChoixDate(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,
@@ -95,8 +109,16 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
             ),
 
           // --- Cas : je suis le destinataire et le pacte attend ma réponse ---
-          if (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse)
+          if (estMonTourReponse)
             BlocReponse(pacte: pacte, onChanged: () => setState(() {})),
+
+          // --- Cas : la négociation est en cours mais c'est le tour de l'autre ---
+          if (jAttendsLAutrePartie)
+            BlocAttente(
+              texte: pacte.statut == StatutPacte.enAttenteReponse
+                  ? 'En attente de la réponse de ${cotePartenaire.nomTitulaire}.'
+                  : 'En attente du choix de date de ${cotePartenaire.nomTitulaire}.',
+            ),
 
           // --- Cas : le pacte est confirmé, on peut simuler la cascade J-7/J-3/J-1 ---
           if (pacte.statut == StatutPacte.confirme)
