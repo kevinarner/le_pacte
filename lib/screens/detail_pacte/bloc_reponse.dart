@@ -34,16 +34,11 @@ class BlocReponse extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextButton(
-          onPressed: pacte.nombreRefus >= 2
-              ? null
-              : () {
-                  pacte.nombreRefus += 1;
-                  pacte.statut = StatutPacte.refuseContreProposition;
-                  onChanged();
-                },
-          child: Text(pacte.nombreRefus >= 2
-              ? 'Refuser (limite de 2 refus atteinte)'
-              : 'Refuser et proposer une autre date (${pacte.nombreRefus}/2)'),
+          onPressed: () {
+            pacte.statut = StatutPacte.annule;
+            onChanged();
+          },
+          child: const Text('Refuser le pacte'),
         ),
       ],
     );
@@ -57,7 +52,7 @@ class BlocReponse extends StatelessWidget {
           cote: pacte.destinataire,
           nomAutrePartie: pacte.initiateur.nomTitulaire,
           type: pacte.type,
-          date: pacte.date,
+          dates: pacte.dateRetenue != null ? [pacte.dateRetenue!] : [],
         ),
       ),
     );

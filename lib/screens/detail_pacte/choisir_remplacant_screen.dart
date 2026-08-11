@@ -11,14 +11,14 @@ class ChoisirRemplacantScreen extends StatefulWidget {
   final CotePacte cote;
   final String nomAutrePartie;
   final TypeRepas type;
-  final DateTime? date;
+  final List<DateTime> dates;
 
   const ChoisirRemplacantScreen({
     super.key,
     required this.cote,
     required this.nomAutrePartie,
     required this.type,
-    required this.date,
+    required this.dates,
   });
 
   @override
@@ -47,7 +47,7 @@ class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
             remplacants: remplacants,
             nomAutrePartie: widget.nomAutrePartie,
             type: widget.type,
-            date: widget.date,
+            dates: widget.dates,
             onChanged: () => setState(() {}),
           ),
           if (valides.length >= 2) ...[

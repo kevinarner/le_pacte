@@ -16,7 +16,7 @@ class RemplacantsForm extends StatefulWidget {
   /// Contexte du pacte, utilisé pour rédiger le message d'invitation SMS.
   final String nomAutrePartie;
   final TypeRepas type;
-  final DateTime? date;
+  final List<DateTime> dates;
 
   const RemplacantsForm({
     super.key,
@@ -24,7 +24,7 @@ class RemplacantsForm extends StatefulWidget {
     required this.onChanged,
     required this.nomAutrePartie,
     required this.type,
-    required this.date,
+    required this.dates,
     this.minimum = 2,
   });
 
@@ -167,6 +167,12 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     });
   }
 
+  String get _phraseDate {
+    if (widget.dates.isEmpty) return "(la date n'est pas encore fixée)";
+    if (widget.dates.length == 1) return 'le ${formaterDateEnToutesLettres(widget.dates.first)}';
+    return 'le ${widget.dates.map(formaterDateEnToutesLettres).join(' ou le ')}';
+  }
+
   Future<void> _inviterParSms(Remplacant r) async {
     final numero = r.telephone.trim();
     if (numero.isEmpty) {
@@ -179,9 +185,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
     final autre = widget.nomAutrePartie.trim().isNotEmpty ? widget.nomAutrePartie.trim() : 'mon ami';
     final verbe = widget.type == TypeRepas.dejeuner ? 'déjeuner' : 'dîner';
-    final phraseDate = widget.date == null
-        ? "(la date n'est pas encore fixée)"
-        : 'le ${formaterDateEnToutesLettres(widget.date!)}';
+    final phraseDate = _phraseDate;
     final message = "$salutation, j'ai fait un pacte avec $autre et j'aimerais que tu fasses partie "
         "de mes remplaçants.\n"
         "Le principe : je vais $verbe avec $autre $phraseDate. Si par malheur j'ai un empêchement, "

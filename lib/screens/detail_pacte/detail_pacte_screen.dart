@@ -4,8 +4,10 @@ import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../../widgets/ligne_info.dart';
 import 'bloc_cascade.dart';
+import 'bloc_choix_date.dart';
 import 'bloc_classement.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_reponse.dart';
@@ -62,10 +64,15 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                   ),
                   const SizedBox(height: 12),
                   LigneInfo(label: 'Avec', valeur: cotePartenaire.nomTitulaire),
-                  if (pacte.date != null)
+                  if (pacte.dateRetenue != null)
                     LigneInfo(
                       label: 'Date',
-                      valeur: '${pacte.date!.day}/${pacte.date!.month}/${pacte.date!.year}',
+                      valeur: formaterDateEnToutesLettres(pacte.dateRetenue!),
+                    )
+                  else if (pacte.datesProposees.isNotEmpty)
+                    LigneInfo(
+                      label: 'Dates proposées',
+                      valeur: pacte.datesProposees.map(formaterDateEnToutesLettres).join(', '),
                     ),
                   if (pacte.restaurantRetenu != null) ...[
                     const Divider(height: 24),
@@ -78,6 +85,15 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
             ),
           ),
           const SizedBox(height: 20),
+
+          // --- Cas : c'est mon tour de choisir (ou contre-proposer) une date ---
+          if ((jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
+              (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateDestinataire))
+            BlocChoixDate(
+              pacte: pacte,
+              jeSuisInitiateur: jeSuisInitiateur,
+              onChanged: () => setState(() {}),
+            ),
 
           // --- Cas : je suis le destinataire et le pacte attend ma réponse ---
           if (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse)

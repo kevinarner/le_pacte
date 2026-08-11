@@ -26,14 +26,15 @@ class StatutTag {
 
 StatutTag statutTag(StatutPacte statut) {
   switch (statut) {
-    case StatutPacte.enAttenteReponse:
-      return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
-    case StatutPacte.refuseContreProposition:
+    case StatutPacte.enAttenteChoixDateDestinataire:
+    case StatutPacte.enAttenteChoixDateInitiateur:
       return StatutTag(
         fond: Colors.transparent,
         texte: AppColors.texte,
         bordure: AppColors.outline,
       );
+    case StatutPacte.enAttenteReponse:
+      return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
     case StatutPacte.accepteEnAttenteClassement:
       return const StatutTag(fond: AppColors.saugeClair, texte: AppColors.sauge);
     case StatutPacte.confirme:

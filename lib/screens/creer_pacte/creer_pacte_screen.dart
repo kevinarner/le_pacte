@@ -9,22 +9,12 @@ import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/date_fr.dart';
+import '../../widgets/dates_form.dart';
 import '../../widgets/remplacants_form.dart';
 
 const _nomRestaurant = 'Au père Lapin';
 const _lienRestaurant = 'https://www.auperelapin.com/';
 const _minimumRemplacants = 2;
-
-bool _estJourAutorise(DateTime d) => d.weekday <= DateTime.wednesday;
-
-DateTime _prochainJourAutorise(DateTime d) {
-  var date = d;
-  while (!_estJourAutorise(date)) {
-    date = date.add(const Duration(days: 1));
-  }
-  return date;
-}
 
 class CreerPacteScreen extends StatefulWidget {
   final bool perspectiveMoi;
@@ -36,7 +26,7 @@ class CreerPacteScreen extends StatefulWidget {
 
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
   TypeRepas type = TypeRepas.diner;
-  DateTime? dateChoisie;
+  final List<DateTime> datesProposees = [];
   final prenomDestinataireController = TextEditingController();
   final nomDestinataireController = TextEditingController();
   final telephoneDestinataireController = TextEditingController();
@@ -112,7 +102,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             minimum: _minimumRemplacants,
             nomAutrePartie: prenomDestinataireController.text.trim(),
             type: type,
-            date: dateChoisie,
+            dates: datesProposees,
             onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 8),
@@ -132,23 +122,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             onChanged: (v) => setState(() => type = v!),
           ),
           const SizedBox(height: 8),
-          const Text('Date', style: TextStyle(fontWeight: FontWeight.bold)),
-          ListTile(
-            title: Text(dateChoisie == null
-                ? 'Choisir une date'
-                : 'Date : ${formaterDateEnToutesLettres(dateChoisie!)}'),
-            trailing: const Icon(Icons.calendar_today),
-            onTap: () async {
-              final d = await showDatePicker(
-                context: context,
-                initialDate: _prochainJourAutorise(DateTime.now().add(const Duration(days: 60))),
-                firstDate: DateTime.now(),
-                lastDate: DateTime.now().add(const Duration(days: 365)),
-                locale: const Locale('fr', 'FR'),
-                selectableDayPredicate: _estJourAutorise,
-              );
-              if (d != null) setState(() => dateChoisie = d);
-            },
+          const Text('Dates proposées', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          const Text(
+            "Propose une ou plusieurs dates : la personne avec qui tu fais ce pacte "
+            "choisira celle qui lui convient.",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          DatesForm(
+            dates: datesProposees,
+            minimum: 1,
+            onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 16),
           const Text('1 restaurant proposé', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -215,8 +200,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       erreurs.add(
           'Ajoute encore $manquants remplaçant${manquants > 1 ? 's' : ''} (prénom et nom requis).');
     }
-    if (dateChoisie == null) {
-      erreurs.add('Choisis une date pour le pacte.');
+    if (datesProposees.isEmpty) {
+      erreurs.add('Propose au moins une date pour le pacte.');
     }
     return erreurs;
   }
@@ -253,8 +238,6 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   }
 
   void _creerPacte() {
-    final date = dateChoisie;
-
     final restaurants = [
       Restaurant(nom: _nomRestaurant, lien: _lienRestaurant),
     ];
@@ -264,8 +247,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     final pacte = Pacte(
       id: AppStore.nouvelId(),
       type: type,
-      date: date,
-      dateAutomatique: false,
+      datesProposees: List.of(datesProposees),
       restaurantsProposes: restaurants,
       initiateur: CotePacte(
         nomTitulaire: utilisateurMoi.nom,

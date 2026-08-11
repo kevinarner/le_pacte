@@ -131,19 +131,25 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   ],
                 ),
                 const SizedBox(height: 6),
-                if (pacte.date != null)
+                if (pacte.dateRetenue != null)
                   Text(
                     '${pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
-                    '${pacte.date!.day}/${pacte.date!.month}/${pacte.date!.year}',
+                    '${pacte.dateRetenue!.day}/${pacte.dateRetenue!.month}/${pacte.dateRetenue!.year}',
+                    style: const TextStyle(color: Colors.black54, fontSize: 13),
+                  )
+                else if (pacte.datesProposees.isNotEmpty)
+                  Text(
+                    '${pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
+                    '${pacte.datesProposees.length} date${pacte.datesProposees.length > 1 ? 's' : ''} proposée${pacte.datesProposees.length > 1 ? 's' : ''}',
                     style: const TextStyle(color: Colors.black54, fontSize: 13),
                   ),
-                if (pacte.date != null) ...[
+                if (pacte.dateRetenue != null) ...[
                   const SizedBox(height: 6),
                   Row(
                     children: [
                       const Icon(Icons.access_time, size: 14, color: Colors.black45),
                       const SizedBox(width: 4),
-                      Text(_libelleRelatif(pacte.date!),
+                      Text(_libelleRelatif(pacte.dateRetenue!),
                           style: const TextStyle(color: Colors.black45, fontSize: 12)),
                     ],
                   ),

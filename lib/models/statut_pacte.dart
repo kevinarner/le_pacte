@@ -1,6 +1,7 @@
 enum StatutPacte {
+  enAttenteChoixDateDestinataire,
+  enAttenteChoixDateInitiateur,
   enAttenteReponse,
-  refuseContreProposition,
   accepteEnAttenteClassement,
   confirme,
   maintenu,
@@ -10,10 +11,11 @@ enum StatutPacte {
 extension StatutPacteLibelle on StatutPacte {
   String get libelle {
     switch (this) {
+      case StatutPacte.enAttenteChoixDateDestinataire:
+      case StatutPacte.enAttenteChoixDateInitiateur:
+        return 'En attente de date';
       case StatutPacte.enAttenteReponse:
         return 'En attente de réponse';
-      case StatutPacte.refuseContreProposition:
-        return 'Contre-proposition envoyée';
       case StatutPacte.accepteEnAttenteClassement:
         return 'Accepté — classement des restaurants à faire';
       case StatutPacte.confirme:
