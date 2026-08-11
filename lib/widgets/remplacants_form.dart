@@ -3,6 +3,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../constants.dart';
 import '../models/remplacant.dart';
+import '../models/type_repas.dart';
+import '../utils/date_fr.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
 /// Mute directement [remplacants] (ajout/suppression/édition).
@@ -11,10 +13,18 @@ class RemplacantsForm extends StatefulWidget {
   final VoidCallback onChanged;
   final int minimum;
 
+  /// Contexte du pacte, utilisé pour rédiger le message d'invitation SMS.
+  final String nomAutrePartie;
+  final TypeRepas type;
+  final DateTime? date;
+
   const RemplacantsForm({
     super.key,
     required this.remplacants,
     required this.onChanged,
+    required this.nomAutrePartie,
+    required this.type,
+    required this.date,
     this.minimum = 2,
   });
 
@@ -166,9 +176,17 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
       return;
     }
     final prenom = r.prenom.trim();
-    final salutation = prenom.isNotEmpty ? 'Salut $prenom' : 'Salut';
-    final message = "$salutation, je t'invite à télécharger Le Pacte pour pouvoir me remplacer "
-        'si besoin : $lienTelechargementApp';
+    final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
+    final autre = widget.nomAutrePartie.trim().isNotEmpty ? widget.nomAutrePartie.trim() : 'mon ami';
+    final verbe = widget.type == TypeRepas.dejeuner ? 'déjeuner' : 'dîner';
+    final phraseDate = widget.date == null
+        ? "(la date n'est pas encore fixée)"
+        : 'le ${formaterDateEnToutesLettres(widget.date!)}';
+    final message = "$salutation, j'ai fait un pacte avec $autre et j'aimerais que tu fasses partie "
+        "de mes remplaçants.\n"
+        "Le principe : je vais $verbe avec $autre $phraseDate. Si par malheur j'ai un empêchement, "
+        "j'aimerais que tu puisses me remplacer :) Je te laisse en découvrir plus en téléchargeant "
+        "l'app $lienTelechargementApp";
     await launchUrl(Uri(scheme: 'sms', path: numero, queryParameters: {'body': message}));
   }
 }

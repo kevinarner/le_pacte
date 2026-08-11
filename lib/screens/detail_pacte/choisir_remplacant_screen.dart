@@ -2,13 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/remplacant.dart';
+import '../../models/type_repas.dart';
 import '../../widgets/remplacants_form.dart';
 
 /// Saisie des remplaçants du destinataire pour CE pacte, puis choix de
 /// celui à qui déléguer. Propre à ce pacte, jamais visible par l'initiateur.
 class ChoisirRemplacantScreen extends StatefulWidget {
   final CotePacte cote;
-  const ChoisirRemplacantScreen({super.key, required this.cote});
+  final String nomAutrePartie;
+  final TypeRepas type;
+  final DateTime? date;
+
+  const ChoisirRemplacantScreen({
+    super.key,
+    required this.cote,
+    required this.nomAutrePartie,
+    required this.type,
+    required this.date,
+  });
 
   @override
   State<ChoisirRemplacantScreen> createState() => _ChoisirRemplacantScreenState();
@@ -32,7 +43,13 @@ class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
           const SizedBox(height: 16),
-          RemplacantsForm(remplacants: remplacants, onChanged: () => setState(() {})),
+          RemplacantsForm(
+            remplacants: remplacants,
+            nomAutrePartie: widget.nomAutrePartie,
+            type: widget.type,
+            date: widget.date,
+            onChanged: () => setState(() {}),
+          ),
           if (valides.length >= 2) ...[
             const SizedBox(height: 8),
             const Divider(),

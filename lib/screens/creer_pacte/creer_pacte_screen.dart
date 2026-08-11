@@ -9,38 +9,12 @@ import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../../widgets/remplacants_form.dart';
 
 const _nomRestaurant = 'Au père Lapin';
 const _lienRestaurant = 'https://www.auperelapin.com/';
 const _minimumRemplacants = 2;
-
-const _joursSemaine = [
-  'lundi',
-  'mardi',
-  'mercredi',
-  'jeudi',
-  'vendredi',
-  'samedi',
-  'dimanche',
-];
-const _moisAnnee = [
-  'janvier',
-  'février',
-  'mars',
-  'avril',
-  'mai',
-  'juin',
-  'juillet',
-  'août',
-  'septembre',
-  'octobre',
-  'novembre',
-  'décembre',
-];
-
-String _formaterDateEnToutesLettres(DateTime d) =>
-    '${_joursSemaine[d.weekday - 1]} ${d.day} ${_moisAnnee[d.month - 1]} ${d.year}';
 
 bool _estJourAutorise(DateTime d) => d.weekday <= DateTime.wednesday;
 
@@ -91,6 +65,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 child: TextField(
                   controller: prenomDestinataireController,
                   decoration: const InputDecoration(labelText: 'Prénom'),
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
               const SizedBox(width: 8),
@@ -98,6 +73,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 child: TextField(
                   controller: nomDestinataireController,
                   decoration: const InputDecoration(labelText: 'Nom'),
+                  onChanged: (_) => setState(() {}),
                 ),
               ),
             ],
@@ -107,12 +83,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             controller: telephoneDestinataireController,
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
           TextField(
             controller: emailDestinataireController,
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
+            onChanged: (_) => setState(() {}),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -138,6 +116,9 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           RemplacantsForm(
             remplacants: remplacants,
             minimum: _minimumRemplacants,
+            nomAutrePartie: prenomDestinataireController.text.trim(),
+            type: type,
+            date: dateChoisie,
             onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 8),
@@ -161,7 +142,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           ListTile(
             title: Text(dateChoisie == null
                 ? 'Choisir une date'
-                : 'Date : ${_formaterDateEnToutesLettres(dateChoisie!)}'),
+                : 'Date : ${formaterDateEnToutesLettres(dateChoisie!)}'),
             trailing: const Icon(Icons.calendar_today),
             onTap: () async {
               final d = await showDatePicker(
@@ -235,9 +216,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       return;
     }
     final prenom = prenomDestinataireController.text.trim();
-    final salutation = prenom.isNotEmpty ? 'Salut $prenom' : 'Salut';
-    final message = "$salutation, je t'invite à faire un pacte avec moi sur Le Pacte ! "
-        'Télécharge l\'application ici : $lienTelechargementApp';
+    final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
+    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Le Pacte !\n"
+        "Le principe : on trouve une date qui nous convient pour dîner ensemble mais on a pas le "
+        "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
+        "faire appel à des remplaçants. Je te laisse en découvrir plus en téléchargeant l'app :) "
+        "$lienTelechargementApp";
     await launchUrl(Uri(scheme: 'sms', path: numero, queryParameters: {'body': message}));
   }
 

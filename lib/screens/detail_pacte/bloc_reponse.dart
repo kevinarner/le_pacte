@@ -52,7 +52,14 @@ class BlocReponse extends StatelessWidget {
   void _choisirRemplacant(BuildContext context) async {
     final choix = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => ChoisirRemplacantScreen(cote: pacte.destinataire)),
+      MaterialPageRoute(
+        builder: (_) => ChoisirRemplacantScreen(
+          cote: pacte.destinataire,
+          nomAutrePartie: pacte.initiateur.nomTitulaire,
+          type: pacte.type,
+          date: pacte.date,
+        ),
+      ),
     );
     if (choix != null) {
       // L'initiateur reçoit la même notification que "accepte pour soi" —
