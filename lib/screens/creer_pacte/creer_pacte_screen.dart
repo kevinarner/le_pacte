@@ -222,7 +222,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
         "faire appel à des remplaçants. Je te laisse en découvrir plus en téléchargeant l'app :) "
         "$lienTelechargementApp";
-    await launchUrl(Uri(scheme: 'sms', path: numero, queryParameters: {'body': message}));
+    final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
+    await launchUrl(Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'));
   }
 
   void _creerPacte() {

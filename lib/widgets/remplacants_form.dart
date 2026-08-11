@@ -187,6 +187,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
         "Le principe : je vais $verbe avec $autre $phraseDate. Si par malheur j'ai un empêchement, "
         "j'aimerais que tu puisses me remplacer :) Je te laisse en découvrir plus en téléchargeant "
         "l'app $lienTelechargementApp";
-    await launchUrl(Uri(scheme: 'sms', path: numero, queryParameters: {'body': message}));
+    final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
+    await launchUrl(Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'));
   }
 }
