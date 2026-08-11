@@ -214,7 +214,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       dateChoisie != null &&
       prenomDestinataireController.text.trim().isNotEmpty &&
       nomDestinataireController.text.trim().isNotEmpty &&
-      remplacants.where((r) => r.nom.trim().isNotEmpty).length >= _minimumRemplacants;
+      remplacants.where((r) => r.estRempli).length >= _minimumRemplacants;
 
   Future<void> _ouvrirLienRestaurant() async {
     await launchUrl(Uri.parse(_lienRestaurant), webOnlyWindowName: '_blank');
@@ -258,7 +258,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       restaurantsProposes: restaurants,
       initiateur: CotePacte(
         nomTitulaire: utilisateurMoi.nom,
-        listeRemplacants: remplacants.where((r) => r.nom.trim().isNotEmpty).toList(),
+        listeRemplacants: remplacants.where((r) => r.estRempli).toList(),
       ),
       destinataire: CotePacte(
         nomTitulaire: _nomCompletDestinataire,

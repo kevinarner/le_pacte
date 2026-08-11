@@ -23,22 +23,30 @@ class RemplacantsForm extends StatefulWidget {
 }
 
 class _RemplacantsFormState extends State<RemplacantsForm> {
+  final Map<Remplacant, TextEditingController> _prenomControllers = {};
   final Map<Remplacant, TextEditingController> _nomControllers = {};
   final Map<Remplacant, TextEditingController> _telControllers = {};
+  final Map<Remplacant, TextEditingController> _emailControllers = {};
 
   @override
   void initState() {
     super.initState();
     while (widget.remplacants.length < widget.minimum) {
-      widget.remplacants.add(Remplacant(nom: ''));
+      widget.remplacants.add(Remplacant());
     }
   }
+
+  TextEditingController _prenomCtrl(Remplacant r) =>
+      _prenomControllers.putIfAbsent(r, () => TextEditingController(text: r.prenom));
 
   TextEditingController _nomCtrl(Remplacant r) =>
       _nomControllers.putIfAbsent(r, () => TextEditingController(text: r.nom));
 
   TextEditingController _telCtrl(Remplacant r) =>
       _telControllers.putIfAbsent(r, () => TextEditingController(text: r.telephone));
+
+  TextEditingController _emailCtrl(Remplacant r) =>
+      _emailControllers.putIfAbsent(r, () => TextEditingController(text: r.email));
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +66,13 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
 
   Widget _ligne(int index) {
     final r = widget.remplacants[index];
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.black12),
+        borderRadius: BorderRadius.circular(12),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -81,34 +94,56 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
                 ),
             ],
           ),
-          const SizedBox(height: 4),
-          TextField(
-            controller: _nomCtrl(r),
-            decoration: const InputDecoration(labelText: 'Nom'),
-            onChanged: (v) {
-              r.nom = v;
-              widget.onChanged();
-            },
-          ),
           const SizedBox(height: 8),
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: TextField(
-                  controller: _telCtrl(r),
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-                  onChanged: (v) => r.telephone = v,
+                  controller: _prenomCtrl(r),
+                  decoration: const InputDecoration(labelText: 'Prénom'),
+                  onChanged: (v) {
+                    r.prenom = v;
+                    widget.onChanged();
+                  },
                 ),
               ),
               const SizedBox(width: 8),
-              OutlinedButton.icon(
-                onPressed: () => _inviterParSms(r),
-                icon: const Icon(Icons.sms_outlined, size: 18),
-                label: const Text('Inviter'),
+              Expanded(
+                child: TextField(
+                  controller: _nomCtrl(r),
+                  decoration: const InputDecoration(labelText: 'Nom'),
+                  onChanged: (v) {
+                    r.nom = v;
+                    widget.onChanged();
+                  },
+                ),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _telCtrl(r),
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
+            onChanged: (v) => r.telephone = v,
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _emailCtrl(r),
+            keyboardType: TextInputType.emailAddress,
+            decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
+            onChanged: (v) => r.email = v,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () => _inviterParSms(r),
+            icon: const Icon(Icons.sms_outlined, size: 18),
+            label: const Text('Inviter par SMS'),
           ),
         ],
       ),
@@ -117,7 +152,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
 
   void _ajouter() {
     setState(() {
-      widget.remplacants.add(Remplacant(nom: ''));
+      widget.remplacants.add(Remplacant());
       widget.onChanged();
     });
   }
@@ -130,7 +165,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
       );
       return;
     }
-    final prenom = r.nom.trim();
+    final prenom = r.prenom.trim();
     final salutation = prenom.isNotEmpty ? 'Salut $prenom' : 'Salut';
     final message = "$salutation, je t'invite à télécharger Le Pacte pour pouvoir me remplacer "
         'si besoin : $lienTelechargementApp';

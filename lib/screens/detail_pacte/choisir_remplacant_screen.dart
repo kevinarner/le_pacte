@@ -19,7 +19,7 @@ class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final valides = remplacants.where((r) => r.nom.trim().isNotEmpty).toList();
+    final valides = remplacants.where((r) => r.estRempli).toList();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Mes remplaçants')),
@@ -42,7 +42,7 @@ class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
             for (final r in valides)
               Card(
                 child: ListTile(
-                  title: Text(r.nom),
+                  title: Text(r.nomComplet),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () => Navigator.pop(context, r),
                 ),
