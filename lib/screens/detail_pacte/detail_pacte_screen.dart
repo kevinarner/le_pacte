@@ -8,7 +8,6 @@ import '../../utils/date_fr.dart';
 import '../../widgets/ligne_info.dart';
 import 'bloc_cascade.dart';
 import 'bloc_choix_date.dart';
-import 'bloc_classement.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_reponse.dart';
 
@@ -98,14 +97,6 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           // --- Cas : je suis le destinataire et le pacte attend ma réponse ---
           if (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse)
             BlocReponse(pacte: pacte, onChanged: () => setState(() {})),
-
-          // --- Cas : le pacte est accepté mais le classement n'est pas fait ---
-          if (pacte.statut == StatutPacte.accepteEnAttenteClassement)
-            BlocClassement(
-              pacte: pacte,
-              jeSuisInitiateur: jeSuisInitiateur,
-              onChanged: () => setState(() {}),
-            ),
 
           // --- Cas : le pacte est confirmé, on peut simuler la cascade J-7/J-3/J-1 ---
           if (pacte.statut == StatutPacte.confirme)

@@ -2,7 +2,6 @@ enum StatutPacte {
   enAttenteChoixDateDestinataire,
   enAttenteChoixDateInitiateur,
   enAttenteReponse,
-  accepteEnAttenteClassement,
   confirme,
   maintenu,
   annule,
@@ -16,8 +15,6 @@ extension StatutPacteLibelle on StatutPacte {
         return 'En attente de date';
       case StatutPacte.enAttenteReponse:
         return 'En attente de réponse';
-      case StatutPacte.accepteEnAttenteClassement:
-        return 'Accepté — classement des restaurants à faire';
       case StatutPacte.confirme:
         return 'Confirmé';
       case StatutPacte.maintenu:

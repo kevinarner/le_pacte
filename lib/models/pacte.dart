@@ -11,8 +11,6 @@ class Pacte {
   int nombreEchangesDate;
   final List<Restaurant> restaurantsProposes;
   Restaurant? restaurantRetenu;
-  List<int>? classementInitiateur; // indices des restaurants, du préféré au moins préféré
-  List<int>? classementDestinataire;
   StatutPacte statut;
   final CotePacte initiateur;
   final CotePacte destinataire;

@@ -35,8 +35,6 @@ StatutTag statutTag(StatutPacte statut) {
       );
     case StatutPacte.enAttenteReponse:
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
-    case StatutPacte.accepteEnAttenteClassement:
-      return const StatutTag(fond: AppColors.saugeClair, texte: AppColors.sauge);
     case StatutPacte.confirme:
     case StatutPacte.maintenu:
       return const StatutTag(fond: AppColors.terracottaClair, texte: AppColors.terracotta);

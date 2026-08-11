@@ -22,7 +22,7 @@ class BlocReponse extends StatelessWidget {
         FilledButton(
           onPressed: () {
             pacte.destinataire.statutPresence = StatutPresence.titulaire;
-            pacte.statut = StatutPacte.accepteEnAttenteClassement;
+            _confirmerPacte();
             onChanged();
           },
           child: const Text('Accepter pour moi'),
@@ -60,8 +60,13 @@ class BlocReponse extends StatelessWidget {
       // L'initiateur reçoit la même notification que "accepte pour soi" —
       // aucune trace visible du nom du remplaçant dans le pacte affiché.
       pacte.destinataire.statutPresence = StatutPresence.remplacantSollicite;
-      pacte.statut = StatutPacte.accepteEnAttenteClassement;
+      _confirmerPacte();
       onChanged();
     }
+  }
+
+  void _confirmerPacte() {
+    pacte.restaurantRetenu = pacte.restaurantsProposes.first;
+    pacte.statut = StatutPacte.confirme;
   }
 }
