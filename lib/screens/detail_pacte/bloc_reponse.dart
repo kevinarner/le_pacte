@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
-import '../../models/statut_presence.dart';
-import 'choisir_remplacant_screen.dart';
 
 /// Bloc affiché quand le destinataire doit répondre à un pacte :
-/// les 3 options (accepter, déléguer, refuser).
+/// accepter ou refuser. La délégation à un remplaçant n'intervient
+/// que plus tard, une fois le pacte confirmé, si l'un des deux devient
+/// indisponible (voir BlocPresence) — pas dès cette réponse initiale.
 class BlocReponse extends StatelessWidget {
   final Pacte pacte;
   final VoidCallback onChanged;
@@ -21,16 +21,11 @@ class BlocReponse extends StatelessWidget {
         const SizedBox(height: 8),
         FilledButton(
           onPressed: () {
-            pacte.destinataire.statutPresence = StatutPresence.titulaire;
-            _confirmerPacte();
+            pacte.restaurantRetenu = pacte.restaurantsProposes.first;
+            pacte.statut = StatutPacte.confirme;
             onChanged();
           },
-          child: const Text('Accepter pour moi'),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () => _choisirRemplacant(context),
-          child: const Text('Accepter et déléguer à un remplaçant'),
+          child: const Text('Accepter le pacte'),
         ),
         const SizedBox(height: 8),
         TextButton(
@@ -42,31 +37,5 @@ class BlocReponse extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  void _choisirRemplacant(BuildContext context) async {
-    final choix = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChoisirRemplacantScreen(
-          cote: pacte.destinataire,
-          nomAutrePartie: pacte.initiateur.nomTitulaire,
-          type: pacte.type,
-          dates: pacte.dateRetenue != null ? [pacte.dateRetenue!] : [],
-        ),
-      ),
-    );
-    if (choix != null) {
-      // L'initiateur reçoit la même notification que "accepte pour soi" —
-      // aucune trace visible du nom du remplaçant dans le pacte affiché.
-      pacte.destinataire.statutPresence = StatutPresence.remplacantSollicite;
-      _confirmerPacte();
-      onChanged();
-    }
-  }
-
-  void _confirmerPacte() {
-    pacte.restaurantRetenu = pacte.restaurantsProposes.first;
-    pacte.statut = StatutPacte.confirme;
   }
 }

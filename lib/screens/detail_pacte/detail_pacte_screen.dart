@@ -10,6 +10,7 @@ import 'bloc_attente.dart';
 import 'bloc_cascade.dart';
 import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
+import 'bloc_presence.dart';
 import 'bloc_reponse.dart';
 
 class DetailPacteScreen extends StatefulWidget {
@@ -35,7 +36,7 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     final estMonTourDate =
         (jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
             (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateDestinataire);
-    // C'est mon tour de répondre (accepter/déléguer/refuser) ?
+    // C'est mon tour de répondre (accepter/refuser) ?
     final estMonTourReponse = !jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse;
     // Le pacte est en cours de négociation mais ce n'est pas mon tour :
     // on attend une action de l'autre partie.
@@ -120,9 +121,16 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                   : 'En attente du choix de date de ${cotePartenaire.nomTitulaire}.',
             ),
 
-          // --- Cas : le pacte est confirmé, on peut simuler la cascade J-7/J-3/J-1 ---
-          if (pacte.statut == StatutPacte.confirme)
+          // --- Cas : le pacte est confirmé, chacun peut déléguer sa présence ---
+          if (pacte.statut == StatutPacte.confirme) ...[
+            BlocPresence(
+              pacte: pacte,
+              jeSuisInitiateur: jeSuisInitiateur,
+              onChanged: () => setState(() {}),
+            ),
+            const SizedBox(height: 16),
             BlocCascade(pacte: pacte, onChanged: () => setState(() {})),
+          ],
 
           // --- Cas : le pacte est arrivé à son terme ---
           if (pacte.statut == StatutPacte.maintenu || pacte.statut == StatutPacte.annule)
