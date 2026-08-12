@@ -125,14 +125,15 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           const Text('Dates proposées', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           const Text(
-            "Propose une ou plusieurs dates : la personne avec qui tu fais ce pacte "
-            "choisira celle qui lui convient.",
+            "Propose une ou plusieurs dates avec un horaire : la personne avec qui tu fais "
+            "ce pacte choisira celle qui lui convient.",
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
           const SizedBox(height: 8),
           DatesForm(
             dates: datesProposees,
             minimum: 1,
+            type: type,
             onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 16),

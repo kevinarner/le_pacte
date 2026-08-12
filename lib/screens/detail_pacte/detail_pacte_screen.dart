@@ -81,12 +81,12 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                   if (pacte.dateRetenue != null)
                     LigneInfo(
                       label: 'Date',
-                      valeur: formaterDateEnToutesLettres(pacte.dateRetenue!),
+                      valeur: formaterDateEtHeure(pacte.dateRetenue!),
                     )
                   else if (pacte.datesProposees.isNotEmpty)
                     LigneInfo(
                       label: 'Dates proposées',
-                      valeur: pacte.datesProposees.map(formaterDateEnToutesLettres).join(', '),
+                      valeur: pacte.datesProposees.map(formaterDateEtHeure).join(', '),
                     ),
                   if (pacte.restaurantRetenu != null) ...[
                     const Divider(height: 24),

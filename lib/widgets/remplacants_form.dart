@@ -169,8 +169,8 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
 
   String get _phraseDate {
     if (widget.dates.isEmpty) return "(la date n'est pas encore fixée)";
-    if (widget.dates.length == 1) return 'le ${formaterDateEnToutesLettres(widget.dates.first)}';
-    return 'le ${widget.dates.map(formaterDateEnToutesLettres).join(' ou le ')}';
+    if (widget.dates.length == 1) return 'le ${formaterDateEtHeure(widget.dates.first)}';
+    return 'le ${widget.dates.map(formaterDateEtHeure).join(' ou le ')}';
   }
 
   Future<void> _inviterParSms(Remplacant r) async {

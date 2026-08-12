@@ -5,6 +5,7 @@ import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
@@ -134,7 +135,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
                 if (pacte.dateRetenue != null)
                   Text(
                     '${pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
-                    '${pacte.dateRetenue!.day}/${pacte.dateRetenue!.month}/${pacte.dateRetenue!.year}',
+                    '${pacte.dateRetenue!.day}/${pacte.dateRetenue!.month}/${pacte.dateRetenue!.year} '
+                    'à ${formaterHeure(heureDe(pacte.dateRetenue!))}',
                     style: const TextStyle(color: Colors.black54, fontSize: 13),
                   )
                 else if (pacte.datesProposees.isNotEmpty)

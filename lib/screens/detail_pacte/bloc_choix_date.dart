@@ -44,16 +44,38 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Choisis une date qui te convient :',
+        const Text('Choisis une date et un horaire qui te conviennent :',
             style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         for (final date in pacte.datesProposees)
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: Text(formaterDateEnToutesLettres(date)),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => _choisirDate(date),
+            margin: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.calendar_today),
+                  title: Text(formaterDateEtHeure(date)),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () => _choisirDate(date),
+                ),
+                if (peutContreProposer)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () => _proposerAutreHoraire(date),
+                        icon: const Icon(Icons.schedule, size: 16),
+                        label: const Text('Cette date me convient, mais pas cet horaire'),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         const SizedBox(height: 8),
@@ -86,7 +108,11 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
         const Text('Propose une ou plusieurs nouvelles dates :',
             style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
-        DatesForm(dates: nouvellesDates, onChanged: () => setState(() {})),
+        DatesForm(
+          dates: nouvellesDates,
+          type: widget.pacte.type,
+          onChanged: () => setState(() {}),
+        ),
         const SizedBox(height: 12),
         FilledButton(
           onPressed: nouvellesDates.isNotEmpty ? _validerContreProposition : null,
@@ -122,5 +148,40 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
   void _annuler() {
     widget.pacte.statut = StatutPacte.annule;
     widget.onChanged();
+  }
+
+  Future<void> _proposerAutreHoraire(DateTime date) async {
+    final creneaux = creneauxPourType(widget.pacte.type);
+    final heureActuelle = heureDe(date);
+    final choix = await showModalBottomSheet<TimeOfDay>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                'Choisis un autre horaire pour le ${formaterDateEnToutesLettres(date)} :',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+            for (final c in creneaux)
+              RadioListTile<TimeOfDay>(
+                title: Text(formaterHeure(c)),
+                value: c,
+                groupValue: heureActuelle,
+                onChanged: (v) => Navigator.pop(context, v),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (choix != null) {
+      nouvellesDates
+        ..clear()
+        ..add(avecHeure(date, choix));
+      _validerContreProposition();
+    }
   }
 }
