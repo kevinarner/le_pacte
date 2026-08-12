@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -123,6 +124,15 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
 
           // --- Cas : le pacte est confirmé, chacun peut déléguer sa présence ---
           if (pacte.statut == StatutPacte.confirme) ...[
+            if (pacte.restaurantRetenu != null &&
+                pacte.restaurantRetenu!.lien.isNotEmpty) ...[
+              FilledButton.icon(
+                onPressed: () => _reserverLaTable(pacte.restaurantRetenu!.lien),
+                icon: const Icon(Icons.restaurant_menu, size: 18),
+                label: const Text('Réserver la table'),
+              ),
+              const SizedBox(height: 16),
+            ],
             BlocPresence(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,
@@ -138,5 +148,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _reserverLaTable(String lien) async {
+    await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
   }
 }
