@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../models/type_repas.dart';
-
 const joursSemaine = [
   'lundi',
   'mardi',
@@ -41,21 +39,16 @@ DateTime prochainJourAutorise(DateTime d) {
   return date;
 }
 
-/// Créneaux horaires autorisés selon le type de repas, par pas de 30 min :
-/// déjeuner de 12h00 à 14h30, dîner de 19h00 à 22h00.
-List<TimeOfDay> creneauxPourType(TypeRepas type) {
-  final debut = type == TypeRepas.dejeuner
-      ? const TimeOfDay(hour: 12, minute: 0)
-      : const TimeOfDay(hour: 19, minute: 0);
-  final fin = type == TypeRepas.dejeuner
-      ? const TimeOfDay(hour: 14, minute: 30)
-      : const TimeOfDay(hour: 22, minute: 0);
+/// Génère la liste des créneaux horaires entre [debut] et [fin] inclus,
+/// par pas de [pasMinutes]. Utilisé pour décrire les créneaux réels
+/// proposés par un restaurant.
+List<TimeOfDay> genererCreneaux(TimeOfDay debut, TimeOfDay fin, {int pasMinutes = 30}) {
   final creneaux = <TimeOfDay>[];
   var minutes = debut.hour * 60 + debut.minute;
   final finMinutes = fin.hour * 60 + fin.minute;
   while (minutes <= finMinutes) {
     creneaux.add(TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60));
-    minutes += 30;
+    minutes += pasMinutes;
   }
   return creneaux;
 }

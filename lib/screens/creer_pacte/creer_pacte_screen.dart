@@ -9,12 +9,29 @@ import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../../widgets/dates_form.dart';
 import '../../widgets/remplacants_form.dart';
 
 const _nomRestaurant = 'Au père Lapin';
 const _lienRestaurant = 'https://www.auperelapin.com/';
 const _minimumRemplacants = 2;
+
+/// Le seul restaurant proposé pour l'instant, avec ses créneaux réels.
+final _restaurantPropose = Restaurant(
+  nom: _nomRestaurant,
+  lien: _lienRestaurant,
+  creneauxDejeuner: genererCreneaux(
+    const TimeOfDay(hour: 12, minute: 0),
+    const TimeOfDay(hour: 13, minute: 45),
+    pasMinutes: 15,
+  ),
+  creneauxDiner: genererCreneaux(
+    const TimeOfDay(hour: 19, minute: 0),
+    const TimeOfDay(hour: 21, minute: 45),
+    pasMinutes: 15,
+  ),
+);
 
 class CreerPacteScreen extends StatefulWidget {
   final bool perspectiveMoi;
@@ -133,7 +150,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           DatesForm(
             dates: datesProposees,
             minimum: 1,
-            type: type,
+            creneaux: _restaurantPropose.creneaux(type),
             onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 16),
@@ -239,17 +256,13 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   }
 
   void _creerPacte() {
-    final restaurants = [
-      Restaurant(nom: _nomRestaurant, lien: _lienRestaurant),
-    ];
-
     final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
 
     final pacte = Pacte(
       id: AppStore.nouvelId(),
       type: type,
       datesProposees: List.of(datesProposees),
-      restaurantsProposes: restaurants,
+      restaurantsProposes: [_restaurantPropose],
       initiateur: CotePacte(
         nomTitulaire: utilisateurMoi.nom,
         listeRemplacants: remplacants.where((r) => r.estRempli).toList(),

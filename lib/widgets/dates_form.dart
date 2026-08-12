@@ -1,21 +1,23 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../models/type_repas.dart';
 import '../utils/date_fr.dart';
 
 /// Formulaire de saisie d'une liste de dates (avec horaire) proposées
 /// pour un pacte. Mute directement [dates] (ajout/suppression/modification).
+/// [creneaux] doit contenir les horaires réellement proposés par le
+/// restaurant pour le type de repas choisi.
 class DatesForm extends StatefulWidget {
   final List<DateTime> dates;
   final VoidCallback onChanged;
-  final TypeRepas type;
+  final List<TimeOfDay> creneaux;
   final int minimum;
 
   const DatesForm({
     super.key,
     required this.dates,
     required this.onChanged,
-    required this.type,
+    required this.creneaux,
     this.minimum = 1,
   });
 
@@ -27,13 +29,12 @@ class _DatesFormState extends State<DatesForm> {
   @override
   void didUpdateWidget(covariant DatesForm oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.type != widget.type) {
-      // Le type de repas a changé : on recale les horaires qui ne sont
-      // plus dans la plage autorisée (ex. 20h en passant de dîner à déjeuner).
-      final creneaux = creneauxPourType(widget.type);
+    if (!listEquals(oldWidget.creneaux, widget.creneaux)) {
+      // Les créneaux disponibles ont changé (ex. changement de type de
+      // repas) : on recale les horaires qui ne sont plus proposés.
       for (var i = 0; i < widget.dates.length; i++) {
-        if (!creneaux.contains(heureDe(widget.dates[i]))) {
-          widget.dates[i] = avecHeure(widget.dates[i], creneaux.first);
+        if (!widget.creneaux.contains(heureDe(widget.dates[i]))) {
+          widget.dates[i] = avecHeure(widget.dates[i], widget.creneaux.first);
         }
       }
     }
@@ -56,7 +57,7 @@ class _DatesFormState extends State<DatesForm> {
 
   Widget _ligne(int index) {
     final date = widget.dates[index];
-    final creneaux = creneauxPourType(widget.type);
+    final creneaux = widget.creneaux;
     final heureActuelle = creneaux.contains(heureDe(date)) ? heureDe(date) : creneaux.first;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -108,7 +109,7 @@ class _DatesFormState extends State<DatesForm> {
     final d = await _choisirDate();
     if (d != null) {
       setState(() {
-        widget.dates.add(avecHeure(d, creneauxPourType(widget.type).first));
+        widget.dates.add(avecHeure(d, widget.creneaux.first));
         widget.onChanged();
       });
     }
@@ -119,8 +120,8 @@ class _DatesFormState extends State<DatesForm> {
     final d = await _choisirDate(initial: actuel);
     if (d != null) {
       setState(() {
-        final creneaux = creneauxPourType(widget.type);
-        final heure = creneaux.contains(heureDe(actuel)) ? heureDe(actuel) : creneaux.first;
+        final heure =
+            widget.creneaux.contains(heureDe(actuel)) ? heureDe(actuel) : widget.creneaux.first;
         widget.dates[index] = avecHeure(d, heure);
         widget.onChanged();
       });

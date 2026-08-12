@@ -32,6 +32,11 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
   bool contrePropositionEnCours = false;
   final List<DateTime> nouvellesDates = [];
 
+  /// Créneaux réellement proposés par le restaurant du pacte, pour son
+  /// type de repas.
+  List<TimeOfDay> get _creneaux =>
+      widget.pacte.restaurantsProposes.first.creneaux(widget.pacte.type);
+
   @override
   Widget build(BuildContext context) {
     if (contrePropositionEnCours) {
@@ -110,7 +115,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
         const SizedBox(height: 8),
         DatesForm(
           dates: nouvellesDates,
-          type: widget.pacte.type,
+          creneaux: _creneaux,
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 12),
@@ -151,7 +156,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
   }
 
   Future<void> _proposerAutreHoraire(DateTime date) async {
-    final creneaux = creneauxPourType(widget.pacte.type);
+    final creneaux = _creneaux;
     final heureActuelle = heureDe(date);
     final choix = await showModalBottomSheet<TimeOfDay>(
       context: context,
