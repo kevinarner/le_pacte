@@ -17,6 +17,7 @@ class CropAvatarScreen extends StatefulWidget {
 class _CropAvatarScreenState extends State<CropAvatarScreen> {
   static const double _taille = 300;
   static const double _ratioExport = 400 / _taille;
+  static const double _multiplicateurZoomMax = 3;
 
   final _boundaryKey = GlobalKey();
 
@@ -24,6 +25,10 @@ class _CropAvatarScreenState extends State<CropAvatarScreen> {
   double _echelleCouverture = 1;
   double _echelle = 1;
   Offset _decalage = Offset.zero;
+
+  // Pour le geste en cours (glisser au doigt et/ou pincer pour zoomer).
+  double _echelleDebutGeste = 1;
+  Offset _pointImageAuFocalDebut = Offset.zero;
 
   @override
   void initState() {
@@ -71,8 +76,14 @@ class _CropAvatarScreenState extends State<CropAvatarScreen> {
                       ),
                     ),
                     GestureDetector(
-                      onPanUpdate: (d) => setState(() {
-                        _decalage += d.delta;
+                      onScaleStart: (d) {
+                        _echelleDebutGeste = _echelle;
+                        _pointImageAuFocalDebut = (d.localFocalPoint - _decalage) / _echelle;
+                      },
+                      onScaleUpdate: (d) => setState(() {
+                        _echelle = (_echelleDebutGeste * d.scale)
+                            .clamp(_echelleCouverture, _echelleCouverture * _multiplicateurZoomMax);
+                        _decalage = d.localFocalPoint - _pointImageAuFocalDebut * _echelle;
                         _clamperDecalage();
                       }),
                       child: SizedBox(
@@ -121,7 +132,7 @@ class _CropAvatarScreenState extends State<CropAvatarScreen> {
                             child: Slider(
                               value: _echelle,
                               min: _echelleCouverture,
-                              max: _echelleCouverture * 3,
+                              max: _echelleCouverture * _multiplicateurZoomMax,
                               onChanged: (v) => setState(() {
                                 _appliquerEchelle(v);
                               }),
