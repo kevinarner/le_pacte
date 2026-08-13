@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
+import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../widgets/ligne_info.dart';
@@ -27,9 +28,11 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
   @override
   Widget build(BuildContext context) {
     final pacte = widget.pacte;
-    // Suis-je le destinataire de CE pacte, vu ma perspective actuelle ?
-    final jeSuisInitiateur = pacte.initiateur.nomTitulaire ==
-        (widget.perspectiveMoi ? 'Moi' : 'Mon ami');
+    // Suis-je l'initiateur de CE pacte, vu ma perspective actuelle ?
+    // On compare des identifiants internes stables, jamais le nom
+    // affiché (qui peut être n'importe quoi une fois le compte créé).
+    final jeSuisInitiateur = pacte.initiateur.idTitulaire ==
+        AppStore.utilisateurCourant(widget.perspectiveMoi).id;
     final cotePartenaire = jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
     final tag = statutTag(pacte.statut);
 

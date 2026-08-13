@@ -28,7 +28,7 @@ class AccueilScreen extends StatefulWidget {
 class _AccueilScreenState extends State<AccueilScreen> {
   @override
   Widget build(BuildContext context) {
-    final nomMoi = widget.perspectiveMoi ? 'Moi' : 'Mon ami';
+    final nomMoi = AppStore.utilisateurCourant(widget.perspectiveMoi).nomComplet;
     final pactes = AppStore.pactes;
 
     return Scaffold(
@@ -88,7 +88,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   Widget _cardPacte(Pacte pacte) {
-    final estInitiateur = widget.perspectiveMoi;
+    final estInitiateur =
+        pacte.initiateur.idTitulaire == AppStore.utilisateurCourant(widget.perspectiveMoi).id;
     final autreNom =
         estInitiateur ? pacte.destinataire.nomTitulaire : pacte.initiateur.nomTitulaire;
     final tag = statutTag(pacte.statut);

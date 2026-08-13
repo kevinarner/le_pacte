@@ -30,7 +30,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
     final autre = AppStore.utilisateurAutre(widget.perspectiveMoi);
     final pactesEnCours = AppStore.pactes.where((p) {
       final impliqueUtilisateur =
-          p.initiateur.nomTitulaire == utilisateur.nom || p.destinataire.nomTitulaire == utilisateur.nom;
+          p.initiateur.idTitulaire == utilisateur.id || p.destinataire.idTitulaire == utilisateur.id;
       return impliqueUtilisateur &&
           p.statut != StatutPacte.maintenu &&
           p.statut != StatutPacte.annule;
@@ -46,7 +46,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
               children: [
                 PhotoAvatar(
                   photo: utilisateur.photo,
-                  nom: utilisateur.nom,
+                  nom: utilisateur.nomComplet,
                   taille: 76,
                   libellePlaceholder: utilisateur.photo == null ? 'Ta photo' : null,
                   onPhotoChoisie: (octets) => setState(() {
@@ -55,7 +55,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   }),
                 ),
                 const SizedBox(height: 12),
-                Text(utilisateur.nom, style: Theme.of(context).textTheme.titleLarge),
+                Text(utilisateur.nomComplet, style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -79,7 +79,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
           const SizedBox(height: 16),
           OutlinedButton(
             onPressed: widget.onChangerPerspective,
-            child: Text('Changer de vue (${utilisateur.nom} → ${autre.nom})'),
+            child: Text('Changer de vue (${utilisateur.nomComplet} → ${autre.nomComplet})'),
           ),
           const SizedBox(height: 8),
           TextButton(

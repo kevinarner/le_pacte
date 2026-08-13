@@ -257,6 +257,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   void _creerPacte() {
     final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
+    final utilisateurAutre = AppStore.utilisateurAutre(widget.perspectiveMoi);
 
     final pacte = Pacte(
       id: AppStore.nouvelId(),
@@ -264,10 +265,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       datesProposees: List.of(datesProposees),
       restaurantsProposes: [_restaurantPropose],
       initiateur: CotePacte(
-        nomTitulaire: utilisateurMoi.nom,
+        idTitulaire: utilisateurMoi.id,
+        nomTitulaire: utilisateurMoi.nomComplet,
         listeRemplacants: remplacants.where((r) => r.estRempli).toList(),
       ),
       destinataire: CotePacte(
+        idTitulaire: utilisateurAutre.id,
         nomTitulaire: _nomCompletDestinataire,
         listeRemplacants: [],
       ),

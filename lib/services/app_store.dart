@@ -8,8 +8,8 @@ class AppStore {
 
   // Deux identités simulées pour tester les deux côtés du pacte
   // sans avoir besoin de deux appareils.
-  static final Utilisateur moi = Utilisateur(nom: 'Moi');
-  static final Utilisateur ami = Utilisateur(nom: 'Mon ami');
+  static final Utilisateur moi = Utilisateur(id: 'moi', nom: 'Moi');
+  static final Utilisateur ami = Utilisateur(id: 'ami', nom: 'Mon ami');
 
   static Utilisateur utilisateurCourant(bool perspectiveMoi) => perspectiveMoi ? moi : ami;
   static Utilisateur utilisateurAutre(bool perspectiveMoi) => perspectiveMoi ? ami : moi;
