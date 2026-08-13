@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../screens/crop_avatar/crop_avatar_screen.dart';
 import '../theme/app_theme.dart';
 
 /// Avatar circulaire cliquable pour choisir une photo depuis la galerie.
@@ -60,9 +61,15 @@ class PhotoAvatar extends StatelessWidget {
   Future<void> _choisirPhoto(BuildContext context) async {
     final picker = ImagePicker();
     final fichier = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (fichier != null) {
-      final octets = await fichier.readAsBytes();
-      onPhotoChoisie(octets);
+    if (fichier == null) return;
+    final octets = await fichier.readAsBytes();
+    if (!context.mounted) return;
+    final recadree = await Navigator.push<Uint8List>(
+      context,
+      MaterialPageRoute(builder: (_) => CropAvatarScreen(bytes: octets)),
+    );
+    if (recadree != null) {
+      onPhotoChoisie(recadree);
     }
   }
 }
