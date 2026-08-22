@@ -1,15 +1,18 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../models/utilisateur.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_avatar.dart';
 import '../root/root_shell.dart';
 
-/// Écran de connexion / inscription (mock — pas de vrai backend : la
-/// connexion accepte n'importe quelle saisie, mais l'inscription
-/// enregistre vraiment les informations saisies dans le compte "Moi").
+/// Écran de connexion / inscription, branché sur Supabase Auth.
+/// La photo choisie à l'inscription n'est pas encore envoyée au
+/// serveur (le stockage des fichiers n'est pas encore configuré) —
+/// elle reste locale à cette session pour l'instant.
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -19,6 +22,9 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool modeInscription = false;
+  bool enCours = false;
+  String? erreur;
+  bool inscriptionEnAttenteConfirmation = false;
 
   // Connexion
   final emailController = TextEditingController();
@@ -32,6 +38,8 @@ class _LoginScreenState extends State<LoginScreen> {
   final motDePasseInscriptionController = TextEditingController();
   final confirmationMotDePasseController = TextEditingController();
   Uint8List? photoInscription;
+
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   @override
   Widget build(BuildContext context) {
@@ -64,16 +72,28 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                if (modeInscription) _formulaireInscription() else _formulaireConnexion(),
-                const SizedBox(height: 16),
-                TextButton(
-                  onPressed: () => setState(() => modeInscription = !modeInscription),
-                  child: Text(
-                    modeInscription
-                        ? 'Déjà un compte ? Se connecter'
-                        : "Pas encore de compte ? Créer un compte",
+                if (inscriptionEnAttenteConfirmation)
+                  _messageConfirmationEnvoyee()
+                else if (modeInscription)
+                  _formulaireInscription()
+                else
+                  _formulaireConnexion(),
+                if (!inscriptionEnAttenteConfirmation) ...[
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: enCours
+                        ? null
+                        : () => setState(() {
+                              modeInscription = !modeInscription;
+                              erreur = null;
+                            }),
+                    child: Text(
+                      modeInscription
+                          ? 'Déjà un compte ? Se connecter'
+                          : "Pas encore de compte ? Créer un compte",
+                    ),
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -82,17 +102,49 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _messageConfirmationEnvoyee() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Icon(Icons.mark_email_read_outlined, size: 40, color: AppColors.terracotta),
+        const SizedBox(height: 12),
+        Text(
+          "Un email de confirmation a été envoyé à ${emailInscriptionController.text.trim()}. "
+          "Clique sur le lien reçu, puis connecte-toi.",
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 14),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton(
+          onPressed: () => setState(() {
+            inscriptionEnAttenteConfirmation = false;
+            modeInscription = false;
+          }),
+          child: const Text('Aller à la connexion'),
+        ),
+      ],
+    );
+  }
+
   Widget _formulaireConnexion() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _champ('Adresse email', 'toi@exemple.com', emailController),
+        _champ('Adresse email', 'toi@exemple.com', emailController,
+            type: TextInputType.emailAddress),
         const SizedBox(height: 12),
         _champ('Mot de passe', '••••••••', motDePasseController, masque: true),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
+        if (erreur != null) _messageErreurWidget(),
         FilledButton(
-          onPressed: _seConnecter,
-          child: const Text('Se connecter'),
+          onPressed: enCours ? null : _seConnecter,
+          child: enCours
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Se connecter'),
         ),
       ],
     );
@@ -137,7 +189,7 @@ class _LoginScreenState extends State<LoginScreen> {
             masque: true, onChanged: true),
         const SizedBox(height: 16),
         if (_erreursInscription().isNotEmpty) ...[
-          for (final erreur in _erreursInscription())
+          for (final e in _erreursInscription())
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Row(
@@ -146,19 +198,42 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
                   const SizedBox(width: 6),
                   Expanded(
-                    child: Text(erreur,
-                        style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                    child:
+                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
                   ),
                 ],
               ),
             ),
           const SizedBox(height: 8),
         ],
+        if (erreur != null) _messageErreurWidget(),
         FilledButton(
-          onPressed: _peutCreerCompte() ? _creerCompte : null,
-          child: const Text('Créer mon compte'),
+          onPressed: (_peutCreerCompte() && !enCours) ? _creerCompte : null,
+          child: enCours
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Text('Créer mon compte'),
         ),
       ],
+    );
+  }
+
+  Widget _messageErreurWidget() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(erreur!, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -193,6 +268,8 @@ class _LoginScreenState extends State<LoginScreen> {
     }
     if (motDePasseInscriptionController.text.isEmpty) {
       erreurs.add('Choisis un mot de passe.');
+    } else if (motDePasseInscriptionController.text.length < 6) {
+      erreurs.add('Le mot de passe doit contenir au moins 6 caractères.');
     } else if (motDePasseInscriptionController.text != confirmationMotDePasseController.text) {
       erreurs.add('Les deux mots de passe ne correspondent pas.');
     }
@@ -201,21 +278,98 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _peutCreerCompte() => _erreursInscription().isEmpty;
 
-  void _seConnecter() {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const RootShell()),
-    );
+  String _messageAuth(AuthException e) {
+    switch (e.message) {
+      case 'Invalid login credentials':
+        return 'Email ou mot de passe incorrect.';
+      case 'Email not confirmed':
+        return "Confirme ton adresse email avant de te connecter (vérifie tes emails).";
+      case 'User already registered':
+        return 'Un compte existe déjà avec cette adresse email.';
+      default:
+        return e.message;
+    }
   }
 
-  void _creerCompte() {
-    final moi = AppStore.moi;
-    moi.prenom = prenomController.text.trim();
-    moi.nom = nomController.text.trim();
-    moi.telephone = telephoneController.text.trim();
-    moi.email = emailInscriptionController.text.trim();
-    if (photoInscription != null) {
-      moi.photo = photoInscription;
+  Future<void> _seConnecter() async {
+    setState(() {
+      enCours = true;
+      erreur = null;
+    });
+    try {
+      final reponse = await _supabase.auth.signInWithPassword(
+        email: emailController.text.trim(),
+        password: motDePasseController.text,
+      );
+      await _chargerProfilEtEntrer(reponse.user!.id);
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        enCours = false;
+        erreur = _messageAuth(e);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        enCours = false;
+        erreur = 'Impossible de joindre le serveur pour le moment. Réessaie.';
+      });
     }
+  }
+
+  Future<void> _creerCompte() async {
+    setState(() {
+      enCours = true;
+      erreur = null;
+    });
+    try {
+      final reponse = await _supabase.auth.signUp(
+        email: emailInscriptionController.text.trim(),
+        password: motDePasseInscriptionController.text,
+        data: {
+          'prenom': prenomController.text.trim(),
+          'nom': nomController.text.trim(),
+          'telephone': telephoneController.text.trim(),
+        },
+      );
+      if (reponse.session != null) {
+        await _chargerProfilEtEntrer(reponse.user!.id);
+      } else {
+        if (!mounted) return;
+        setState(() {
+          enCours = false;
+          inscriptionEnAttenteConfirmation = true;
+        });
+      }
+    } on AuthException catch (e) {
+      if (!mounted) return;
+      setState(() {
+        enCours = false;
+        erreur = _messageAuth(e);
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        enCours = false;
+        erreur = 'Impossible de joindre le serveur pour le moment. Réessaie.';
+      });
+    }
+  }
+
+  Future<void> _chargerProfilEtEntrer(String userId) async {
+    try {
+      final profil = await _supabase.from('profiles').select().eq('id', userId).single();
+      AppStore.moi = Utilisateur(
+        id: userId,
+        prenom: profil['prenom'] as String? ?? '',
+        nom: profil['nom'] as String? ?? '',
+        telephone: profil['telephone'] as String? ?? '',
+        email: profil['email'] as String? ?? '',
+      );
+    } catch (_) {
+      AppStore.moi = Utilisateur(id: userId, email: emailController.text.trim());
+    }
+    if (!mounted) return;
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(builder: (_) => const RootShell()),
     );
