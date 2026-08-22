@@ -131,13 +131,31 @@ class _LoginScreenState extends State<LoginScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _champ('Adresse email', 'toi@exemple.com', emailController,
-            type: TextInputType.emailAddress),
+            type: TextInputType.emailAddress, onChanged: true),
         const SizedBox(height: 12),
-        _champ('Mot de passe', '••••••••', motDePasseController, masque: true),
+        _champ('Mot de passe', '••••••••', motDePasseController, masque: true, onChanged: true),
         const SizedBox(height: 16),
+        if (_erreursConnexion().isNotEmpty) ...[
+          for (final e in _erreursConnexion())
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child:
+                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 8),
+        ],
         if (erreur != null) _messageErreurWidget(),
         FilledButton(
-          onPressed: enCours ? null : _seConnecter,
+          onPressed: (enCours || _erreursConnexion().isNotEmpty) ? null : _seConnecter,
           child: enCours
               ? const SizedBox(
                   width: 18,
@@ -255,6 +273,17 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  List<String> _erreursConnexion() {
+    final erreurs = <String>[];
+    if (emailController.text.trim().isEmpty) {
+      erreurs.add('Renseigne ton adresse email.');
+    }
+    if (motDePasseController.text.isEmpty) {
+      erreurs.add('Renseigne ton mot de passe.');
+    }
+    return erreurs;
+  }
+
   List<String> _erreursInscription() {
     final erreurs = <String>[];
     if (prenomController.text.trim().isEmpty || nomController.text.trim().isEmpty) {
@@ -286,6 +315,8 @@ class _LoginScreenState extends State<LoginScreen> {
         return "Confirme ton adresse email avant de te connecter (vérifie tes emails).";
       case 'User already registered':
         return 'Un compte existe déjà avec cette adresse email.';
+      case 'missing email or phone':
+        return "Renseigne ton adresse email.";
       default:
         return e.message;
     }
