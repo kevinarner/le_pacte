@@ -1,20 +1,19 @@
 // ============================================================
-// LE PACTE — Version test (mock, sans backend)
+// LE PACTE
 // ------------------------------------------------------------
-// Tout est stocké en mémoire (AppStore) : rien n'est sauvegardé
-// entre deux lancements de l'app. C'est fait exprès : le but est
-// de valider les choix d'UX rapidement, pas de construire la
-// version finale.
-//
 // Astuce : utilise le bouton "Moi / Mon ami" en haut de l'écran
 // d'accueil pour simuler les deux participants sans avoir besoin
 // de deux téléphones.
 // ============================================================
 
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'constants.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
   runApp(const PacteApp());
 }
