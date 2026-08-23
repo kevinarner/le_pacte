@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
+import '../../services/pacte_repository.dart';
 
 /// Bloc affiché quand le destinataire doit répondre à un pacte :
 /// accepter ou refuser. La délégation à un remplaçant n'intervient
@@ -20,7 +21,8 @@ class BlocReponse extends StatelessWidget {
         const Text('Que souhaites-tu faire ?', style: TextStyle(fontWeight: FontWeight.bold)),
         const SizedBox(height: 8),
         FilledButton(
-          onPressed: () {
+          onPressed: () async {
+            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.confirme);
             pacte.restaurantRetenu = pacte.restaurantsProposes.first;
             pacte.statut = StatutPacte.confirme;
             onChanged();
@@ -29,7 +31,8 @@ class BlocReponse extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         TextButton(
-          onPressed: () {
+          onPressed: () async {
+            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.annule);
             pacte.statut = StatutPacte.annule;
             onChanged();
           },

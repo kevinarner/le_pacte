@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
+import '../../services/pacte_repository.dart';
 import '../../utils/date_fr.dart';
 import '../../widgets/dates_form.dart';
 
@@ -135,22 +136,31 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     );
   }
 
-  void _choisirDate(DateTime date) {
+  Future<void> _choisirDate(DateTime date) async {
+    await PacteRepository.choisirDate(widget.pacte.id, date);
     widget.pacte.dateRetenue = date;
     widget.pacte.statut = StatutPacte.enAttenteReponse;
     widget.onChanged();
   }
 
-  void _validerContreProposition() {
+  Future<void> _validerContreProposition() async {
+    final nombreEchanges = widget.pacte.nombreEchangesDate + 1;
+    await PacteRepository.contreProposerDates(
+      widget.pacte.id,
+      nouvellesDates,
+      nombreEchanges,
+      widget.jeSuisInitiateur,
+    );
     widget.pacte.datesProposees = List.of(nouvellesDates);
-    widget.pacte.nombreEchangesDate += 1;
+    widget.pacte.nombreEchangesDate = nombreEchanges;
     widget.pacte.statut = widget.jeSuisInitiateur
         ? StatutPacte.enAttenteChoixDateDestinataire
         : StatutPacte.enAttenteChoixDateInitiateur;
     widget.onChanged();
   }
 
-  void _annuler() {
+  Future<void> _annuler() async {
+    await PacteRepository.mettreAJourStatut(widget.pacte.id, StatutPacte.annule);
     widget.pacte.statut = StatutPacte.annule;
     widget.onChanged();
   }
@@ -186,7 +196,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
       nouvellesDates
         ..clear()
         ..add(avecHeure(date, choix));
-      _validerContreProposition();
+      await _validerContreProposition();
     }
   }
 }

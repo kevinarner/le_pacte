@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../screens/login/login_screen.dart';
 import '../accueil/accueil_screen.dart';
@@ -15,13 +16,12 @@ class RootShell extends StatefulWidget {
 
 class _RootShellState extends State<RootShell> {
   int index = 0;
-  bool perspectiveMoi = true;
 
   void refresh() => setState(() {});
 
-  void changerPerspective() => setState(() => perspectiveMoi = !perspectiveMoi);
-
-  void deconnexion() {
+  Future<void> deconnexion() async {
+    await Supabase.instance.client.auth.signOut();
+    if (!mounted) return;
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
@@ -31,17 +31,8 @@ class _RootShellState extends State<RootShell> {
   @override
   Widget build(BuildContext context) {
     final ecrans = [
-      AccueilScreen(
-        perspectiveMoi: perspectiveMoi,
-        onChangerPerspective: changerPerspective,
-        onChanged: refresh,
-      ),
-      ProfilScreen(
-        perspectiveMoi: perspectiveMoi,
-        onChangerPerspective: changerPerspective,
-        onDeconnexion: deconnexion,
-        onChanged: refresh,
-      ),
+      AccueilScreen(onChanged: refresh),
+      ProfilScreen(onDeconnexion: deconnexion, onChanged: refresh),
     ];
 
     return Scaffold(

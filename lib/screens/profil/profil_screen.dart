@@ -2,19 +2,16 @@ import 'package:flutter/material.dart';
 
 import '../../models/statut_pacte.dart';
 import '../../services/app_store.dart';
+import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_avatar.dart';
 
 class ProfilScreen extends StatefulWidget {
-  final bool perspectiveMoi;
-  final VoidCallback onChangerPerspective;
   final VoidCallback onDeconnexion;
   final VoidCallback onChanged;
 
   const ProfilScreen({
     super.key,
-    required this.perspectiveMoi,
-    required this.onChangerPerspective,
     required this.onDeconnexion,
     required this.onChanged,
   });
@@ -24,17 +21,27 @@ class ProfilScreen extends StatefulWidget {
 }
 
 class _ProfilScreenState extends State<ProfilScreen> {
+  int? pactesEnCours;
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  Future<void> _charger() async {
+    final pactes = await PacteRepository.mesPactes();
+    if (!mounted) return;
+    setState(() {
+      pactesEnCours = pactes
+          .where((p) => p.statut != StatutPacte.maintenu && p.statut != StatutPacte.annule)
+          .length;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final utilisateur = AppStore.utilisateurCourant(widget.perspectiveMoi);
-    final autre = AppStore.utilisateurAutre(widget.perspectiveMoi);
-    final pactesEnCours = AppStore.pactes.where((p) {
-      final impliqueUtilisateur =
-          p.initiateur.idTitulaire == utilisateur.id || p.destinataire.idTitulaire == utilisateur.id;
-      return impliqueUtilisateur &&
-          p.statut != StatutPacte.maintenu &&
-          p.statut != StatutPacte.annule;
-    }).length;
+    final utilisateur = AppStore.moi;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profil')),
@@ -56,15 +63,6 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(utilisateur.nomComplet, style: Theme.of(context).textTheme.titleLarge),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: AppColors.neutre,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text('Perspective de test', style: TextStyle(fontSize: 12)),
-                ),
               ],
             ),
           ),
@@ -72,16 +70,11 @@ class _ProfilScreenState extends State<ProfilScreen> {
           Card(
             child: Column(
               children: [
-                _ligneStat('Pactes en cours', pactesEnCours),
+                _ligneStat('Pactes en cours', pactesEnCours ?? 0),
               ],
             ),
           ),
           const SizedBox(height: 16),
-          OutlinedButton(
-            onPressed: widget.onChangerPerspective,
-            child: Text('Changer de vue (${utilisateur.nomComplet} → ${autre.nomComplet})'),
-          ),
-          const SizedBox(height: 8),
           TextButton(
             onPressed: widget.onDeconnexion,
             child: const Text('Se déconnecter'),

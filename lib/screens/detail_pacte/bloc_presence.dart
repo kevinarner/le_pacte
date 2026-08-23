@@ -46,7 +46,9 @@ class BlocPresence extends StatelessWidget {
       context,
       MaterialPageRoute(
         builder: (_) => ChoisirRemplacantScreen(
-          cote: _monCote,
+          pacteId: pacte.id,
+          cote: jeSuisInitiateur ? 'initiateur' : 'destinataire',
+          cotePacte: _monCote,
           nomAutrePartie: _coteAutrePartie.nomTitulaire,
           type: pacte.type,
           dates: pacte.dateRetenue != null ? [pacte.dateRetenue!] : [],

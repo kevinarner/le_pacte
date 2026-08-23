@@ -3,19 +3,24 @@ import 'package:flutter/material.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/remplacant.dart';
 import '../../models/type_repas.dart';
+import '../../services/pacte_repository.dart';
 import '../../widgets/remplacants_form.dart';
 
 /// Saisie des remplaçants du destinataire pour CE pacte, puis choix de
 /// celui à qui déléguer. Propre à ce pacte, jamais visible par l'initiateur.
 class ChoisirRemplacantScreen extends StatefulWidget {
-  final CotePacte cote;
+  final String pacteId;
+  final String cote;
+  final CotePacte cotePacte;
   final String nomAutrePartie;
   final TypeRepas type;
   final List<DateTime> dates;
 
   const ChoisirRemplacantScreen({
     super.key,
+    required this.pacteId,
     required this.cote,
+    required this.cotePacte,
     required this.nomAutrePartie,
     required this.type,
     required this.dates,
@@ -26,7 +31,8 @@ class ChoisirRemplacantScreen extends StatefulWidget {
 }
 
 class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
-  List<Remplacant> get remplacants => widget.cote.listeRemplacants;
+  List<Remplacant> get remplacants => widget.cotePacte.listeRemplacants;
+  bool enCours = false;
 
   @override
   Widget build(BuildContext context) {
@@ -61,12 +67,28 @@ class _ChoisirRemplacantScreenState extends State<ChoisirRemplacantScreen> {
                 child: ListTile(
                   title: Text(r.nomComplet),
                   trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.pop(context, r),
+                  onTap: enCours ? null : () => _selectionner(r),
                 ),
               ),
           ],
         ],
       ),
     );
+  }
+
+  Future<void> _selectionner(Remplacant r) async {
+    setState(() => enCours = true);
+    try {
+      await PacteRepository.synchroniserRemplacants(widget.pacteId, widget.cote, remplacants);
+      await PacteRepository.selectionnerRemplacant(r.id!);
+      if (!mounted) return;
+      Navigator.pop(context, r);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => enCours = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Impossible d'enregistrer ton choix pour le moment.")),
+      );
+    }
   }
 }

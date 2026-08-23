@@ -2,40 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants.dart';
-import '../../models/cote_pacte.dart';
-import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/date_fr.dart';
 import '../../widgets/dates_form.dart';
 import '../../widgets/remplacants_form.dart';
 
-const _nomRestaurant = 'Au père Lapin';
-const _lienRestaurant = 'https://www.auperelapin.com/';
 const _minimumRemplacants = 2;
 
-/// Le seul restaurant proposé pour l'instant, avec ses créneaux réels.
-final _restaurantPropose = Restaurant(
-  nom: _nomRestaurant,
-  lien: _lienRestaurant,
-  creneauxDejeuner: genererCreneaux(
-    const TimeOfDay(hour: 12, minute: 0),
-    const TimeOfDay(hour: 13, minute: 45),
-    pasMinutes: 15,
-  ),
-  creneauxDiner: genererCreneaux(
-    const TimeOfDay(hour: 19, minute: 0),
-    const TimeOfDay(hour: 21, minute: 45),
-    pasMinutes: 15,
-  ),
-);
-
 class CreerPacteScreen extends StatefulWidget {
-  final bool perspectiveMoi;
-  const CreerPacteScreen({super.key, required this.perspectiveMoi});
+  const CreerPacteScreen({super.key});
 
   @override
   State<CreerPacteScreen> createState() => _CreerPacteScreenState();
@@ -50,8 +29,31 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   final emailDestinataireController = TextEditingController();
   final List<Remplacant> remplacants = [];
 
+  Restaurant? restaurant;
+  bool enCours = false;
+  String? erreur;
+
+  @override
+  void initState() {
+    super.initState();
+    _chargerRestaurant();
+  }
+
+  Future<void> _chargerRestaurant() async {
+    final r = await PacteRepository.restaurant();
+    if (!mounted) return;
+    setState(() => restaurant = r);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final restau = restaurant;
+    if (restau == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Nouveau pacte')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
     return Scaffold(
       appBar: AppBar(title: const Text('Nouveau pacte')),
       body: ListView(
@@ -150,7 +152,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           DatesForm(
             dates: datesProposees,
             minimum: 1,
-            creneaux: _restaurantPropose.creneaux(type),
+            creneaux: restau.creneaux(type),
             onChanged: () => setState(() {}),
           ),
           const SizedBox(height: 16),
@@ -163,15 +165,15 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           const SizedBox(height: 12),
           const Text('Nom du restaurant', style: TextStyle(fontSize: 12, color: Colors.black54)),
           const SizedBox(height: 4),
-          const Text(_nomRestaurant, style: TextStyle(fontSize: 16)),
+          Text(restau.nom, style: const TextStyle(fontSize: 16)),
           const SizedBox(height: 12),
           const Text('Lien du site web', style: TextStyle(fontSize: 12, color: Colors.black54)),
           const SizedBox(height: 4),
           InkWell(
-            onTap: _ouvrirLienRestaurant,
-            child: const Text(
-              _lienRestaurant,
-              style: TextStyle(
+            onTap: () => _ouvrirLienRestaurant(restau.lien),
+            child: Text(
+              restau.lien,
+              style: const TextStyle(
                 fontSize: 16,
                 color: AppColors.terracotta,
                 decoration: TextDecoration.underline,
@@ -180,7 +182,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           ),
           const SizedBox(height: 24),
           if (_erreursValidation().isNotEmpty) ...[
-            for (final erreur in _erreursValidation())
+            for (final e in _erreursValidation())
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
@@ -189,7 +191,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                     const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
                     const SizedBox(width: 6),
                     Expanded(
-                      child: Text(erreur,
+                      child: Text(e,
                           style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
                     ),
                   ],
@@ -197,9 +199,21 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
               ),
             const SizedBox(height: 8),
           ],
+          if (erreur != null) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(erreur!, style: const TextStyle(color: AppColors.terracotta)),
+            ),
+          ],
           FilledButton(
-            onPressed: _peutValider() ? _creerPacte : null,
-            child: const Text('Envoyer le pacte'),
+            onPressed: _peutValider() && !enCours ? () => _creerPacte(restau) : null,
+            child: enCours
+                ? const SizedBox(
+                    height: 16,
+                    width: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Text('Envoyer le pacte'),
           ),
         ],
       ),
@@ -226,8 +240,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   bool _peutValider() => _erreursValidation().isEmpty;
 
-  Future<void> _ouvrirLienRestaurant() async {
-    await launchUrl(Uri.parse(_lienRestaurant), webOnlyWindowName: '_blank');
+  Future<void> _ouvrirLienRestaurant(String lien) async {
+    await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
   }
 
   String get _nomCompletDestinataire {
@@ -255,28 +269,29 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     await launchUrl(Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'));
   }
 
-  void _creerPacte() {
-    final utilisateurMoi = AppStore.utilisateurCourant(widget.perspectiveMoi);
-    final utilisateurAutre = AppStore.utilisateurAutre(widget.perspectiveMoi);
-
-    final pacte = Pacte(
-      id: AppStore.nouvelId(),
-      type: type,
-      datesProposees: List.of(datesProposees),
-      restaurantsProposes: [_restaurantPropose],
-      initiateur: CotePacte(
-        idTitulaire: utilisateurMoi.id,
-        nomTitulaire: utilisateurMoi.nomComplet,
-        listeRemplacants: remplacants.where((r) => r.estRempli).toList(),
-      ),
-      destinataire: CotePacte(
-        idTitulaire: utilisateurAutre.id,
-        nomTitulaire: _nomCompletDestinataire,
-        listeRemplacants: [],
-      ),
-    );
-
-    AppStore.pactes.add(pacte);
-    Navigator.pop(context);
+  Future<void> _creerPacte(Restaurant restau) async {
+    setState(() {
+      enCours = true;
+      erreur = null;
+    });
+    try {
+      await PacteRepository.creerPacte(
+        type: type,
+        datesProposees: List.of(datesProposees),
+        initiateurId: AppStore.moi.id,
+        initiateurNom: AppStore.moi.nomComplet,
+        destinataireNom: _nomCompletDestinataire,
+        destinataireTelephone: telephoneDestinataireController.text.trim(),
+        remplacantsInitiateur: remplacants,
+      );
+      if (!mounted) return;
+      Navigator.pop(context);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        enCours = false;
+        erreur = "Impossible d'envoyer le pacte pour le moment. Réessaie.";
+      });
+    }
   }
 }

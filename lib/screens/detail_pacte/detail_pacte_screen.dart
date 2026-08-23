@@ -17,8 +17,7 @@ import 'bloc_reponse.dart';
 
 class DetailPacteScreen extends StatefulWidget {
   final Pacte pacte;
-  final bool perspectiveMoi;
-  const DetailPacteScreen({super.key, required this.pacte, required this.perspectiveMoi});
+  const DetailPacteScreen({super.key, required this.pacte});
 
   @override
   State<DetailPacteScreen> createState() => _DetailPacteScreenState();
@@ -28,11 +27,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
   @override
   Widget build(BuildContext context) {
     final pacte = widget.pacte;
-    // Suis-je l'initiateur de CE pacte, vu ma perspective actuelle ?
-    // On compare des identifiants internes stables, jamais le nom
-    // affiché (qui peut être n'importe quoi une fois le compte créé).
-    final jeSuisInitiateur = pacte.initiateur.idTitulaire ==
-        AppStore.utilisateurCourant(widget.perspectiveMoi).id;
+    // Suis-je l'initiateur de CE pacte ? On compare des identifiants
+    // internes stables, jamais le nom affiché.
+    final jeSuisInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
     final cotePartenaire = jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
     final tag = statutTag(pacte.statut);
 

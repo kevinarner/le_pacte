@@ -4,66 +4,62 @@ import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
 class AccueilScreen extends StatefulWidget {
-  final bool perspectiveMoi;
-  final VoidCallback onChangerPerspective;
   final VoidCallback onChanged;
 
-  const AccueilScreen({
-    super.key,
-    required this.perspectiveMoi,
-    required this.onChangerPerspective,
-    required this.onChanged,
-  });
+  const AccueilScreen({super.key, required this.onChanged});
 
   @override
   State<AccueilScreen> createState() => _AccueilScreenState();
 }
 
 class _AccueilScreenState extends State<AccueilScreen> {
+  List<Pacte>? pactes;
+
+  @override
+  void initState() {
+    super.initState();
+    _charger();
+  }
+
+  Future<void> _charger() async {
+    final resultat = await PacteRepository.mesPactes();
+    if (!mounted) return;
+    setState(() => pactes = resultat);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final nomMoi = AppStore.utilisateurCourant(widget.perspectiveMoi).nomComplet;
-    final pactes = AppStore.pactes;
+    final liste = pactes;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Le Pacte'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: OutlinedButton.icon(
-              onPressed: widget.onChangerPerspective,
-              icon: const Icon(Icons.swap_horiz, size: 18),
-              label: Text('Vue : $nomMoi'),
-              style: OutlinedButton.styleFrom(minimumSize: const Size(0, 36)),
-            ),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Le Pacte')),
       body: Column(
         children: [
           Expanded(
-            child: pactes.isEmpty
-                ? const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        "Aucun pacte pour l'instant.\nAppuie sur + pour en créer un.",
-                        textAlign: TextAlign.center,
+            child: liste == null
+                ? const Center(child: CircularProgressIndicator())
+                : liste.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            "Aucun pacte pour l'instant.\nAppuie sur + pour en créer un.",
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        itemCount: liste.length,
+                        itemBuilder: (context, i) => _cardPacte(liste[i]),
                       ),
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                    itemCount: pactes.length,
-                    itemBuilder: (context, i) => _cardPacte(pactes[i]),
-                  ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
@@ -71,12 +67,10 @@ class _AccueilScreenState extends State<AccueilScreen> {
               onPressed: () async {
                 await Navigator.push(
                   context,
-                  MaterialPageRoute(
-                    builder: (_) => CreerPacteScreen(perspectiveMoi: widget.perspectiveMoi),
-                  ),
+                  MaterialPageRoute(builder: (_) => const CreerPacteScreen()),
                 );
                 widget.onChanged();
-                setState(() {});
+                await _charger();
               },
               icon: const Icon(Icons.add),
               label: const Text('Nouveau pacte'),
@@ -88,8 +82,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   Widget _cardPacte(Pacte pacte) {
-    final estInitiateur =
-        pacte.initiateur.idTitulaire == AppStore.utilisateurCourant(widget.perspectiveMoi).id;
+    final estInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
     final autreNom =
         estInitiateur ? pacte.destinataire.nomTitulaire : pacte.initiateur.nomTitulaire;
     final tag = statutTag(pacte.statut);
@@ -103,11 +96,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
             await Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => DetailPacteScreen(pacte: pacte, perspectiveMoi: widget.perspectiveMoi),
+                builder: (_) => DetailPacteScreen(pacte: pacte),
               ),
             );
             widget.onChanged();
-            setState(() {});
+            await _charger();
           },
           child: Padding(
             padding: const EdgeInsets.all(16),

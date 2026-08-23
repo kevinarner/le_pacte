@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
+import '../../services/pacte_repository.dart';
 
 /// Bloc de simulation du garde-fou anti-désistement (J-7 / J-3 / J-1),
 /// en attendant que ces notifications soient gérées par le backend.
@@ -25,7 +26,8 @@ class BlocCascade extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FilledButton.tonal(
-          onPressed: () {
+          onPressed: () async {
+            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.maintenu);
             pacte.statut = StatutPacte.maintenu;
             onChanged();
           },
@@ -33,7 +35,8 @@ class BlocCascade extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         OutlinedButton(
-          onPressed: () {
+          onPressed: () async {
+            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.annule);
             pacte.statut = StatutPacte.annule;
             onChanged();
           },
