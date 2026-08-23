@@ -30,13 +30,17 @@ class _ProfilScreenState extends State<ProfilScreen> {
   }
 
   Future<void> _charger() async {
-    final pactes = await PacteRepository.mesPactes();
-    if (!mounted) return;
-    setState(() {
-      pactesEnCours = pactes
-          .where((p) => p.statut != StatutPacte.maintenu && p.statut != StatutPacte.annule)
-          .length;
-    });
+    try {
+      final pactes = await PacteRepository.mesPactes();
+      if (!mounted) return;
+      setState(() {
+        pactesEnCours = pactes
+            .where((p) => p.statut != StatutPacte.maintenu && p.statut != StatutPacte.annule)
+            .length;
+      });
+    } catch (_) {
+      // Reste à 0 si le chargement échoue : la stat n'est qu'indicative.
+    }
   }
 
   @override

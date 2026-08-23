@@ -32,6 +32,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   Restaurant? restaurant;
   bool enCours = false;
   String? erreur;
+  String? erreurChargement;
 
   @override
   void initState() {
@@ -40,14 +41,44 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   }
 
   Future<void> _chargerRestaurant() async {
-    final r = await PacteRepository.restaurant();
-    if (!mounted) return;
-    setState(() => restaurant = r);
+    setState(() => erreurChargement = null);
+    try {
+      final r = await PacteRepository.restaurant();
+      if (!mounted) return;
+      setState(() => restaurant = r);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => erreurChargement = e.toString());
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final restau = restaurant;
+    if (erreurChargement != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Nouveau pacte')),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.error_outline, color: AppColors.terracotta, size: 32),
+                const SizedBox(height: 12),
+                Text(
+                  "Impossible de charger le restaurant.\n$erreurChargement",
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: AppColors.terracotta, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton(onPressed: _chargerRestaurant, child: const Text('Réessayer')),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
     if (restau == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Nouveau pacte')),

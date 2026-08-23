@@ -21,6 +21,7 @@ class AccueilScreen extends StatefulWidget {
 
 class _AccueilScreenState extends State<AccueilScreen> {
   List<Pacte>? pactes;
+  String? erreur;
 
   @override
   void initState() {
@@ -29,9 +30,18 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   Future<void> _charger() async {
-    final resultat = await PacteRepository.mesPactes();
-    if (!mounted) return;
-    setState(() => pactes = resultat);
+    setState(() {
+      erreur = null;
+      pactes = null;
+    });
+    try {
+      final resultat = await PacteRepository.mesPactes();
+      if (!mounted) return;
+      setState(() => pactes = resultat);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => erreur = e.toString());
+    }
   }
 
   @override
@@ -43,23 +53,43 @@ class _AccueilScreenState extends State<AccueilScreen> {
       body: Column(
         children: [
           Expanded(
-            child: liste == null
-                ? const Center(child: CircularProgressIndicator())
-                : liste.isEmpty
-                    ? const Center(
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: Text(
-                            "Aucun pacte pour l'instant.\nAppuie sur + pour en créer un.",
+            child: erreur != null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, color: AppColors.terracotta, size: 32),
+                          const SizedBox(height: 12),
+                          Text(
+                            "Impossible de charger tes pactes.\n$erreur",
                             textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.terracotta, fontSize: 12),
                           ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        itemCount: liste.length,
-                        itemBuilder: (context, i) => _cardPacte(liste[i]),
+                          const SizedBox(height: 12),
+                          OutlinedButton(onPressed: _charger, child: const Text('Réessayer')),
+                        ],
                       ),
+                    ),
+                  )
+                : liste == null
+                    ? const Center(child: CircularProgressIndicator())
+                    : liste.isEmpty
+                        ? const Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(24),
+                              child: Text(
+                                "Aucun pacte pour l'instant.\nAppuie sur + pour en créer un.",
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                            itemCount: liste.length,
+                            itemBuilder: (context, i) => _cardPacte(liste[i]),
+                          ),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
