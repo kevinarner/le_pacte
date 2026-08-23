@@ -13,6 +13,9 @@ class RemplacantsForm extends StatefulWidget {
   final VoidCallback onChanged;
   final int minimum;
 
+  /// Nombre maximum de remplaçants par côté du pacte.
+  static const int maximum = 5;
+
   /// Contexte du pacte, utilisé pour rédiger le message d'invitation SMS.
   final String nomAutrePartie;
   final TypeRepas type;
@@ -65,11 +68,17 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
       children: [
         for (int i = 0; i < widget.remplacants.length; i++) _ligne(i),
         const SizedBox(height: 4),
-        OutlinedButton.icon(
-          onPressed: _ajouter,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Ajouter un remplaçant'),
-        ),
+        if (widget.remplacants.length < RemplacantsForm.maximum)
+          OutlinedButton.icon(
+            onPressed: _ajouter,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Ajouter un remplaçant'),
+          )
+        else
+          Text(
+            'Maximum ${RemplacantsForm.maximum} remplaçants atteint.',
+            style: const TextStyle(fontSize: 12, color: Colors.black54),
+          ),
       ],
     );
   }
@@ -161,6 +170,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
   }
 
   void _ajouter() {
+    if (widget.remplacants.length >= RemplacantsForm.maximum) return;
     setState(() {
       widget.remplacants.add(Remplacant());
       widget.onChanged();
