@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/message.dart';
 import '../../services/pacte_repository.dart';
@@ -12,7 +13,18 @@ class ChatScreen extends StatefulWidget {
   final String remplacantId;
   final String nomInterlocuteur;
 
-  const ChatScreen({super.key, required this.remplacantId, required this.nomInterlocuteur});
+  /// Connu d'avance côté titulaire (déjà dans son formulaire de
+  /// remplaçants) — laissé à null côté remplaçant, qui n'a pas le
+  /// droit de le lire directement : il sera alors récupéré via une
+  /// fonction serveur dédiée.
+  final String? telephoneInterlocuteur;
+
+  const ChatScreen({
+    super.key,
+    required this.remplacantId,
+    required this.nomInterlocuteur,
+    this.telephoneInterlocuteur,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -23,6 +35,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scrollController = ScrollController();
   late final Stream<List<Message>> _messages;
   bool enCours = false;
+  String? _telephone;
 
   String get _monId => Supabase.instance.client.auth.currentUser!.id;
 
@@ -30,6 +43,22 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _messages = PacteRepository.abonnementMessages(widget.remplacantId);
+    _telephone = widget.telephoneInterlocuteur;
+    if (_telephone == null) {
+      _chargerTelephone();
+    }
+  }
+
+  Future<void> _chargerTelephone() async {
+    final tel = await PacteRepository.telephoneTitulaireDuPacte(widget.remplacantId);
+    if (!mounted || tel == null) return;
+    setState(() => _telephone = tel);
+  }
+
+  Future<void> _appeler() async {
+    final tel = _telephone?.trim();
+    if (tel == null || tel.isEmpty) return;
+    await launchUrl(Uri.parse('tel:${tel.replaceAll(RegExp(r'\s+'), '')}'));
   }
 
   @override
@@ -51,8 +80,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final telephone = _telephone?.trim();
     return Scaffold(
-      appBar: AppBar(title: Text(widget.nomInterlocuteur)),
+      appBar: AppBar(
+        title: Text(widget.nomInterlocuteur),
+        actions: [
+          if (telephone != null && telephone.isNotEmpty)
+            IconButton(
+              onPressed: _appeler,
+              icon: const Icon(Icons.call_outlined),
+              tooltip: 'Appeler',
+            ),
+        ],
+      ),
       body: Column(
         children: [
           Expanded(

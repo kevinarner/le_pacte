@@ -151,7 +151,11 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChatScreen(remplacantId: r.id!, nomInterlocuteur: r.nomComplet),
+        builder: (_) => ChatScreen(
+          remplacantId: r.id!,
+          nomInterlocuteur: r.nomComplet,
+          telephoneInterlocuteur: r.telephone,
+        ),
       ),
     );
   }

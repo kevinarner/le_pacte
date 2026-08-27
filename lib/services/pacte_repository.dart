@@ -66,6 +66,17 @@ class PacteRepository {
     return result;
   }
 
+  /// Le téléphone du titulaire d'un pacte, du point de vue de son
+  /// remplaçant (pour pouvoir l'appeler) — ne renvoie quelque chose que
+  /// si l'appelant est bien ce remplaçant, jamais pour un tiers.
+  static Future<String?> telephoneTitulaireDuPacte(String remplacantId) async {
+    final result = await _client.rpc<String?>(
+      'telephone_titulaire_du_pacte',
+      params: {'p_remplacant_id': remplacantId},
+    );
+    return result;
+  }
+
   /// Les pactes où je suis impliqué (initiateur ou destinataire), du
   /// plus récent au plus ancien. La sécurité côté base ne renvoie de
   /// toute façon que ceux-là.
