@@ -318,11 +318,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       );
       if (!mounted) return;
       Navigator.pop(context);
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible d'envoyer le pacte pour le moment. Réessaie.";
+        erreur = "Impossible d'envoyer le pacte pour le moment.\n$e";
       });
     }
   }
