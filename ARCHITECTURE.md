@@ -6,6 +6,8 @@
 
 "Le Pacte" est une application où deux personnes fixent d'avance un déjeuner ou un dîner, sans savoir à l'avance qui — du titulaire ou d'un remplaçant — sera réellement présent le jour J. Chaque partie peut, à tout moment avant le jour J, déléguer sa présence à l'un de ses propres remplaçants, sans que l'autre partie ne le sache. Ce secret est la règle produit centrale et elle irrigue tout le modèle de données (section 4).
 
+**V1 : si les deux parties délèguent leur présence, le pacte est annulé automatiquement.** Faire se rencontrer deux remplaçants qui ne se connaissent pas n'est pas géré pour l'instant (peut être gênant). Les deux sont prévenus (dans l'app pour l'instant, en attendant les notifications push) et peuvent recréer un pacte s'ils le souhaitent — voir section 4 (`statut = annuleDoubleAbsence`) et section 7.4.
+
 ## 2. Stack technique
 
 | Couche | Choix | État |
@@ -56,7 +58,7 @@ La ligne partagée entre les deux parties. Deux catégories de colonnes bien dis
 Ce cloisonnement colonne-par-colonne (`GRANT SELECT (col1, col2, ...) ON pactes TO authenticated`, tout le reste implicitement refusé) est le mécanisme qui rend ces 20 colonnes invisibles à l'app, en complément de la RLS classique (qui, elle, filtre les *lignes*, pas les colonnes).
 
 `statut` (enum, valeurs exactes utilisées dans le code et en base) :
-`enAttenteChoixDateDestinataire` → `enAttenteChoixDateInitiateur` (allers-retours de négociation de date, plafonnés à 2) → `enAttenteReponse` → `confirme` → `maintenu` ou `annule`.
+`enAttenteChoixDateDestinataire` → `enAttenteChoixDateInitiateur` (allers-retours de négociation de date, plafonnés à 2) → `enAttenteReponse` → `confirme` → `maintenu`, `annule`, ou `annuleDoubleAbsence` (les deux parties ont délégué leur présence — voir section 5 et 7.4).
 
 Important : **aucun champ de statut de présence n'existe sur `pactes`**. Ni l'initiateur ni le destinataire ne peuvent lire, même indirectement, si l'autre partie a délégué sa présence — cette information vit exclusivement dans `remplacants`, cloisonnée par côté (voir ci-dessous). C'est une correction volontaire par rapport à une première version du schéma qui stockait un statut de présence par côté directement sur `pactes`.
 
@@ -75,6 +77,7 @@ Ces fonctions tournent avec les droits du propriétaire de la base, pas ceux de 
 - **`handle_new_user()`** — trigger `after insert` sur `auth.users`. Crée la ligne `profiles` correspondante, ET rattache automatiquement tout pacte en attente dont `destinataire_telephone` correspond au numéro du nouvel inscrit (met à jour `destinataire_id`, qui était resté `NULL` faute de compte au moment de la création du pacte).
 - **`synchroniser_remplacants_caches()`** — trigger `after insert/update/delete` sur `remplacants`. Recopie chaque remplaçant dans l'emplacement fixe correspondant parmi les 20 colonnes cachées de `pactes`, via `row_number() over (partition by cote order by id)`. C'est le seul mécanisme qui écrit dans ces 20 colonnes.
 - **`trouver_profil_par_telephone(p_telephone text) returns uuid`** — RPC restreinte, appelée par l'app à la création d'un pacte pour savoir si le destinataire a déjà un compte. Ne renvoie qu'un UUID (ou rien), jamais les autres champs du profil — nécessaire car la RLS de `profiles` interdit sinon toute lecture du profil d'un tiers.
+- **`annuler_si_double_absence()`** — trigger `after insert or update of selectionne` sur `remplacants`. Quand un côté sélectionne un remplaçant, vérifie si l'autre côté en a déjà un sélectionné pour ce même pacte ; si oui, bascule `pactes.statut` sur `annuleDoubleAbsence`. Doit obligatoirement tourner en `SECURITY DEFINER` : c'est le seul endroit du système qui a le droit de comparer les deux côtés d'un même pacte, l'app cliente n'ayant jamais accès aux remplaçants de l'autre partie (RLS par côté, section 4).
 
 ## 6. Authentification
 
@@ -130,6 +133,24 @@ flowchart TD
 
 Point clé : la substitution ne touche **aucune colonne lisible par l'app** sur `pactes`. L'autre partie n'a littéralement aucune donnée lui indiquant qu'une substitution a eu lieu — pas seulement un nom caché. Le trigger `synchroniser_remplacants_caches()` écrit bien un historique sur `pactes`, mais dans les 20 colonnes jamais accordées à `authenticated` : cet historique n'existe que pour une consultation manuelle via l'éditeur SQL, jamais pour l'app.
 
+### 7.4 Les deux délèguent : annulation automatique (V1)
+
+Décision V1 (24/08) : faire se rencontrer deux remplaçants qui ne se connaissent pas n'est pas géré pour l'instant — si les deux parties délèguent, le pacte est annulé plutôt que de les mettre en contact.
+
+```mermaid
+flowchart TD
+    A["remplacants\nCôté A : selectionne = true"] --> T{"trigger\nannuler_si_double_absence()"}
+    T -->|"L'autre côté a-t-il déjà\nun remplaçant sélectionné ?"| Q{" "}
+    Q -->|non| OK["Rien ne change\npacte reste confirme"]
+    Q -->|oui| C["UPDATE pactes\nstatut = annuleDoubleAbsence"]
+    C --> M["Message identique aux deux parties :\n« vous avez chacun dû faire appel à un remplaçant »\n— jamais l'identité des remplaçants"]
+```
+
+Points volontaires de cette conception :
+- **Annulation immédiate**, dès la seconde délégation — pas d'attente d'une échéance J-1.
+- **Le message révèle le fait mutuel** (les deux ont délégué) **mais jamais l'identité** des remplaçants — cohérent avec la règle de secret, puisque ce fait-là ne devient vrai, et donc partageable, que lorsqu'il concerne les deux parties à la fois.
+- **Pas de notification push pour l'instant** : la partie qui délègue en second voit le changement immédiatement (l'app relit le statut juste après son action) ; l'autre partie le verra en rouvrant l'app. Un vrai push sera branché sur cet événement une fois FCM en place.
+
 ## 8. Bugs rencontrés et corrigés (pour ne pas les refaire)
 
 | Symptôme | Cause | Correction |
@@ -143,7 +164,8 @@ Point clé : la substitution ne touche **aucune colonne lisible par l'app** sur 
 
 **Fait et déployé :**
 - Authentification réelle (Supabase Auth), création de profil automatique, rattachement automatique par téléphone.
-- Cycle de vie complet d'un pacte : création, négociation de date (max 2 allers-retours), acceptation/refus, délégation à un remplaçant, statuts `confirme`/`maintenu`/`annule`.
+- Cycle de vie complet d'un pacte : création, négociation de date (max 2 allers-retours), acceptation/refus, délégation à un remplaçant, statuts `confirme`/`maintenu`/`annule`/`annuleDoubleAbsence`.
+- Annulation automatique si les deux parties délèguent leur présence (V1 — pas de mise en contact entre remplaçants).
 - Confidentialité par côté appliquée à la fois par RLS (lignes) et par grants de colonnes (historique permanent invisible à l'app).
 
 **Prévu, pas commencé :**
