@@ -309,7 +309,13 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _peutCreerCompte() => _erreursInscription().isEmpty;
 
   String _messageAuth(AuthException e) {
-    switch (e.message) {
+    final message = e.message;
+    final messageBas = message.toLowerCase();
+    if (messageBas.contains('telephone') &&
+        (messageBas.contains('duplicate') || messageBas.contains('unique'))) {
+      return 'Ce numéro de téléphone est déjà associé à un autre compte.';
+    }
+    switch (message) {
       case 'Invalid login credentials':
         return 'Email ou mot de passe incorrect.';
       case 'Email not confirmed':
@@ -319,7 +325,7 @@ class _LoginScreenState extends State<LoginScreen> {
       case 'missing email or phone':
         return "Renseigne ton adresse email.";
       default:
-        return e.message;
+        return message;
     }
   }
 
@@ -380,11 +386,15 @@ class _LoginScreenState extends State<LoginScreen> {
         enCours = false;
         erreur = _messageAuth(e);
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      final messageBas = e.toString().toLowerCase();
       setState(() {
         enCours = false;
-        erreur = 'Impossible de joindre le serveur pour le moment. Réessaie.';
+        erreur = messageBas.contains('telephone') &&
+                (messageBas.contains('duplicate') || messageBas.contains('unique'))
+            ? 'Ce numéro de téléphone est déjà associé à un autre compte.'
+            : 'Impossible de joindre le serveur pour le moment.\n$e';
       });
     }
   }
