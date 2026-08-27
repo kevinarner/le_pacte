@@ -1,6 +1,6 @@
 # Synthèse technique — Le Pacte
 
-> **À maintenir à jour.** Ce document décrit l'état réel du produit et du code à un instant donné. Toute session de développement qui touche au schéma de données, aux règles de sécurité, au workflow de déploiement ou à une décision d'architecture doit mettre ce fichier à jour dans le même commit — pas après coup. Dernière mise à jour : **24 août 2026**.
+> **À maintenir à jour.** Ce document décrit l'état réel du produit et du code à un instant donné. Toute session de développement qui touche au schéma de données, aux règles de sécurité, au workflow de déploiement ou à une décision d'architecture doit mettre ce fichier à jour dans le même commit — pas après coup. Dernière mise à jour : **27 août 2026**.
 
 ## 1. Le produit
 
@@ -63,9 +63,13 @@ Ce cloisonnement colonne-par-colonne (`GRANT SELECT (col1, col2, ...) ON pactes 
 Important : **aucun champ de statut de présence n'existe sur `pactes`**. Ni l'initiateur ni le destinataire ne peuvent lire, même indirectement, si l'autre partie a délégué sa présence — cette information vit exclusivement dans `remplacants`, cloisonnée par côté (voir ci-dessous). C'est une correction volontaire par rapport à une première version du schéma qui stockait un statut de présence par côté directement sur `pactes`.
 
 ### `remplacants`
-Une ligne par remplaçant potentiel, propre à un pacte et à un côté (`cote` = `'initiateur'` ou `'destinataire'`) : `pacte_id`, `cote`, `prenom`, `nom`, `telephone`, `email`, `selectionne` (booléen — celui-ci a été délégué).
-RLS : **chacun ne voit/modifie que les remplaçants de son propre côté** — c'est la policy qui a été corrigée cette session (la version initiale laissait chaque partie voir la liste de remplaçants de l'autre, ce qui violait la règle de secret centrale du produit).
+Une ligne par remplaçant potentiel, propre à un pacte et à un côté (`cote` = `'initiateur'` ou `'destinataire'`) : `pacte_id`, `cote`, `prenom`, `nom`, `telephone` (obligatoire côté app depuis le 27/08 — nécessaire pour relier un compte), `email`, `selectionne` (booléen — celui-ci a été délégué), `profil_id` (nullable — rempli une fois que ce remplaçant a créé un compte, voir section 5 et 7.5).
+RLS SELECT : **le titulaire du côté concerné**, OU **le remplaçant lui-même** une fois `profil_id` lié à son compte (ajouté le 27/08 — la policy initiale ne couvrait que le titulaire, pas le remplaçant, qui ne pouvait donc pas savoir sur quels pactes il avait été ajouté).
 Plafond applicatif : 5 remplaçants maximum par côté (`RemplacantsForm.maximum` dans `lib/widgets/remplacants_form.dart`), pour que les 20 colonnes cachées de `pactes` puissent avoir un nombre fixe de colonnes.
+
+### `messages`
+Un fil de discussion privé par remplaçant (`remplacant_id`, `expediteur_id`, `contenu`, `created_at`) — pas de `pacte_id`/`cote` dupliqués, ils se retrouvent via `remplacant_id`. Voir section 7.5.
+RLS : lisible/écrivable par le titulaire du côté concerné OU par le remplaçant lié (`remplacants.profil_id = auth.uid()`). Realtime activé (`alter publication supabase_realtime add table messages`) pour la réception en direct.
 
 ### `device_tokens`
 Table créée en prévision des notifications push (FCM). **Non utilisée par le code Flutter actuel** — aucune logique de token push n'est encore implémentée côté client.
@@ -74,9 +78,9 @@ Table créée en prévision des notifications push (FCM). **Non utilisée par le
 
 Ces fonctions tournent avec les droits du propriétaire de la base, pas ceux de l'utilisateur connecté — elles contournent volontairement RLS/grants pour des opérations précises que l'app ne doit jamais faire elle-même.
 
-- **`handle_new_user()`** — trigger `after insert` sur `auth.users`. Crée la ligne `profiles` correspondante, ET rattache automatiquement tout pacte en attente dont `destinataire_telephone` correspond au numéro du nouvel inscrit (met à jour `destinataire_id`, qui était resté `NULL` faute de compte au moment de la création du pacte).
+- **`handle_new_user()`** — trigger `after insert` sur `auth.users`. Crée la ligne `profiles` correspondante, rattache automatiquement tout pacte en attente dont `destinataire_telephone` correspond au numéro du nouvel inscrit (met à jour `destinataire_id`), ET (depuis le 27/08) relie de la même façon tous les `remplacants.profil_id` correspondants — potentiellement plusieurs à la fois, un même numéro pouvant apparaître sur plusieurs pactes.
 - **`synchroniser_remplacants_caches()`** — trigger `after insert/update/delete` sur `remplacants`. Recopie chaque remplaçant dans l'emplacement fixe correspondant parmi les 20 colonnes cachées de `pactes`, via `row_number() over (partition by cote order by id)`. C'est le seul mécanisme qui écrit dans ces 20 colonnes.
-- **`trouver_profil_par_telephone(p_telephone text) returns uuid`** — RPC restreinte, appelée par l'app à la création d'un pacte pour savoir si le destinataire a déjà un compte. Ne renvoie qu'un UUID (ou rien), jamais les autres champs du profil — nécessaire car la RLS de `profiles` interdit sinon toute lecture du profil d'un tiers.
+- **`trouver_profil_par_telephone(p_telephone text) returns uuid`** — RPC restreinte, appelée par l'app à la création d'un pacte (pour savoir si le destinataire a déjà un compte) et à l'ajout d'un remplaçant (pour lier `profil_id` immédiatement s'il a déjà un compte, sans attendre une inscription future). Ne renvoie qu'un UUID (ou rien), jamais les autres champs du profil — nécessaire car la RLS de `profiles` interdit sinon toute lecture du profil d'un tiers.
 - **`annuler_si_double_absence()`** — trigger `after insert or update of selectionne` sur `remplacants`. Quand un côté sélectionne un remplaçant, vérifie si l'autre côté en a déjà un sélectionné pour ce même pacte ; si oui, bascule `pactes.statut` sur `annuleDoubleAbsence`. Doit obligatoirement tourner en `SECURITY DEFINER` : c'est le seul endroit du système qui a le droit de comparer les deux côtés d'un même pacte, l'app cliente n'ayant jamais accès aux remplaçants de l'autre partie (RLS par côté, section 4).
 
 ## 6. Authentification
@@ -151,6 +155,28 @@ Points volontaires de cette conception :
 - **Le message révèle le fait mutuel** (les deux ont délégué) **mais jamais l'identité** des remplaçants — cohérent avec la règle de secret, puisque ce fait-là ne devient vrai, et donc partageable, que lorsqu'il concerne les deux parties à la fois.
 - **Pas de notification push pour l'instant** : la partie qui délègue en second voit le changement immédiatement (l'app relit le statut juste après son action) ; l'autre partie le verra en rouvrant l'app. Un vrai push sera branché sur cet événement une fois FCM en place.
 
+### 7.5 Chat titulaire ↔ remplaçants (27/08)
+
+Objectif produit : donner une raison de revenir régulièrement dans l'app, et faire connaître l'app via les remplaçants invités. Un fil de discussion privé s'ouvre automatiquement dès qu'un remplaçant crée un compte — pour **tous** les remplaçants potentiels d'un côté (jusqu'à 5), pas seulement celui finalement délégué.
+
+```mermaid
+flowchart TD
+    T["Titulaire ajoute un remplaçant\n(téléphone obligatoire)"] --> I{"Ce téléphone correspond-il\nà un compte existant ?"}
+    I -->|oui, déjà inscrit| L1["remplacants.profil_id lié\nimmédiatement (trouver_profil_par_telephone)"]
+    I -->|non, pas encore inscrit| SMS["Invitation par SMS\n(bouton existant, ouvre l'app SMS)"]
+    SMS --> S["La personne crée un compte"]
+    S --> L2["handle_new_user() relie profil_id\nsur TOUS les remplacants correspondants"]
+    L1 --> C["Conversation utilisable :\nremplacant_id devient la clé du fil"]
+    L2 --> C
+    C --> A["Le remplaçant voit le pacte sur son accueil\n(nouvelle policy pactes + remplacants)"]
+```
+
+Décisions retenues :
+- **Un fil par (pacte, remplaçant)**, pas un fil persistant qui traverserait plusieurs pactes — colle au modèle actuel où un remplaçant est ressaisi à chaque pacte (pas de liste de contacts réutilisable).
+- **Accessible en permanence** une fois le pacte confirmé, pas seulement au moment de se désister : `MesRemplacantsScreen` (qui remplace l'ancien `ChoisirRemplacantScreen`) permet d'ajouter des remplaçants à tout moment, avant même d'en avoir besoin.
+- **Le destinataire renseigne aussi ses remplaçants pour accepter** (`BlocReponse`), symétriquement à l'initiateur qui le fait déjà à la création — sinon son chat resterait vide en pratique.
+- Deux policies RLS ont dû être **ajoutées** (pas remplacées) pour que ce flux fonctionne : un remplaçant doit pouvoir voir sa propre fiche `remplacants` et le `pactes` concerné, ce qu'aucune policy existante ne permettait (elles ne couvraient que les titulaires).
+
 ## 8. Bugs rencontrés et corrigés (pour ne pas les refaire)
 
 | Symptôme | Cause | Correction |
@@ -166,6 +192,7 @@ Points volontaires de cette conception :
 - Authentification réelle (Supabase Auth), création de profil automatique, rattachement automatique par téléphone.
 - Cycle de vie complet d'un pacte : création, négociation de date (max 2 allers-retours), acceptation/refus, délégation à un remplaçant, statuts `confirme`/`maintenu`/`annule`/`annuleDoubleAbsence`.
 - Annulation automatique si les deux parties délèguent leur présence (V1 — pas de mise en contact entre remplaçants).
+- Chat privé en temps réel entre un titulaire et chacun de ses remplaçants, dès que ceux-ci ont un compte — ouverture automatique par rattachement téléphone, écran permanent pour gérer sa liste et déléguer.
 - Confidentialité par côté appliquée à la fois par RLS (lignes) et par grants de colonnes (historique permanent invisible à l'app).
 
 **Prévu, pas commencé :**
