@@ -43,6 +43,7 @@ flutter build web --release --base-href /le_pacte/
 ### `profiles`
 Un compte = une ligne. `id` = `auth.uid()`. Colonnes : `prenom`, `nom`, `telephone`, `email`.
 RLS : chacun ne voit/modifie que sa propre ligne. Créée automatiquement par le trigger `handle_new_user()` (section 5) au moment de l'inscription — jamais insérée depuis l'app.
+**`telephone` est unique** (index unique partiel, `where telephone <> ''`, ajouté le 27/08 — voir section 8) : tout le rattachement automatique (destinataire, remplaçants) repose sur ce numéro comme identifiant fiable, ça ne peut fonctionner que si deux comptes ne peuvent jamais le partager.
 
 ### `restaurants`
 Un seul restaurant en dur aujourd'hui (« Au père Lapin »), avec ses créneaux réels de déjeuner/dîner. Plusieurs restaurants proposés au choix est une évolution prévue mais pas commencée.
@@ -187,6 +188,7 @@ Décisions retenues :
 | Écran d'accueil bloqué sur un chargement infini après connexion | RLS activée sur `restaurants` sans aucune policy de lecture → 406 de Supabase, et aucune gestion d'erreur côté app pour l'afficher | Policy `using (true)` sur `restaurants` + gestion d'erreur explicite (message + bouton Réessayer) dans `AccueilScreen`/`CreerPacteScreen` |
 | La policy initiale de `remplacants` laissait chaque partie voir les remplaçants de l'autre | La condition RLS vérifiait "ce pacte m'appartient" sans vérifier "ce côté est le mien" | Policy réécrite pour vérifier `cote = 'initiateur' and initiateur_id = auth.uid()` (et son symétrique) |
 | `PostgrestException: infinite recursion detected in policy for relation "pactes"` (code `42P17`) au chargement de l'accueil | La policy laissant un remplaçant voir le pacte concerné interrogeait `remplacants`, dont les policies interrogent `pactes` en retour — boucle infinie | Passer par la fonction `SECURITY DEFINER` `est_remplacant_du_pacte()`, qui contourne la RLS de `remplacants` pour cette vérification et casse la boucle |
+| Le destinataire d'un pacte ne voyait pas la proposition, alors qu'elle avait bien été créée | Deux comptes différents avaient le même numéro de téléphone (aucune contrainte ne l'empêchait) ; `trouver_profil_par_telephone()` (`... limit 1`) a résolu vers le mauvais profil, donc `destinataire_id` ne pointait pas vers le bon compte | Index unique partiel sur `profiles.telephone` (`where telephone <> ''`) — empêche désormais deux comptes de partager un numéro, avec un message clair à l'inscription si ça arrive |
 
 ## 9. État actuel
 
