@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../constants.dart';
 import '../../models/utilisateur.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
@@ -357,6 +358,7 @@ class _LoginScreenState extends State<LoginScreen> {
       final reponse = await _supabase.auth.signUp(
         email: emailInscriptionController.text.trim(),
         password: motDePasseInscriptionController.text,
+        emailRedirectTo: lienTelechargementApp,
         data: {
           'prenom': prenomController.text.trim(),
           'nom': nomController.text.trim(),
