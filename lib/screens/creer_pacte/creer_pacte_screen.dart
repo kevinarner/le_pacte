@@ -261,7 +261,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     if (nombreRemplacantsValides < _minimumRemplacants) {
       final manquants = _minimumRemplacants - nombreRemplacantsValides;
       erreurs.add(
-          'Ajoute encore $manquants remplaçant${manquants > 1 ? 's' : ''} (prénom et nom requis).');
+          'Ajoute encore $manquants remplaçant${manquants > 1 ? 's' : ''} '
+          '(prénom, nom et téléphone requis).');
     }
     if (datesProposees.isEmpty) {
       erreurs.add('Propose au moins une date pour le pacte.');

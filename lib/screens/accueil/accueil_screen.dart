@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
+import '../../models/remplacant_invitation.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
@@ -8,6 +9,7 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
+import '../detail_pacte/chat_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
 class AccueilScreen extends StatefulWidget {
@@ -21,6 +23,7 @@ class AccueilScreen extends StatefulWidget {
 
 class _AccueilScreenState extends State<AccueilScreen> {
   List<Pacte>? pactes;
+  List<RemplacantInvitation> invitations = [];
   String? erreur;
 
   @override
@@ -41,6 +44,13 @@ class _AccueilScreenState extends State<AccueilScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => erreur = e.toString());
+    }
+    try {
+      final resultat = await PacteRepository.mesInvitationsRemplacant();
+      if (!mounted) return;
+      setState(() => invitations = resultat);
+    } catch (_) {
+      // Section secondaire : on la laisse simplement vide si elle échoue.
     }
   }
 
@@ -75,7 +85,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   )
                 : liste == null
                     ? const Center(child: CircularProgressIndicator())
-                    : liste.isEmpty
+                    : liste.isEmpty && invitations.isEmpty
                         ? const Center(
                             child: Padding(
                               padding: EdgeInsets.all(24),
@@ -85,10 +95,22 @@ class _AccueilScreenState extends State<AccueilScreen> {
                               ),
                             ),
                           )
-                        : ListView.builder(
+                        : ListView(
                             padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                            itemCount: liste.length,
-                            itemBuilder: (context, i) => _cardPacte(liste[i]),
+                            children: [
+                              for (final p in liste) _cardPacte(p),
+                              if (invitations.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 8),
+                                  child: Text(
+                                    "Pactes où on t'a ajouté comme remplaçant",
+                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                  ),
+                                ),
+                                for (final inv in invitations) _cardInvitation(inv),
+                              ],
+                            ],
                           ),
           ),
           Padding(
@@ -180,6 +202,65 @@ class _AccueilScreenState extends State<AccueilScreen> {
                     ],
                   ),
                 ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _cardInvitation(RemplacantInvitation inv) {
+    final tag = statutTag(inv.statutPacte);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Card(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radiusLg),
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ChatScreen(
+                remplacantId: inv.remplacantId,
+                nomInterlocuteur: inv.nomTitulaire,
+              ),
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                const Icon(Icons.chat_bubble_outline, color: AppColors.terracotta),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Remplaçant de ${inv.nomTitulaire}',
+                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+                      const SizedBox(height: 4),
+                      Text(
+                        inv.dateRetenue != null
+                            ? '${inv.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
+                                '${inv.dateRetenue!.day}/${inv.dateRetenue!.month}/${inv.dateRetenue!.year}'
+                            : (inv.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'),
+                        style: const TextStyle(color: Colors.black54, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: tag.fond,
+                    borderRadius: BorderRadius.circular(999),
+                    border: tag.bordure != null ? Border.all(color: tag.bordure!) : null,
+                  ),
+                  child: Text(inv.statutPacte.libelle,
+                      style: TextStyle(fontSize: 11.5, color: tag.texte)),
+                ),
               ],
             ),
           ),

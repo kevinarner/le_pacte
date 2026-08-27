@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cote_pacte.dart';
+import '../models/message.dart';
 import '../models/pacte.dart';
 import '../models/remplacant.dart';
+import '../models/remplacant_invitation.dart';
 import '../models/restaurant.dart';
 import '../models/statut_pacte.dart';
 import '../models/statut_presence.dart';
@@ -141,6 +143,7 @@ class PacteRepository {
         telephone: row['telephone'] as String? ?? '',
         email: row['email'] as String? ?? '',
         selectionne: row['selectionne'] as bool? ?? false,
+        profilId: row['profil_id'] as String?,
       );
 
   /// Crée un nouveau pacte avec les remplaçants de l'initiateur.
@@ -182,6 +185,10 @@ class PacteRepository {
 
   static Future<Remplacant> _insererRemplacant(
       String pacteId, String cote, Remplacant r) async {
+    // Si cette personne a déjà un compte, on la relie tout de suite —
+    // sinon, c'est handle_new_user() qui fera le lien plus tard, à son
+    // inscription.
+    final profilId = await trouverProfilParTelephone(r.telephone);
     final row = await _client
         .from('remplacants')
         .insert({
@@ -191,10 +198,12 @@ class PacteRepository {
           'nom': r.nom,
           'telephone': r.telephone,
           'email': r.email,
+          if (profilId != null) 'profil_id': profilId,
         })
         .select()
         .single();
     r.id = row['id'] as String;
+    r.profilId = row['profil_id'] as String?;
     return r;
   }
 
@@ -245,5 +254,77 @@ class PacteRepository {
 
   static Future<void> mettreAJourStatut(String pacteId, StatutPacte statut) async {
     await _client.from('pactes').update({'statut': statut.name}).eq('id', pacteId);
+  }
+
+  /// Les pactes où je suis moi-même un remplaçant potentiel (pas
+  /// forcément celui délégué), côté initiateur ou destinataire.
+  static Future<List<RemplacantInvitation>> mesInvitationsRemplacant() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final rows = await _client
+        .from('remplacants')
+        .select(
+            'id, pacte_id, cote, pactes(type, statut, date_retenue, initiateur_nom, destinataire_nom)')
+        .eq('profil_id', userId)
+        .order('id', ascending: false);
+
+    final invitations = <RemplacantInvitation>[];
+    for (final row in rows as List) {
+      final r = row as Map<String, dynamic>;
+      final pacteRow = r['pactes'] as Map<String, dynamic>?;
+      if (pacteRow == null) continue;
+      final cote = r['cote'] as String;
+      invitations.add(RemplacantInvitation(
+        remplacantId: r['id'] as String,
+        pacteId: r['pacte_id'] as String,
+        nomTitulaire: cote == 'initiateur'
+            ? pacteRow['initiateur_nom'] as String
+            : pacteRow['destinataire_nom'] as String,
+        type: TypeRepas.values.byName(pacteRow['type'] as String),
+        dateRetenue: pacteRow['date_retenue'] != null
+            ? DateTime.parse(pacteRow['date_retenue'] as String)
+            : null,
+        statutPacte: StatutPacte.values.byName(pacteRow['statut'] as String),
+      ));
+    }
+    return invitations;
+  }
+
+  static Message _messageDe(Map<String, dynamic> row) => Message(
+        id: row['id'] as String,
+        remplacantId: row['remplacant_id'] as String,
+        expediteurId: row['expediteur_id'] as String,
+        contenu: row['contenu'] as String,
+        createdAt: DateTime.parse(row['created_at'] as String),
+      );
+
+  static Future<List<Message>> messagesDe(String remplacantId) async {
+    final rows = await _client
+        .from('messages')
+        .select()
+        .eq('remplacant_id', remplacantId)
+        .order('created_at');
+    return (rows as List).map((r) => _messageDe(r as Map<String, dynamic>)).toList();
+  }
+
+  static Future<void> envoyerMessage(String remplacantId, String contenu) async {
+    final texte = contenu.trim();
+    if (texte.isEmpty) return;
+    await _client.from('messages').insert({
+      'remplacant_id': remplacantId,
+      'expediteur_id': _client.auth.currentUser!.id,
+      'contenu': texte,
+    });
+  }
+
+  /// Flux en direct des messages d'un fil — se met à jour tout seul
+  /// tant que l'écran de discussion est ouvert.
+  static Stream<List<Message>> abonnementMessages(String remplacantId) {
+    return _client
+        .from('messages')
+        .stream(primaryKey: ['id'])
+        .eq('remplacant_id', remplacantId)
+        .order('created_at')
+        .map((rows) => rows.map(_messageDe).toList());
   }
 }

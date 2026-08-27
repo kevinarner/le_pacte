@@ -4,11 +4,12 @@ import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
 import '../../models/statut_presence.dart';
 import '../../services/pacte_repository.dart';
-import 'choisir_remplacant_screen.dart';
+import 'mes_remplacants_screen.dart';
 
-/// Bloc affiché une fois le pacte confirmé : permet, à tout moment avant
-/// le jour J, de déclarer qu'on n'est finalement plus disponible et de
-/// déléguer sa présence à l'un de ses remplaçants.
+/// Bloc affiché une fois le pacte confirmé : donne accès, à tout
+/// moment, à ses propres remplaçants — pour en ajouter, discuter avec
+/// ceux qui ont un compte, ou déléguer sa présence à l'un d'eux si on
+/// devient finalement indisponible.
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
@@ -26,27 +27,28 @@ class BlocPresence extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (_monCote.statutPresence != StatutPresence.titulaire) {
-      return const Text(
-        "Tu as délégué ta présence à un remplaçant.",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
-      );
-    }
+    final nb = _monCote.listeRemplacants.where((r) => r.estRempli).length;
+    final delegue = _monCote.statutPresence != StatutPresence.titulaire;
+
     return Align(
       alignment: Alignment.centerLeft,
-      child: TextButton.icon(
-        onPressed: () => _choisirRemplacant(context),
-        icon: const Icon(Icons.person_search, size: 18),
-        label: const Text("Je ne suis finalement plus disponible"),
+      child: OutlinedButton.icon(
+        onPressed: () => _ouvrirMesRemplacants(context),
+        icon: const Icon(Icons.people_outline, size: 18),
+        label: Text(
+          delegue
+              ? 'Mes remplaçants — tu as délégué ta présence'
+              : 'Mes remplaçants${nb > 0 ? ' ($nb)' : ''}',
+        ),
       ),
     );
   }
 
-  void _choisirRemplacant(BuildContext context) async {
-    final choix = await Navigator.push(
+  void _ouvrirMesRemplacants(BuildContext context) async {
+    final quelqueChoseAChange = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ChoisirRemplacantScreen(
+        builder: (_) => MesRemplacantsScreen(
           pacteId: pacte.id,
           cote: jeSuisInitiateur ? 'initiateur' : 'destinataire',
           cotePacte: _monCote,
@@ -56,14 +58,12 @@ class BlocPresence extends StatelessWidget {
         ),
       ),
     );
-    if (choix != null) {
-      // L'autre partie reçoit la même information que si on venait
-      // simplement d'être confirmé — aucune trace visible du nom du
-      // remplaçant dans le pacte affiché.
-      _monCote.statutPresence = StatutPresence.remplacantSollicite;
-      // Si l'autre côté avait déjà délégué, le déclencheur côté base
-      // vient d'annuler le pacte : on relit son statut pour le savoir
-      // tout de suite, sans attendre une réouverture de l'écran.
+    if (quelqueChoseAChange == true) {
+      _monCote.statutPresence = _monCote.listeRemplacants.any((r) => r.selectionne)
+          ? StatutPresence.remplacantSollicite
+          : StatutPresence.titulaire;
+      // Le déclencheur côté base peut avoir annulé le pacte si l'autre
+      // partie avait déjà délégué elle aussi.
       pacte.statut = await PacteRepository.statutActuel(pacte.id);
       onChanged();
     }
