@@ -212,6 +212,14 @@ class PacteRepository {
     await _client.from('remplacants').update({'selectionne': true}).eq('id', remplacantId);
   }
 
+  /// Relit uniquement le statut actuel d'un pacte — utilisé après une
+  /// délégation pour savoir si le déclencheur côté base vient
+  /// d'annuler le pacte (l'autre côté avait déjà délégué).
+  static Future<StatutPacte> statutActuel(String pacteId) async {
+    final row = await _client.from('pactes').select('statut').eq('id', pacteId).single();
+    return StatutPacte.values.byName(row['statut'] as String);
+  }
+
   static Future<void> choisirDate(String pacteId, DateTime date) async {
     await _client.from('pactes').update({
       'date_retenue': date.toIso8601String(),

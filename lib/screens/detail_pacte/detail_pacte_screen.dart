@@ -143,7 +143,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           ],
 
           // --- Cas : le pacte est arrivé à son terme ---
-          if (pacte.statut == StatutPacte.maintenu || pacte.statut == StatutPacte.annule)
+          if (pacte.statut == StatutPacte.maintenu ||
+              pacte.statut == StatutPacte.annule ||
+              pacte.statut == StatutPacte.annuleDoubleAbsence)
             BlocEpilogue(statut: pacte.statut),
         ],
       ),

@@ -13,6 +13,7 @@ class BlocEpilogue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maintenu = statut == StatutPacte.maintenu;
+    final doubleAbsence = statut == StatutPacte.annuleDoubleAbsence;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -33,8 +34,11 @@ class BlocEpilogue extends StatelessWidget {
               maintenu
                   ? "Quelqu'un — titulaire ou remplaçant, tu ne le sauras qu'en arrivant — "
                       "sera présent en face de toi."
-                  : "Personne n'a pu être trouvé côté partenaire à temps. Le mystère "
-                      "s'arrête ici, pour cette fois.",
+                  : doubleAbsence
+                      ? "Vous avez chacun dû faire appel à un remplaçant : le pacte est "
+                          "annulé. Vous pouvez en créer un nouveau quand vous voulez."
+                      : "Personne n'a pu être trouvé côté partenaire à temps. Le mystère "
+                          "s'arrête ici, pour cette fois.",
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.black54, fontSize: 13),
             ),

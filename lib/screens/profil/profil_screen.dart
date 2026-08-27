@@ -35,7 +35,10 @@ class _ProfilScreenState extends State<ProfilScreen> {
       if (!mounted) return;
       setState(() {
         pactesEnCours = pactes
-            .where((p) => p.statut != StatutPacte.maintenu && p.statut != StatutPacte.annule)
+            .where((p) =>
+                p.statut != StatutPacte.maintenu &&
+                p.statut != StatutPacte.annule &&
+                p.statut != StatutPacte.annuleDoubleAbsence)
             .length;
       });
     } catch (_) {

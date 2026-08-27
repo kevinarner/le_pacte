@@ -5,6 +5,12 @@ enum StatutPacte {
   confirme,
   maintenu,
   annule,
+
+  /// Les deux côtés ont délégué leur présence à un remplaçant : le
+  /// pacte est annulé automatiquement, sans jamais révéler qui a été
+  /// choisi de part et d'autre. Basculé uniquement par un déclencheur
+  /// côté base (voir annuler_si_double_absence()), jamais par l'app.
+  annuleDoubleAbsence,
 }
 
 extension StatutPacteLibelle on StatutPacte {
@@ -20,6 +26,7 @@ extension StatutPacteLibelle on StatutPacte {
       case StatutPacte.maintenu:
         return 'Maintenu ✅';
       case StatutPacte.annule:
+      case StatutPacte.annuleDoubleAbsence:
         return 'Annulé ✗';
     }
   }

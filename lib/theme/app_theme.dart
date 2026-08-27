@@ -39,6 +39,7 @@ StatutTag statutTag(StatutPacte statut) {
     case StatutPacte.maintenu:
       return const StatutTag(fond: AppColors.terracottaClair, texte: AppColors.terracotta);
     case StatutPacte.annule:
+    case StatutPacte.annuleDoubleAbsence:
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
   }
 }

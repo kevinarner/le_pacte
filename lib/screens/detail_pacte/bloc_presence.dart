@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
 import '../../models/statut_presence.dart';
+import '../../services/pacte_repository.dart';
 import 'choisir_remplacant_screen.dart';
 
 /// Bloc affiché une fois le pacte confirmé : permet, à tout moment avant
@@ -60,6 +61,10 @@ class BlocPresence extends StatelessWidget {
       // simplement d'être confirmé — aucune trace visible du nom du
       // remplaçant dans le pacte affiché.
       _monCote.statutPresence = StatutPresence.remplacantSollicite;
+      // Si l'autre côté avait déjà délégué, le déclencheur côté base
+      // vient d'annuler le pacte : on relit son statut pour le savoir
+      // tout de suite, sans attendre une réouverture de l'écran.
+      pacte.statut = await PacteRepository.statutActuel(pacte.id);
       onChanged();
     }
   }
