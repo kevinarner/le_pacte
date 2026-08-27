@@ -20,6 +20,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
+  final _scrollController = ScrollController();
   late final Stream<List<Message>> _messages;
   bool enCours = false;
 
@@ -34,7 +35,18 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  /// Toujours faire apparaître le dernier message reçu ou envoyé, sans
+  /// dépendre de l'ordre exact renvoyé par le flux temps réel — les
+  /// messages sont de toute façon triés explicitement avant affichage.
+  void _defilerVersLeBas() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scrollController.hasClients) return;
+      _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
+    });
   }
 
   @override
@@ -50,7 +62,8 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final messages = snapshot.data!;
+                final messages = List<Message>.of(snapshot.data!)
+                  ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
                 if (messages.isEmpty) {
                   return const Center(
                     child: Padding(
@@ -63,14 +76,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   );
                 }
+                _defilerVersLeBas();
                 return ListView.builder(
-                  reverse: true,
+                  controller: _scrollController,
                   padding: const EdgeInsets.all(12),
                   itemCount: messages.length,
-                  itemBuilder: (context, i) {
-                    final m = messages[messages.length - 1 - i];
-                    return _bulle(m);
-                  },
+                  itemBuilder: (context, i) => _bulle(messages[i]),
                 );
               },
             ),
