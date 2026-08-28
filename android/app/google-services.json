@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "409929231979",
+    "project_id": "le-pacte-e6c17",
+    "storage_bucket": "le-pacte-e6c17.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:409929231979:android:47d941ee96898184e68b2e",
+        "android_client_info": {
+          "package_name": "com.kevinarner.le_pacte"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBmDnd-iCnGY9fbYo-0cAwh_abQj1Lf8lQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
