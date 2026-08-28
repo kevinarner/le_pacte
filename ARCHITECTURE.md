@@ -14,7 +14,7 @@
 |---|---|---|
 | Frontend | Flutter (web + iOS/Android scaffoldés) | Web déployé et utilisé ; iOS/Android jamais publiés |
 | Backend | Supabase (Postgres + Auth + Data API/PostgREST + RLS) | En production |
-| Notifications push | Firebase Cloud Messaging (FCM), utilisé seul — pas tout Firebase | Prévu, pas encore implémenté |
+| Notifications push | Firebase Cloud Messaging (FCM), utilisé seul — pas tout Firebase | Projet Firebase créé (`le-pacte-e6c17`), intégration client Flutter faite (28/08). Reste : schéma `device_tokens`, Edge Function d'envoi, déclencheurs. |
 | Analytics | PostHog | Prévu, pas encore implémenté |
 | Hébergement web | GitHub Pages | En production, https://kevinarner.github.io/le_pacte/ |
 
@@ -73,7 +73,7 @@ Un fil de discussion privé par remplaçant (`remplacant_id`, `expediteur_id`, `
 RLS : lisible/écrivable par le titulaire du côté concerné OU par le remplaçant lié (`remplacants.profil_id = auth.uid()`). Realtime activé (`alter publication supabase_realtime add table messages`) pour la réception en direct.
 
 ### `device_tokens`
-Table créée en prévision des notifications push (FCM). **Non utilisée par le code Flutter actuel** — aucune logique de token push n'est encore implémentée côté client.
+Table créée en prévision des notifications push (FCM). Schéma à vérifier/étendre côté SQL (tâche en cours) ; le client envoie `utilisateur_id`, `token`, `plateforme` via un `upsert(onConflict: 'token')`.
 
 ## 5. Fonctions & déclencheurs `SECURITY DEFINER`
 
@@ -201,11 +201,13 @@ Décisions retenues :
 - Chat privé en temps réel entre un titulaire et chacun de ses remplaçants, dès que ceux-ci ont un compte — ouverture automatique par rattachement téléphone, écran permanent pour gérer sa liste et déléguer.
 - Confidentialité par côté appliquée à la fois par RLS (lignes) et par grants de colonnes (historique permanent invisible à l'app).
 
+**En cours :**
+- Notifications push (FCM) — projet Firebase créé (`le-pacte-e6c17`, 3 apps enregistrées : Android `com.kevinarner.le_pacte`, iOS `com.kevinarner.lePacte`, Web). Côté Flutter (28/08) : `firebase_core`/`firebase_messaging` intégrés, `lib/firebase_options.dart` (config des 3 plateformes), `lib/services/notification_service.dart` (permission, token, sauvegarde dans `device_tokens`, appelé depuis `RootShell.initState`), `web/firebase-messaging-sw.js` (service worker web). Reste : vérifier/étendre le schéma `device_tokens` + RLS, Edge Function Supabase d'envoi (API v1 FCM, clé de compte de service à ajouter en secret Supabase — jamais dans le code/chat), déclencheurs Postgres sur les événements (nouveau pacte, réponse, message, double absence), routage au clic sur une notification (`_gererClicNotification` est un point d'accroche, pas encore branché).
+
 **Prévu, pas commencé :**
-- Notifications push (FCM) — table `device_tokens` existe, aucun code client.
 - Analytics (PostHog).
 - Plusieurs restaurants au choix (un seul en dur aujourd'hui).
 - Upload réel des photos de profil/remplaçants (actuellement local au navigateur, jamais envoyé à Supabase Storage).
 - Vraies relances automatiques J-7/J-3/J-1 (`BlocCascade` n'est aujourd'hui qu'une simulation manuelle par boutons).
-- Nom définitif de l'application (bloque la création du compte Firebase, donc la publication TestFlight/Play Store) ; identifiants provisoires : iOS `com.kevinarner.lePacte`, Android `com.kevinarner.le_pacte`.
+- Nom définitif de l'application ; identifiants Firebase/stores déjà fixés indépendamment : iOS `com.kevinarner.lePacte`, Android `com.kevinarner.le_pacte`.
 - `ios/` et `android/` sont scaffoldés (`flutter create`) mais l'app n'a jamais été publiée sur aucun store.
