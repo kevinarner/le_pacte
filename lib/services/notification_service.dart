@@ -51,7 +51,7 @@ class NotificationService {
     print('[Le Pacte] Notification ouverte : ${message.data}');
   }
 
-  static Future<void> _enregistrerToken() async {
+  static Future<void> _enregistrerToken({bool reessaieDeja = false}) async {
     try {
       // Sur le web, le service worker doit être cherché relativement à la
       // base de l'app (l'app est servie depuis un sous-dossier GitHub
@@ -77,6 +77,13 @@ class NotificationService {
       // ignore: avoid_print
       print('[Le Pacte] Token FCM enregistré dans device_tokens.');
     } catch (e) {
+      // Première visite : le service worker peut ne pas encore être actif
+      // au moment de s'y abonner. Une seule nouvelle tentative après un
+      // court délai suffit, il est alors déjà prêt.
+      if (!reessaieDeja && e.toString().contains('no active Service Worker')) {
+        await Future.delayed(const Duration(seconds: 2));
+        return _enregistrerToken(reessaieDeja: true);
+      }
       // ignore: avoid_print
       print("[Le Pacte] Impossible d'enregistrer le token FCM : $e");
     }

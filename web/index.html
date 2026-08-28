@@ -31,6 +31,20 @@
 
   <title>le_pacte</title>
   <link rel="manifest" href="manifest.json">
+
+  <!--
+    Enregistre le service worker de notifications push dès le chargement
+    de la page, en parallèle du démarrage de Flutter (qui prend plusieurs
+    secondes) : ça lui laisse le temps de devenir actif avant que l'app
+    n'essaie de s'y abonner, plutôt que de le découvrir seulement une fois
+    connecté et de tomber sur une "Subscription failed - no active
+    Service Worker".
+  -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('firebase-messaging-sw.js');
+    }
+  </script>
 </head>
 <body>
   <!--
