@@ -53,8 +53,14 @@ class NotificationService {
 
   static Future<void> _enregistrerToken() async {
     try {
+      // Sur le web, le service worker doit être cherché relativement à la
+      // base de l'app (l'app est servie depuis un sous-dossier GitHub
+      // Pages, /le_pacte/, pas la racine du domaine).
       final token = kIsWeb
-          ? await _messaging.getToken(vapidKey: firebaseVapidKey)
+          ? await _messaging.getToken(
+              vapidKey: firebaseVapidKey,
+              serviceWorkerScriptPath: 'firebase-messaging-sw.js',
+            )
           : await _messaging.getToken();
       // ignore: avoid_print
       print('[Le Pacte] Token FCM obtenu : ${token != null}');
@@ -80,8 +86,14 @@ class NotificationService {
   /// appareil de notifications destinées à ce compte.
   static Future<void> supprimerTokenAppareil() async {
     try {
+      // Sur le web, le service worker doit être cherché relativement à la
+      // base de l'app (l'app est servie depuis un sous-dossier GitHub
+      // Pages, /le_pacte/, pas la racine du domaine).
       final token = kIsWeb
-          ? await _messaging.getToken(vapidKey: firebaseVapidKey)
+          ? await _messaging.getToken(
+              vapidKey: firebaseVapidKey,
+              serviceWorkerScriptPath: 'firebase-messaging-sw.js',
+            )
           : await _messaging.getToken();
       if (token == null) return;
       await _client.from('device_tokens').delete().eq('token', token);
