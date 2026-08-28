@@ -102,7 +102,9 @@ Deno.serve(async (req) => {
     }
 
     const compte: CompteDeService = JSON.parse(Deno.env.get('FCM_SERVICE_ACCOUNT_JSON') ?? '');
+    console.log('Compte de service chargé pour le projet :', compte.project_id);
     const accessToken = await obtenirAccessToken(compte);
+    console.log('Access token OAuth2 obtenu.');
 
     const client = createClient(
       Deno.env.get('SUPABASE_URL')!,
@@ -113,7 +115,11 @@ Deno.serve(async (req) => {
       .from('device_tokens')
       .select('id, token')
       .eq('profile_id', profile_id);
-    if (error) throw error;
+    if (error) {
+      console.error('Erreur Supabase (device_tokens) :', JSON.stringify(error));
+      throw error;
+    }
+    console.log(`${appareils?.length ?? 0} appareil(s) trouvé(s) pour ce profil.`);
     if (!appareils || appareils.length === 0) {
       return new Response(JSON.stringify({ envoyes: 0 }), {
         status: 200,
@@ -162,7 +168,12 @@ Deno.serve(async (req) => {
       { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   } catch (e) {
-    return new Response(JSON.stringify({ error: String(e) }), {
+    const messageErreur =
+      e instanceof Error
+        ? `${e.message}${e.stack ? `\n${e.stack}` : ''}`
+        : JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}));
+    console.error('send-notification error:', messageErreur);
+    return new Response(JSON.stringify({ error: messageErreur }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     });
