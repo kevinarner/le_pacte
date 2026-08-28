@@ -1,7 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app.dart';
 import '../constants.dart';
 import 'app_store.dart';
 
@@ -35,6 +37,15 @@ class NotificationService {
       FirebaseMessaging.onMessage.listen((message) {
         // ignore: avoid_print
         print('[Le Pacte] Notification reçue au premier plan : ${message.notification?.title}');
+        final titre = message.notification?.title;
+        final corps = message.notification?.body;
+        if (titre == null && corps == null) return;
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text([titre, corps].whereType<String>().join(' — ')),
+            duration: const Duration(seconds: 4),
+          ),
+        );
       });
 
       FirebaseMessaging.onMessageOpenedApp.listen(_gererClicNotification);
