@@ -73,7 +73,7 @@ Un fil de discussion privé par remplaçant (`remplacant_id`, `expediteur_id`, `
 RLS : lisible/écrivable par le titulaire du côté concerné OU par le remplaçant lié (`remplacants.profil_id = auth.uid()`). Realtime activé (`alter publication supabase_realtime add table messages`) pour la réception en direct.
 
 ### `device_tokens`
-Table créée en prévision des notifications push (FCM). Schéma à vérifier/étendre côté SQL (tâche en cours) ; le client envoie `utilisateur_id`, `token`, `plateforme` via un `upsert(onConflict: 'token')`.
+Un token FCM par appareil/navigateur (`profile_id`, `token`, `plateforme`, `created_at`). Contrainte d'unicité sur `token` (le client fait un `upsert(onConflict: 'token')` à chaque connexion), FK `profile_id → profiles(id) on delete cascade`. RLS : chacun ne gère que ses propres tokens (`profile_id = auth.uid()`) ; la future fonction serveur d'envoi lira toutes les lignes via la clé `service_role`, qui contourne RLS.
 
 ## 5. Fonctions & déclencheurs `SECURITY DEFINER`
 

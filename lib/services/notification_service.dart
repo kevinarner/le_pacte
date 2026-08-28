@@ -59,7 +59,7 @@ class NotificationService {
 
       await _client.from('device_tokens').upsert(
         {
-          'utilisateur_id': AppStore.moi.id,
+          'profile_id': AppStore.moi.id,
           'token': token,
           'plateforme': kIsWeb ? 'web' : defaultTargetPlatform.name,
         },
