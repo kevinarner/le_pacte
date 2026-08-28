@@ -70,7 +70,7 @@ class NotificationService {
         {
           'profile_id': AppStore.moi.id,
           'token': token,
-          'plateforme': kIsWeb ? 'web' : defaultTargetPlatform.name,
+          'plateforme': kIsWeb ? 'web' : defaultTargetPlatform.name.toLowerCase(),
         },
         onConflict: 'token',
       );
