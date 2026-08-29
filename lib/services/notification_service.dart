@@ -5,13 +5,14 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app.dart';
 import '../constants.dart';
+import '../screens/detail_pacte/chat_screen.dart';
+import '../screens/detail_pacte/detail_pacte_screen.dart';
 import 'app_store.dart';
+import 'pacte_repository.dart';
 
 /// Gère l'inscription aux notifications push (FCM) : demande de
-/// permission, récupération et sauvegarde du token de cet appareil.
-/// Le routage précis au clic sur une notification (vers le pacte ou le
-/// chat concerné) sera branché avec le format des messages envoyés par
-/// la fonction serveur (voir device_tokens / Edge Function).
+/// permission, récupération et sauvegarde du token de cet appareil, et
+/// le routage vers le bon écran au clic sur une notification.
 class NotificationService {
   static SupabaseClient get _client => Supabase.instance.client;
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
@@ -57,9 +58,29 @@ class NotificationService {
     }
   }
 
-  static void _gererClicNotification(RemoteMessage message) {
+  static Future<void> _gererClicNotification(RemoteMessage message) async {
     // ignore: avoid_print
     print('[Le Pacte] Notification ouverte : ${message.data}');
+    final data = message.data;
+    switch (data['type']) {
+      case 'pacte':
+        final pacteId = data['pacte_id'] as String?;
+        if (pacteId == null) return;
+        final pacte = await PacteRepository.pacteParId(pacteId);
+        if (pacte == null) return;
+        navigatorKey.currentState
+            ?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
+      case 'chat':
+        final remplacantId = data['remplacant_id'] as String?;
+        if (remplacantId == null) return;
+        navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            remplacantId: remplacantId,
+            nomInterlocuteur: data['nom_interlocuteur'] as String? ?? '',
+            telephoneInterlocuteur: data['telephone_interlocuteur'] as String?,
+          ),
+        ));
+    }
   }
 
   static Future<void> _enregistrerToken({bool reessaieDeja = false}) async {

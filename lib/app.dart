@@ -11,6 +11,11 @@ import 'theme/app_theme.dart';
 /// ce cas, contrairement à une notification système).
 final scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Permet de naviguer depuis n'importe où, y compris depuis
+/// NotificationService au clic sur une notification (avant même que
+/// l'écran concerné ait le moindre BuildContext disponible).
+final navigatorKey = GlobalKey<NavigatorState>();
+
 class PacteApp extends StatelessWidget {
   const PacteApp({super.key});
 
@@ -19,6 +24,7 @@ class PacteApp extends StatelessWidget {
     return MaterialApp(
       title: 'Le Pacte (test)',
       theme: buildAppTheme(),
+      navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,

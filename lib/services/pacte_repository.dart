@@ -93,6 +93,15 @@ class PacteRepository {
     return pactes;
   }
 
+  /// Un pacte précis par son id — utilisé pour ouvrir directement le
+  /// bon pacte au clic sur une notification.
+  static Future<Pacte?> pacteParId(String id) async {
+    final rows = await _client.from('pactes').select(_colonnesPacte).eq('id', id).limit(1);
+    if (rows.isEmpty) return null;
+    final restau = await restaurant();
+    return _pacteDe(rows.first, restau);
+  }
+
   static Future<Pacte> _pacteDe(Map<String, dynamic> row, Restaurant restau) async {
     final id = row['id'] as String;
     final statut = StatutPacte.values.byName(row['statut'] as String);
