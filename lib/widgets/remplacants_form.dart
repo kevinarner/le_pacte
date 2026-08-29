@@ -144,14 +144,20 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
             controller: _telCtrl(r),
             keyboardType: TextInputType.phone,
             decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-            onChanged: (v) => r.telephone = v,
+            onChanged: (v) {
+              r.telephone = v;
+              widget.onChanged();
+            },
           ),
           const SizedBox(height: 8),
           TextField(
             controller: _emailCtrl(r),
             keyboardType: TextInputType.emailAddress,
             decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
-            onChanged: (v) => r.email = v,
+            onChanged: (v) {
+              r.email = v;
+              widget.onChanged();
+            },
           ),
           const SizedBox(height: 8),
           const Text(
