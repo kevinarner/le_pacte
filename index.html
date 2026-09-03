@@ -23,13 +23,13 @@
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="le_pacte">
+  <meta name="apple-mobile-web-app-title" content="Pakt">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>le_pacte</title>
+  <title>Pakt</title>
   <link rel="manifest" href="manifest.json">
 
   <!--
@@ -43,6 +43,33 @@
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('firebase-messaging-sw.js');
+    }
+  </script>
+
+  <!--
+    Contact Picker API : permet de choisir un contact directement dans le
+    carnet d'adresses du téléphone plutôt que de le saisir à la main.
+    Disponible uniquement sur Android + Chrome pour l'instant — ces
+    fonctions sont appelées depuis Dart via dart:js_interop
+    (lib/services/contact_picker_service.dart), qui gère elle-même
+    l'absence de l'API ailleurs.
+  -->
+  <script>
+    function paktContactPickerDisponible() {
+      return !!(navigator.contacts && navigator.contacts.select);
+    }
+
+    async function paktChoisirContact() {
+      try {
+        const contacts = await navigator.contacts.select(['name', 'tel'], {multiple: false});
+        if (!contacts || contacts.length === 0) return null;
+        const contact = contacts[0];
+        const nom = (contact.name && contact.name.length > 0) ? contact.name[0] : '';
+        const telephone = (contact.tel && contact.tel.length > 0) ? contact.tel[0] : '';
+        return JSON.stringify({nom: nom, telephone: telephone});
+      } catch (e) {
+        return null;
+      }
     }
   </script>
 </head>

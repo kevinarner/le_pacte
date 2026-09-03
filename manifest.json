@@ -1,11 +1,11 @@
 {
-    "name": "le_pacte",
-    "short_name": "le_pacte",
+    "name": "Pakt",
+    "short_name": "Pakt",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Pakt, l'application des pactes entre amis.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
