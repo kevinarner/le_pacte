@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cote_pacte.dart';
+import '../models/fil_de_discussion.dart';
 import '../models/message.dart';
 import '../models/pacte.dart';
 import '../models/remplacant.dart';
-import '../models/remplacant_invitation.dart';
 import '../models/restaurant.dart';
 import '../models/statut_pacte.dart';
 import '../models/statut_presence.dart';
@@ -276,40 +276,6 @@ class PacteRepository {
     await _client.from('pactes').update({'statut': statut.name}).eq('id', pacteId);
   }
 
-  /// Les pactes où je suis moi-même un remplaçant potentiel (pas
-  /// forcément celui délégué), côté initiateur ou destinataire.
-  static Future<List<RemplacantInvitation>> mesInvitationsRemplacant() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) return [];
-    final rows = await _client
-        .from('remplacants')
-        .select(
-            'id, pacte_id, cote, pactes(type, statut, date_retenue, initiateur_nom, destinataire_nom)')
-        .eq('profil_id', userId)
-        .order('id', ascending: false);
-
-    final invitations = <RemplacantInvitation>[];
-    for (final row in rows as List) {
-      final r = row as Map<String, dynamic>;
-      final pacteRow = r['pactes'] as Map<String, dynamic>?;
-      if (pacteRow == null) continue;
-      final cote = r['cote'] as String;
-      invitations.add(RemplacantInvitation(
-        remplacantId: r['id'] as String,
-        pacteId: r['pacte_id'] as String,
-        nomTitulaire: cote == 'initiateur'
-            ? pacteRow['initiateur_nom'] as String
-            : pacteRow['destinataire_nom'] as String,
-        type: TypeRepas.values.byName(pacteRow['type'] as String),
-        dateRetenue: pacteRow['date_retenue'] != null
-            ? DateTime.parse(pacteRow['date_retenue'] as String)
-            : null,
-        statutPacte: StatutPacte.values.byName(pacteRow['statut'] as String),
-      ));
-    }
-    return invitations;
-  }
-
   static Message _messageDe(Map<String, dynamic> row) => Message(
         id: row['id'] as String,
         remplacantId: row['remplacant_id'] as String,
@@ -346,5 +312,78 @@ class PacteRepository {
         .eq('remplacant_id', remplacantId)
         .order('created_at')
         .map((rows) => rows.map(_messageDe).toList());
+  }
+
+  /// Tous les fils de discussion où je suis impliqué — que je sois
+  /// titulaire (je parle à mon remplaçant) ou remplaçant (je parle à mon
+  /// titulaire), peu importe le pacte d'origine. La RLS de `remplacants`
+  /// renvoie déjà l'union des deux cas pour une même requête : mes
+  /// propres remplaçants (je suis titulaire) et mes fiches de remplaçant
+  /// (`profil_id = moi`), donc pas besoin de deux requêtes séparées.
+  static Future<List<FilDeDiscussion>> mesFilsDeDiscussion() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return [];
+    final rows = await _client
+        .from('remplacants')
+        .select('id, cote, prenom, nom, telephone, profil_id, '
+            'pactes(initiateur_nom, destinataire_nom)')
+        .not('profil_id', 'is', null);
+
+    final fils = <FilDeDiscussion>[];
+    for (final row in rows as List) {
+      final r = row as Map<String, dynamic>;
+      final pacteRow = r['pactes'] as Map<String, dynamic>?;
+      if (pacteRow == null) continue;
+
+      final remplacantId = r['id'] as String;
+      final estMoiLeRemplacant = r['profil_id'] == userId;
+      final String nomInterlocuteur;
+      final String? telephoneInterlocuteur;
+      if (estMoiLeRemplacant) {
+        nomInterlocuteur = r['cote'] == 'initiateur'
+            ? pacteRow['initiateur_nom'] as String
+            : pacteRow['destinataire_nom'] as String;
+        telephoneInterlocuteur = null;
+      } else {
+        nomInterlocuteur = [r['prenom'], r['nom']]
+            .whereType<String>()
+            .where((s) => s.trim().isNotEmpty)
+            .join(' ');
+        telephoneInterlocuteur = r['telephone'] as String?;
+      }
+
+      final messages = await messagesDe(remplacantId);
+      final dernier = messages.isNotEmpty ? messages.last : null;
+      fils.add(FilDeDiscussion(
+        remplacantId: remplacantId,
+        nomInterlocuteur: nomInterlocuteur,
+        telephoneInterlocuteur: telephoneInterlocuteur,
+        dernierMessage: dernier?.contenu,
+        dateDernierMessage: dernier?.createdAt,
+      ));
+    }
+
+    fils.sort((a, b) {
+      final da = a.dateDernierMessage;
+      final db = b.dateDernierMessage;
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return db.compareTo(da);
+    });
+    return fils;
+  }
+
+  /// Nombre de fois où j'ai été désigné comme remplaçant (délégation
+  /// reçue), toutes affaires confondues — utilisé pour la stat de profil.
+  static Future<int> nombreRemplacementsEffectues() async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return 0;
+    final rows = await _client
+        .from('remplacants')
+        .select('id')
+        .eq('profil_id', userId)
+        .eq('selectionne', true);
+    return (rows as List).length;
   }
 }

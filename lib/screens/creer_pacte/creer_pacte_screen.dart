@@ -12,7 +12,11 @@ import '../../widgets/dates_form.dart';
 import '../../widgets/remplacants_form.dart';
 
 const _minimumRemplacants = 2;
+const _nombreEtapes = 3;
 
+/// Création d'un pacte en 3 étapes courtes (avec qui, où et quand, tes
+/// remplaçants) plutôt qu'un seul long formulaire — chaque étape se
+/// valide avant de passer à la suivante.
 class CreerPacteScreen extends StatefulWidget {
   const CreerPacteScreen({super.key});
 
@@ -21,6 +25,8 @@ class CreerPacteScreen extends StatefulWidget {
 }
 
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
+  int etape = 0;
+
   TypeRepas type = TypeRepas.diner;
   final List<DateTime> datesProposees = [];
   final prenomDestinataireController = TextEditingController();
@@ -85,151 +91,26 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         body: const Center(child: CircularProgressIndicator()),
       );
     }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Nouveau pacte')),
+      appBar: AppBar(
+        leading: etape > 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () => setState(() => etape -= 1),
+              )
+            : null,
+        title: const Text('Nouveau pacte'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text('Avec qui souhaitez-vous faire ce pacte ?',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: prenomDestinataireController,
-                  decoration: const InputDecoration(labelText: 'Prénom'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: nomDestinataireController,
-                  decoration: const InputDecoration(labelText: 'Nom'),
-                  onChanged: (_) => setState(() {}),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: telephoneDestinataireController,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: emailDestinataireController,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
-            onChanged: (_) => setState(() {}),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: _inviterParSms,
-            icon: const Icon(Icons.sms_outlined, size: 18),
-            label: const Text('Inviter par SMS'),
-          ),
+          _indicateurEtapes(),
           const SizedBox(height: 16),
-          const Text('Remplaçants potentiels (minimum 2)',
-              style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text(
-            "Propres à ce pacte : cette liste ne sera jamais visible par la personne avec qui "
-            "vous faites le pacte.",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          RemplacantsForm(
-            remplacants: remplacants,
-            minimum: _minimumRemplacants,
-            nomAutrePartie: prenomDestinataireController.text.trim(),
-            type: type,
-            dates: datesProposees,
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 8),
-          const Divider(),
-          const SizedBox(height: 16),
-          const Text('Type de repas', style: TextStyle(fontWeight: FontWeight.bold)),
-          RadioListTile<TypeRepas>(
-            title: const Text('Déjeuner'),
-            value: TypeRepas.dejeuner,
-            groupValue: type,
-            onChanged: (v) => setState(() => type = v!),
-          ),
-          RadioListTile<TypeRepas>(
-            title: const Text('Dîner'),
-            value: TypeRepas.diner,
-            groupValue: type,
-            onChanged: (v) => setState(() => type = v!),
-          ),
-          const SizedBox(height: 8),
-          const Text('Dates proposées', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text(
-            "Propose une ou plusieurs dates avec un horaire : la personne avec qui tu fais "
-            "ce pacte choisira celle qui lui convient.",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          DatesForm(
-            dates: datesProposees,
-            minimum: 1,
-            creneaux: restau.creneaux(type),
-            onChanged: () => setState(() {}),
-          ),
-          const SizedBox(height: 16),
-          const Text('1 restaurant proposé', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          const Text(
-            "D'autres restaurant vont être proposés bientôt",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 12),
-          const Text('Nom du restaurant', style: TextStyle(fontSize: 12, color: Colors.black54)),
-          const SizedBox(height: 4),
-          Text(restau.nom, style: const TextStyle(fontSize: 16)),
-          const SizedBox(height: 12),
-          const Text('Lien du site web', style: TextStyle(fontSize: 12, color: Colors.black54)),
-          const SizedBox(height: 4),
-          InkWell(
-            onTap: () => _ouvrirLienRestaurant(restau.lien),
-            child: Text(
-              restau.lien,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AppColors.accent,
-                decoration: TextDecoration.underline,
-              ),
-            ),
-          ),
+          if (etape == 0) ..._etapeAvecQui(),
+          if (etape == 1) ..._etapeOuEtQuand(restau),
+          if (etape == 2) ..._etapeRemplacants(),
           const SizedBox(height: 24),
-          if (_erreursValidation().isNotEmpty) ...[
-            for (final e in _erreursValidation())
-              Padding(
-                padding: const EdgeInsets.only(bottom: 4),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Icon(Icons.error_outline, size: 14, color: AppColors.erreur),
-                    const SizedBox(width: 6),
-                    Expanded(
-                      child: Text(e,
-                          style: const TextStyle(fontSize: 12, color: AppColors.erreur)),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
           if (erreur != null) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -237,40 +118,204 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             ),
           ],
           FilledButton(
-            onPressed: _peutValider() && !enCours ? () => _creerPacte(restau) : null,
+            onPressed: !enCours && _peutValiderEtape(etape) ? _suivant : null,
             child: enCours
                 ? const SizedBox(
                     height: 16,
                     width: 16,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : const Text('Envoyer le pacte'),
+                : Text(etape == _nombreEtapes - 1 ? 'Envoyer le pacte' : 'Suivant'),
           ),
         ],
       ),
     );
   }
 
-  List<String> _erreursValidation() {
-    final erreurs = <String>[];
-    if (prenomDestinataireController.text.trim().isEmpty ||
-        nomDestinataireController.text.trim().isEmpty) {
-      erreurs.add('Renseigne le prénom et le nom de la personne avec qui tu fais ce pacte.');
-    }
-    final nombreRemplacantsValides = remplacants.where((r) => r.estRempli).length;
-    if (nombreRemplacantsValides < _minimumRemplacants) {
-      final manquants = _minimumRemplacants - nombreRemplacantsValides;
-      erreurs.add(
-          'Ajoute encore $manquants remplaçant${manquants > 1 ? 's' : ''} '
-          '(prénom, nom et téléphone requis).');
-    }
-    if (datesProposees.isEmpty) {
-      erreurs.add('Propose au moins une date pour le pacte.');
-    }
-    return erreurs;
+  Widget _indicateurEtapes() {
+    return Row(
+      children: [
+        for (var i = 0; i < _nombreEtapes; i++) ...[
+          if (i > 0) const SizedBox(width: 6),
+          Expanded(
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: i <= etape ? AppColors.accent : AppColors.outline,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
   }
 
-  bool _peutValider() => _erreursValidation().isEmpty;
+  List<Widget> _etapeAvecQui() {
+    return [
+      Text('Avec qui ?', style: Theme.of(context).textTheme.titleLarge),
+      Text('Étape 1 sur $_nombreEtapes', style: const TextStyle(color: AppColors.texteAttenue)),
+      const SizedBox(height: 16),
+      Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: prenomDestinataireController,
+              decoration: const InputDecoration(labelText: 'Prénom'),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: TextField(
+              controller: nomDestinataireController,
+              decoration: const InputDecoration(labelText: 'Nom'),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: 8),
+      TextField(
+        controller: telephoneDestinataireController,
+        keyboardType: TextInputType.phone,
+        decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 8),
+      TextField(
+        controller: emailDestinataireController,
+        keyboardType: TextInputType.emailAddress,
+        decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
+        onChanged: (_) => setState(() {}),
+      ),
+      const SizedBox(height: 8),
+      const Text(
+        "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: _inviterParSms,
+        icon: const Icon(Icons.sms_outlined, size: 18),
+        label: const Text('Inviter par SMS'),
+      ),
+    ];
+  }
+
+  List<Widget> _etapeOuEtQuand(Restaurant restau) {
+    return [
+      Text('Où et quand ?', style: Theme.of(context).textTheme.titleLarge),
+      Text('Étape 2 sur $_nombreEtapes', style: const TextStyle(color: AppColors.texteAttenue)),
+      const SizedBox(height: 16),
+      const Text('Type de repas', style: TextStyle(fontWeight: FontWeight.bold)),
+      RadioListTile<TypeRepas>(
+        title: const Text('Déjeuner'),
+        value: TypeRepas.dejeuner,
+        groupValue: type,
+        onChanged: (v) => setState(() => type = v!),
+      ),
+      RadioListTile<TypeRepas>(
+        title: const Text('Dîner'),
+        value: TypeRepas.diner,
+        groupValue: type,
+        onChanged: (v) => setState(() => type = v!),
+      ),
+      const SizedBox(height: 8),
+      const Text('Dates proposées', style: TextStyle(fontWeight: FontWeight.bold)),
+      const SizedBox(height: 4),
+      const Text(
+        "Propose une ou plusieurs dates avec un horaire : la personne avec qui tu fais "
+        "ce pacte choisira celle qui lui convient.",
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
+      const SizedBox(height: 8),
+      DatesForm(
+        dates: datesProposees,
+        minimum: 1,
+        creneaux: restau.creneaux(type),
+        onChanged: () => setState(() {}),
+      ),
+      const SizedBox(height: 16),
+      Card(
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Restaurant proposé',
+                  style: TextStyle(fontSize: 11, color: Colors.black54)),
+              const SizedBox(height: 2),
+              Text(restau.nom, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              const SizedBox(height: 6),
+              InkWell(
+                onTap: () => _ouvrirLienRestaurant(restau.lien),
+                child: Text(
+                  restau.lien,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.accent,
+                    decoration: TextDecoration.underline,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      const SizedBox(height: 4),
+      const Text(
+        "D'autres restaurants seront proposés bientôt.",
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
+    ];
+  }
+
+  List<Widget> _etapeRemplacants() {
+    return [
+      Text('Tes remplaçants', style: Theme.of(context).textTheme.titleLarge),
+      Text('Étape 3 sur $_nombreEtapes · minimum $_minimumRemplacants',
+          style: const TextStyle(color: AppColors.texteAttenue)),
+      const SizedBox(height: 4),
+      const Text(
+        "Propres à ce pacte : cette liste ne sera jamais visible par la personne avec qui "
+        "tu fais le pacte.",
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
+      const SizedBox(height: 8),
+      RemplacantsForm(
+        remplacants: remplacants,
+        minimum: _minimumRemplacants,
+        nomAutrePartie: prenomDestinataireController.text.trim(),
+        type: type,
+        dates: datesProposees,
+        onChanged: () => setState(() {}),
+      ),
+    ];
+  }
+
+  bool _peutValiderEtape(int e) {
+    switch (e) {
+      case 0:
+        return prenomDestinataireController.text.trim().isNotEmpty &&
+            nomDestinataireController.text.trim().isNotEmpty &&
+            telephoneDestinataireController.text.trim().isNotEmpty;
+      case 1:
+        return datesProposees.isNotEmpty;
+      case 2:
+        return remplacants.where((r) => r.estRempli).length >= _minimumRemplacants;
+      default:
+        return false;
+    }
+  }
+
+  void _suivant() {
+    if (etape < _nombreEtapes - 1) {
+      setState(() => etape += 1);
+      return;
+    }
+    _creerPacte(restaurant!);
+  }
 
   Future<void> _ouvrirLienRestaurant(String lien) async {
     await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');

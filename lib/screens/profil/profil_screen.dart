@@ -21,7 +21,9 @@ class ProfilScreen extends StatefulWidget {
 }
 
 class _ProfilScreenState extends State<ProfilScreen> {
-  int? pactesEnCours;
+  int? pactesRealises;
+  int? remplacementsEffectues;
+  int? fiabilite;
 
   @override
   void initState() {
@@ -32,17 +34,31 @@ class _ProfilScreenState extends State<ProfilScreen> {
   Future<void> _charger() async {
     try {
       final pactes = await PacteRepository.mesPactes();
+      final termines = pactes
+          .where((p) =>
+              p.statut == StatutPacte.maintenu ||
+              p.statut == StatutPacte.confirme ||
+              p.statut == StatutPacte.annule ||
+              p.statut == StatutPacte.annuleDoubleAbsence)
+          .toList();
+      final honores =
+          termines.where((p) => p.statut == StatutPacte.maintenu || p.statut == StatutPacte.confirme);
       if (!mounted) return;
       setState(() {
-        pactesEnCours = pactes
-            .where((p) =>
-                p.statut != StatutPacte.maintenu &&
-                p.statut != StatutPacte.annule &&
-                p.statut != StatutPacte.annuleDoubleAbsence)
-            .length;
+        pactesRealises = pactes.where((p) => p.statut == StatutPacte.maintenu).length;
+        fiabilite = termines.isEmpty
+            ? null
+            : (honores.length / termines.length * 100).round();
       });
     } catch (_) {
-      // Reste à 0 si le chargement échoue : la stat n'est qu'indicative.
+      // Purement indicatif : on laisse simplement vide si ça échoue.
+    }
+    try {
+      final n = await PacteRepository.nombreRemplacementsEffectues();
+      if (!mounted) return;
+      setState(() => remplacementsEffectues = n);
+    } catch (_) {
+      // Idem.
     }
   }
 
@@ -51,7 +67,14 @@ class _ProfilScreenState extends State<ProfilScreen> {
     final utilisateur = AppStore.moi;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profil')),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: Image.asset('assets/images/logo_mains.png'),
+          tooltip: 'Menu principal',
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text('Profil'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -70,14 +93,35 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(utilisateur.nomComplet, style: Theme.of(context).textTheme.titleLarge),
+                Text(utilisateur.email, style: const TextStyle(color: AppColors.texteAttenue)),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(child: _statTuile(pactesRealises, 'pactes réalisés')),
+              const SizedBox(width: 10),
+              Expanded(child: _statTuile(remplacementsEffectues, 'remplacements')),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _statTuile(fiabilite, 'fiabilité', suffixe: '%'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
           Card(
             child: Column(
               children: [
-                _ligneStat('Pactes en cours', pactesEnCours ?? 0),
+                _ligneReglage('Nom', _bientotDisponible),
+                _separateur(),
+                _ligneReglage('Téléphone', _bientotDisponible),
+                _separateur(),
+                _ligneReglage('Email', _bientotDisponible),
+                _separateur(),
+                _ligneReglage('Mot de passe', _bientotDisponible),
+                _separateur(),
+                _ligneReglage('Notifications', _bientotDisponible),
               ],
             ),
           ),
@@ -91,22 +135,51 @@ class _ProfilScreenState extends State<ProfilScreen> {
     );
   }
 
-  Widget _ligneStat(String label, int valeur) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-      child: Row(
+  Widget _statTuile(int? valeur, String label, {String suffixe = ''}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.outline),
+        borderRadius: BorderRadius.circular(radiusLg),
+      ),
+      child: Column(
         children: [
-          Expanded(child: Text(label)),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-            decoration: BoxDecoration(
-              color: AppColors.pecheClair,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text('$valeur', style: const TextStyle(color: AppColors.peche)),
+          Text(
+            valeur == null ? '—' : '$valeur$suffixe',
+            style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 10.5, color: AppColors.texteAttenue, height: 1.2),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _separateur() => const Divider(height: 1, indent: 16, endIndent: 16);
+
+  Widget _ligneReglage(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Expanded(child: Text(label)),
+            const Icon(Icons.chevron_right, size: 18, color: Colors.black38),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _bientotDisponible() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Bientôt disponible.')),
     );
   }
 }

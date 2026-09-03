@@ -7,11 +7,12 @@ import '../../models/utilisateur.dart';
 import '../../screens/login/login_screen.dart';
 import '../../services/app_store.dart';
 import '../../services/notification_service.dart';
-import '../accueil/accueil_screen.dart';
-import '../profil/profil_screen.dart';
+import 'menu_principal_screen.dart';
 
-/// Coquille principale : nav basse (Pactes / Profil).
-/// Créer un pacte et Détail d'un pacte s'ouvrent par-dessus, sans nav basse.
+/// Coquille principale : héberge la session (écoute de session partagée,
+/// déconnexion) et affiche le menu principal, qui donne accès aux trois
+/// sections (Mes Pactes, Messagerie, Profil) — chacune ramène ici d'un
+/// tap sur son logo plutôt que via une barre de navigation basse.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 
@@ -20,7 +21,6 @@ class RootShell extends StatefulWidget {
 }
 
 class _RootShellState extends State<RootShell> {
-  int index = 0;
   bool _deconnexionVolontaire = false;
   late final StreamSubscription<AuthState> _authSub;
 
@@ -77,21 +77,6 @@ class _RootShellState extends State<RootShell> {
 
   @override
   Widget build(BuildContext context) {
-    final ecrans = [
-      AccueilScreen(onChanged: refresh),
-      ProfilScreen(onDeconnexion: deconnexion, onChanged: refresh),
-    ];
-
-    return Scaffold(
-      body: IndexedStack(index: index, children: ecrans),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: index,
-        onTap: (i) => setState(() => index = i),
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Pactes'),
-          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profil'),
-        ],
-      ),
-    );
+    return MenuPrincipalScreen(onDeconnexion: deconnexion, onChanged: refresh);
   }
 }
