@@ -5,6 +5,7 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_avatar.dart';
+import 'mes_informations_screen.dart';
 
 class ProfilScreen extends StatefulWidget {
   final VoidCallback onDeconnexion;
@@ -113,13 +114,7 @@ class _ProfilScreenState extends State<ProfilScreen> {
           Card(
             child: Column(
               children: [
-                _ligneReglage('Nom', _bientotDisponible),
-                _separateur(),
-                _ligneReglage('Téléphone', _bientotDisponible),
-                _separateur(),
-                _ligneReglage('Email', _bientotDisponible),
-                _separateur(),
-                _ligneReglage('Mot de passe', _bientotDisponible),
+                _ligneReglage('Mes informations', _ouvrirMesInformations),
                 _separateur(),
                 _ligneReglage('Notifications', _bientotDisponible),
               ],
@@ -175,6 +170,15 @@ class _ProfilScreenState extends State<ProfilScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _ouvrirMesInformations() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const MesInformationsScreen()),
+    );
+    if (!mounted) return;
+    setState(() {});
   }
 
   void _bientotDisponible() {

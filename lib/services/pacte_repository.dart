@@ -326,14 +326,16 @@ class PacteRepository {
     final rows = await _client
         .from('remplacants')
         .select('id, cote, prenom, nom, telephone, profil_id, '
-            'pactes(initiateur_nom, destinataire_nom)')
+            'pactes(initiateur_nom, destinataire_nom, date_retenue)')
         .not('profil_id', 'is', null);
+    final restau = await restaurant();
 
     final fils = <FilDeDiscussion>[];
     for (final row in rows as List) {
       final r = row as Map<String, dynamic>;
       final pacteRow = r['pactes'] as Map<String, dynamic>?;
       if (pacteRow == null) continue;
+      final dateRetenue = pacteRow['date_retenue'] as String?;
 
       final remplacantId = r['id'] as String;
       final estMoiLeRemplacant = r['profil_id'] == userId;
@@ -360,6 +362,8 @@ class PacteRepository {
         telephoneInterlocuteur: telephoneInterlocuteur,
         dernierMessage: dernier?.contenu,
         dateDernierMessage: dernier?.createdAt,
+        dateConcernee: dateRetenue != null ? DateTime.parse(dateRetenue) : null,
+        restaurantNom: restau.nom,
       ));
     }
 

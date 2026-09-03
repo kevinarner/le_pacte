@@ -5,6 +5,7 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../accueil/accueil_screen.dart';
+import '../contact/contact_screen.dart';
 import '../messagerie/messagerie_screen.dart';
 import '../profil/profil_screen.dart';
 
@@ -77,7 +78,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
             children: [
               Image.asset('assets/images/logo_mains.png', width: 52),
               const SizedBox(height: 8),
-              Text('Le Pacte', style: Theme.of(context).textTheme.titleLarge),
+              Text('Pakt', style: Theme.of(context).textTheme.titleLarge),
               Text('Bonjour ${AppStore.moi.prenom}',
                   style: const TextStyle(color: AppColors.texteAttenue)),
               const SizedBox(height: 28),
@@ -115,6 +116,15 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                   onDeconnexion: widget.onDeconnexion,
                   onChanged: widget.onChanged,
                 )),
+              ),
+              const SizedBox(height: 10),
+              _tuile(
+                icone: Icons.chat_bubble_outline,
+                fond: AppColors.outline,
+                iconeColor: AppColors.texte,
+                label: 'Nous contacter',
+                sousLabel: 'Suggérer un restaurant, nous écrire',
+                onTap: () => _ouvrir(const ContactScreen()),
               ),
             ],
           ),

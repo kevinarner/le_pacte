@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../constants.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
+import '../services/contact_picker_service.dart';
 import '../utils/date_fr.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
@@ -39,7 +40,6 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
   final Map<Remplacant, TextEditingController> _prenomControllers = {};
   final Map<Remplacant, TextEditingController> _nomControllers = {};
   final Map<Remplacant, TextEditingController> _telControllers = {};
-  final Map<Remplacant, TextEditingController> _emailControllers = {};
 
   @override
   void initState() {
@@ -57,9 +57,6 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
 
   TextEditingController _telCtrl(Remplacant r) =>
       _telControllers.putIfAbsent(r, () => TextEditingController(text: r.telephone));
-
-  TextEditingController _emailCtrl(Remplacant r) =>
-      _emailControllers.putIfAbsent(r, () => TextEditingController(text: r.email));
 
   @override
   Widget build(BuildContext context) {
@@ -149,16 +146,14 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
               widget.onChanged();
             },
           ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: _emailCtrl(r),
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
-            onChanged: (v) {
-              r.email = v;
-              widget.onChanged();
-            },
-          ),
+          if (ContactPickerService.disponible) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _choisirDansLesContacts(r),
+              icon: const Icon(Icons.contacts_outlined, size: 18),
+              label: const Text('Choisir dans mes contacts'),
+            ),
+          ],
           const SizedBox(height: 8),
           const Text(
             "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
@@ -173,6 +168,27 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
         ],
       ),
     );
+  }
+
+  Future<void> _choisirDansLesContacts(Remplacant r) async {
+    final contact = await ContactPickerService.choisirContact();
+    if (contact == null || !mounted) return;
+    final nomComplet = contact['nom'] ?? '';
+    final parts = nomComplet.trim().split(RegExp(r'\s+'));
+    setState(() {
+      if (parts.isNotEmpty && parts.first.isNotEmpty) {
+        r.prenom = parts.first;
+        r.nom = parts.skip(1).join(' ');
+        _prenomCtrl(r).text = r.prenom;
+        _nomCtrl(r).text = r.nom;
+      }
+      final telephone = contact['telephone'] ?? '';
+      if (telephone.isNotEmpty) {
+        r.telephone = telephone;
+        _telCtrl(r).text = telephone;
+      }
+      widget.onChanged();
+    });
   }
 
   void _ajouter() {

@@ -11,12 +11,12 @@ void main() async {
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     // ignore: avoid_print
-    print('[Le Pacte] Firebase initialisé avec succès.');
+    print('[Pakt] Firebase initialisé avec succès.');
   } catch (e) {
     // Les notifications ne doivent jamais empêcher le reste de l'app de
     // fonctionner (réseau bloqué, extension de blocage de pub, etc.).
     // ignore: avoid_print
-    print("[Le Pacte] Firebase indisponible, l'app continue sans notifications : $e");
+    print("[Pakt] Firebase indisponible, l'app continue sans notifications : $e");
   }
   await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
   runApp(const PacteApp());

@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -6,10 +7,12 @@ import '../../models/remplacant.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/dates_form.dart';
 import '../../widgets/remplacants_form.dart';
+import '../contact/suggestion_restaurant_screen.dart';
 
 const _minimumRemplacants = 2;
 const _nombreEtapes = 3;
@@ -32,7 +35,6 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   final prenomDestinataireController = TextEditingController();
   final nomDestinataireController = TextEditingController();
   final telephoneDestinataireController = TextEditingController();
-  final emailDestinataireController = TextEditingController();
   final List<Remplacant> remplacants = [];
 
   Restaurant? restaurant;
@@ -182,13 +184,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
         onChanged: (_) => setState(() {}),
       ),
-      const SizedBox(height: 8),
-      TextField(
-        controller: emailDestinataireController,
-        keyboardType: TextInputType.emailAddress,
-        decoration: const InputDecoration(labelText: 'Adresse email (optionnel)'),
-        onChanged: (_) => setState(() {}),
-      ),
+      if (ContactPickerService.disponible) ...[
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _choisirDansLesContacts,
+          icon: const Icon(Icons.contacts_outlined, size: 18),
+          label: const Text('Choisir dans mes contacts'),
+        ),
+      ],
       const SizedBox(height: 8),
       const Text(
         "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
@@ -201,6 +204,22 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         label: const Text('Inviter par SMS'),
       ),
     ];
+  }
+
+  Future<void> _choisirDansLesContacts() async {
+    final contact = await ContactPickerService.choisirContact();
+    if (contact == null || !mounted) return;
+    final nomComplet = contact['nom'] ?? '';
+    final parts = nomComplet.trim().split(RegExp(r'\s+'));
+    setState(() {
+      if (parts.isNotEmpty && parts.first.isNotEmpty) {
+        prenomDestinataireController.text = parts.first;
+        nomDestinataireController.text = parts.skip(1).join(' ');
+      }
+      if ((contact['telephone'] ?? '').isNotEmpty) {
+        telephoneDestinataireController.text = contact['telephone']!;
+      }
+    });
   }
 
   List<Widget> _etapeOuEtQuand(Restaurant restau) {
@@ -264,11 +283,34 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         ),
       ),
       const SizedBox(height: 4),
-      const Text(
-        "D'autres restaurants seront proposés bientôt.",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
+      RichText(
+        text: TextSpan(
+          style: const TextStyle(fontSize: 12, color: Colors.black54),
+          children: [
+            const TextSpan(
+              text: "D'autres restaurants vous seront bientôt proposés, "
+                  'vous pouvez nous en suggérer : ',
+            ),
+            TextSpan(
+              text: 'ici',
+              style: const TextStyle(
+                color: AppColors.accent,
+                decoration: TextDecoration.underline,
+                fontWeight: FontWeight.w600,
+              ),
+              recognizer: TapGestureRecognizer()..onTap = _suggererUnRestaurant,
+            ),
+          ],
+        ),
       ),
     ];
+  }
+
+  void _suggererUnRestaurant() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SuggestionRestaurantScreen()),
+    );
   }
 
   List<Widget> _etapeRemplacants() {
@@ -337,7 +379,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     }
     final prenom = prenomDestinataireController.text.trim();
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Le Pacte !\n"
+    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Pakt !\n"
         "Le principe : on trouve une date qui nous convient pour dîner ensemble mais on a pas le "
         "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
         "faire appel à des remplaçants. Je te laisse en découvrir plus en téléchargeant l'app :) "

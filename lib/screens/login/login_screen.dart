@@ -58,10 +58,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: AppColors.accentClair,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.swap_horiz, color: AppColors.accent),
+                  padding: const EdgeInsets.all(14),
+                  child: Image.asset('assets/images/logo_mains.png'),
                 ),
                 const SizedBox(height: 16),
-                Text('Le Pacte', style: Theme.of(context).textTheme.titleLarge),
+                Text('Pakt', style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: 8),
                 const SizedBox(
                   width: 260,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/fil_de_discussion.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../detail_pacte/chat_screen.dart';
 
 /// Regroupe tous les fils de discussion au même endroit — qu'on soit
@@ -105,14 +106,34 @@ class _MessagerieScreenState extends State<MessagerieScreen> {
         child: Text(fil.nomInterlocuteur.isNotEmpty ? fil.nomInterlocuteur[0].toUpperCase() : '?'),
       ),
       title: Text(fil.nomInterlocuteur, style: const TextStyle(fontWeight: FontWeight.w700)),
-      subtitle: Text(
-        fil.dernierMessage ?? "Aucun message pour l'instant",
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: TextStyle(
-          color: fil.dernierMessage == null ? Colors.black38 : Colors.black54,
-          fontStyle: fil.dernierMessage == null ? FontStyle.italic : FontStyle.normal,
-        ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (fil.dateConcernee != null && fil.restaurantNom != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 2),
+              child: Text(
+                '${_libelleDateCourt(fil.dateConcernee!)} · ${fil.restaurantNom}',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 11.5,
+                  color: AppColors.accentFonce,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          Text(
+            fil.dernierMessage ?? "Aucun message pour l'instant",
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: fil.dernierMessage == null ? Colors.black38 : Colors.black54,
+              fontStyle: fil.dernierMessage == null ? FontStyle.italic : FontStyle.normal,
+            ),
+          ),
+        ],
       ),
       trailing: fil.dateDernierMessage != null
           ? Text(_libelleDate(fil.dateDernierMessage!),
@@ -133,6 +154,9 @@ class _MessagerieScreenState extends State<MessagerieScreen> {
       },
     );
   }
+
+  String _libelleDateCourt(DateTime date) =>
+      '${date.day} ${moisAnnee[date.month - 1].substring(0, 3)}.';
 
   String _libelleDate(DateTime date) {
     final maintenant = DateTime.now();

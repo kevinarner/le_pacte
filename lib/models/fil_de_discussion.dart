@@ -13,11 +13,19 @@ class FilDeDiscussion {
   final String? dernierMessage;
   final DateTime? dateDernierMessage;
 
+  /// La date retenue du pacte concerné par ce fil, et le nom du
+  /// restaurant — affichés sous le nom de l'interlocuteur pour situer la
+  /// conversation. Nulle si aucune date n'est encore retenue.
+  final DateTime? dateConcernee;
+  final String? restaurantNom;
+
   FilDeDiscussion({
     required this.remplacantId,
     required this.nomInterlocuteur,
     this.telephoneInterlocuteur,
     this.dernierMessage,
     this.dateDernierMessage,
+    this.dateConcernee,
+    this.restaurantNom,
   });
 }

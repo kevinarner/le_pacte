@@ -22,7 +22,7 @@ class PacteApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Le Pacte (test)',
+      title: 'Pakt',
       theme: buildAppTheme(),
       navigatorKey: navigatorKey,
       scaffoldMessengerKey: scaffoldMessengerKey,
