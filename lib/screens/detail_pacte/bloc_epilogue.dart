@@ -21,7 +21,7 @@ class BlocEpilogue extends StatelessWidget {
           children: [
             Icon(
               maintenu ? Icons.celebration_outlined : Icons.event_busy_outlined,
-              color: maintenu ? AppColors.terracotta : Colors.black45,
+              color: maintenu ? AppColors.accent : Colors.black45,
               size: 32,
             ),
             const SizedBox(height: 12),

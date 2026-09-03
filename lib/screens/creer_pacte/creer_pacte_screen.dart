@@ -64,12 +64,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, color: AppColors.terracotta, size: 32),
+                const Icon(Icons.error_outline, color: AppColors.erreur, size: 32),
                 const SizedBox(height: 12),
                 Text(
                   "Impossible de charger le restaurant.\n$erreurChargement",
                   textAlign: TextAlign.center,
-                  style: const TextStyle(color: AppColors.terracotta, fontSize: 12),
+                  style: const TextStyle(color: AppColors.erreur, fontSize: 12),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton(onPressed: _chargerRestaurant, child: const Text('Réessayer')),
@@ -206,7 +206,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
               restau.lien,
               style: const TextStyle(
                 fontSize: 16,
-                color: AppColors.terracotta,
+                color: AppColors.accent,
                 decoration: TextDecoration.underline,
               ),
             ),
@@ -219,11 +219,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+                    const Icon(Icons.error_outline, size: 14, color: AppColors.erreur),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(e,
-                          style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                          style: const TextStyle(fontSize: 12, color: AppColors.erreur)),
                     ),
                   ],
                 ),
@@ -233,7 +233,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           if (erreur != null) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(erreur!, style: const TextStyle(color: AppColors.terracotta)),
+              child: Text(erreur!, style: const TextStyle(color: AppColors.erreur)),
             ),
           ],
           FilledButton(

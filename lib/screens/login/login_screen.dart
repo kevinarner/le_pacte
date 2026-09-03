@@ -55,10 +55,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 64,
                   height: 64,
                   decoration: const BoxDecoration(
-                    color: AppColors.terracottaClair,
+                    color: AppColors.accentClair,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.swap_horiz, color: AppColors.terracotta),
+                  child: const Icon(Icons.swap_horiz, color: AppColors.accent),
                 ),
                 const SizedBox(height: 16),
                 Text('Le Pacte', style: Theme.of(context).textTheme.titleLarge),
@@ -107,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Icon(Icons.mark_email_read_outlined, size: 40, color: AppColors.terracotta),
+        const Icon(Icons.mark_email_read_outlined, size: 40, color: AppColors.accent),
         const SizedBox(height: 12),
         Text(
           "Un email de confirmation a été envoyé à ${emailInscriptionController.text.trim()}. "
@@ -143,11 +143,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+                  const Icon(Icons.error_outline, size: 14, color: AppColors.erreur),
                   const SizedBox(width: 6),
                   Expanded(
                     child:
-                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.erreur)),
                   ),
                 ],
               ),
@@ -214,11 +214,11 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+                  const Icon(Icons.error_outline, size: 14, color: AppColors.erreur),
                   const SizedBox(width: 6),
                   Expanded(
                     child:
-                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+                        Text(e, style: const TextStyle(fontSize: 12, color: AppColors.erreur)),
                   ),
                 ],
               ),
@@ -246,10 +246,10 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 14, color: AppColors.terracotta),
+          const Icon(Icons.error_outline, size: 14, color: AppColors.erreur),
           const SizedBox(width: 6),
           Expanded(
-            child: Text(erreur!, style: const TextStyle(fontSize: 12, color: AppColors.terracotta)),
+            child: Text(erreur!, style: const TextStyle(fontSize: 12, color: AppColors.erreur)),
           ),
         ],
       ),

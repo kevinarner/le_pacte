@@ -2,17 +2,24 @@ import 'package:flutter/material.dart';
 
 import '../models/statut_pacte.dart';
 
-/// Tokens visuels du pack de handoff design (voir docs/handoff/README.md).
+/// Palette pêche / bleu ardoise / crème, validée le 29/08 (voir la
+/// synthèse UX). L'accent (bleu ardoise) sert aux actions principales et
+/// aux temps forts ; `erreur` reste dans une famille chaude distincte,
+/// pour ne jamais confondre un message d'erreur avec la couleur de marque.
 class AppColors {
-  static const background = Color(0xFFF5EAD8);
-  static const backgroundOuter = Color(0xFFE7DDCB);
-  static const texte = Color(0xFF201E1D);
-  static const terracotta = Color(0xFFC67139);
-  static const terracottaClair = Color(0xFFF0DAC7);
-  static const sauge = Color(0xFF7A8A5E);
-  static const saugeClair = Color(0xFFE1E6D6);
-  static const neutre = Color(0xFFE9E4DA);
-  static const outline = Color(0xFFC9BFAE);
+  static const background = Color(0xFFF5E4CB);
+  static const backgroundOuter = Color(0xFFEAD5AE);
+  static const surface = Color(0xFFFCF0DD);
+  static const texte = Color(0xFF3C2A1B);
+  static const texteAttenue = Color(0xFF93795C);
+  static const accent = Color(0xFF6B7A94);
+  static const accentFonce = Color(0xFF3F4C63);
+  static const accentClair = Color(0xFFDEE3EA);
+  static const peche = Color(0xFFE8A874);
+  static const pecheClair = Color(0xFFFBE2C4);
+  static const neutre = Color(0xFFF1E2C9);
+  static const outline = Color(0xFFEBD8B7);
+  static const erreur = Color(0xFFB3492E);
 }
 
 const double radiusLg = 16;
@@ -37,7 +44,7 @@ StatutTag statutTag(StatutPacte statut) {
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
     case StatutPacte.confirme:
     case StatutPacte.maintenu:
-      return const StatutTag(fond: AppColors.terracottaClair, texte: AppColors.terracotta);
+      return const StatutTag(fond: AppColors.accentClair, texte: AppColors.accentFonce);
     case StatutPacte.annule:
     case StatutPacte.annuleDoubleAbsence:
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
@@ -48,7 +55,7 @@ ThemeData buildAppTheme() {
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.terracotta,
+      seedColor: AppColors.accent,
       brightness: Brightness.light,
       surface: AppColors.background,
     ),
@@ -69,7 +76,7 @@ ThemeData buildAppTheme() {
         color: AppColors.texte,
       ),
       bodyMedium: const TextStyle(fontSize: 14, color: AppColors.texte),
-      bodySmall: const TextStyle(fontSize: 12.5, color: Colors.black54),
+      bodySmall: TextStyle(fontSize: 12.5, color: AppColors.texteAttenue),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.background,
@@ -84,7 +91,7 @@ ThemeData buildAppTheme() {
       ),
     ),
     cardTheme: const CardThemeData(
-      color: AppColors.backgroundOuter,
+      color: AppColors.surface,
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
@@ -93,7 +100,7 @@ ThemeData buildAppTheme() {
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
-        backgroundColor: AppColors.terracotta,
+        backgroundColor: AppColors.accent,
         foregroundColor: Colors.white,
         minimumSize: const Size.fromHeight(46),
         shape: const StadiumBorder(),
@@ -109,11 +116,11 @@ ThemeData buildAppTheme() {
       ),
     ),
     textButtonTheme: TextButtonThemeData(
-      style: TextButton.styleFrom(foregroundColor: AppColors.terracotta),
+      style: TextButton.styleFrom(foregroundColor: AppColors.accent),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: AppColors.backgroundOuter,
+      fillColor: AppColors.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusLg),
@@ -122,7 +129,7 @@ ThemeData buildAppTheme() {
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.background,
-      selectedItemColor: AppColors.terracotta,
+      selectedItemColor: AppColors.accent,
       unselectedItemColor: Colors.black45,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,

@@ -100,10 +100,10 @@ class _ProfilScreenState extends State<ProfilScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.saugeClair,
+              color: AppColors.pecheClair,
               borderRadius: BorderRadius.circular(999),
             ),
-            child: Text('$valeur', style: const TextStyle(color: AppColors.sauge)),
+            child: Text('$valeur', style: const TextStyle(color: AppColors.peche)),
           ),
         ],
       ),

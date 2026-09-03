@@ -34,12 +34,12 @@ class PhotoAvatar extends StatelessWidget {
         height: taille,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.saugeClair,
+          color: AppColors.pecheClair,
           image: photo != null
               ? DecorationImage(image: MemoryImage(photo!), fit: BoxFit.cover)
               : null,
           border: photo == null
-              ? Border.all(color: AppColors.terracotta.withValues(alpha: 0.4))
+              ? Border.all(color: AppColors.accent.withValues(alpha: 0.4))
               : null,
         ),
         alignment: Alignment.center,
@@ -51,7 +51,7 @@ class PhotoAvatar extends StatelessWidget {
                 style: TextStyle(
                   fontSize: libellePlaceholder != null ? taille * 0.15 : taille * 0.4,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.sauge,
+                  color: AppColors.peche,
                 ),
               ),
       ),

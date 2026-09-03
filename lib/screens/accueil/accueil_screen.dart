@@ -70,12 +70,12 @@ class _AccueilScreenState extends State<AccueilScreen> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.error_outline, color: AppColors.terracotta, size: 32),
+                          const Icon(Icons.error_outline, color: AppColors.erreur, size: 32),
                           const SizedBox(height: 12),
                           Text(
                             "Impossible de charger tes pactes.\n$erreur",
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.terracotta, fontSize: 12),
+                            style: const TextStyle(color: AppColors.erreur, fontSize: 12),
                           ),
                           const SizedBox(height: 12),
                           OutlinedButton(onPressed: _charger, child: const Text('Réessayer')),
@@ -231,7 +231,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
             padding: const EdgeInsets.all(16),
             child: Row(
               children: [
-                const Icon(Icons.chat_bubble_outline, color: AppColors.terracotta),
+                const Icon(Icons.chat_bubble_outline, color: AppColors.accent),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

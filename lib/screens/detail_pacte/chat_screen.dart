@@ -166,7 +166,7 @@ class _ChatScreenState extends State<ChatScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
         decoration: BoxDecoration(
-          color: estMoi ? AppColors.terracottaClair : AppColors.neutre,
+          color: estMoi ? AppColors.accentClair : AppColors.neutre,
           borderRadius: BorderRadius.circular(14),
         ),
         child: Text(m.contenu),
