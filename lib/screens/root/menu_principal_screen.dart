@@ -66,15 +66,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   /// Un pacte attend une action de ma part : c'est mon tour de choisir
   /// une date, ou (côté destinataire) de répondre — même logique que
   /// `DetailPacteScreen`.
-  bool _actionRequise(Pacte p) {
-    final initiateur = _jeSuisInitiateur(p);
-    final estMonTourDate =
-        (initiateur && p.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
-        (!initiateur && p.statut == StatutPacte.enAttenteChoixDateDestinataire);
-    final estMonTourReponse =
-        !initiateur && p.statut == StatutPacte.enAttenteReponse;
-    return estMonTourDate || estMonTourReponse;
-  }
+  bool _actionRequise(Pacte p) =>
+      pacteEstMonTour(p.statut, _jeSuisInitiateur(p));
 
   Pacte? get _prochainPacte {
     final liste = mesPactes;

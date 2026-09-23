@@ -33,7 +33,15 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     final cotePartenaire = jeSuisInitiateur
         ? pacte.destinataire
         : pacte.initiateur;
-    final tag = statutTag(pacte.statut);
+    final affichage = statutAffichagePourMoi(
+      pacte.statut,
+      jeSuisInitiateur: jeSuisInitiateur,
+      autrePrenom: cotePartenaire.nomTitulaire
+          .trim()
+          .split(RegExp(r'\s+'))
+          .first,
+    );
+    final tag = affichage.style;
 
     // C'est mon tour de choisir/contre-proposer une date ?
     final estMonTourDate =
@@ -90,7 +98,7 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                               : null,
                         ),
                         child: Text(
-                          pacte.statut.libelle,
+                          affichage.libelle,
                           style: TextStyle(fontSize: 11.5, color: tag.texte),
                         ),
                       ),

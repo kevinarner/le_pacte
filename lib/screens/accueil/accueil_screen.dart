@@ -35,6 +35,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
     });
     try {
       final resultat = await PacteRepository.mesPactes();
+      _trierParPriorite(resultat);
       if (!mounted) return;
       setState(() => pactes = resultat);
     } catch (e) {
@@ -105,12 +106,50 @@ class _AccueilScreenState extends State<AccueilScreen> {
     );
   }
 
+  /// Priorité d'affichage : mon tour à moi (0) < j'attends l'autre
+  /// partie (1) < scellé, trié chronologiquement dans ce groupe (2) <
+  /// terminé/annulé (3). Une seule solution de tri, pas de sections.
+  int _priorite(Pacte p) {
+    final jeSuisInitiateur = p.initiateur.idTitulaire == AppStore.moi.id;
+    final enNegociation =
+        p.statut == StatutPacte.enAttenteChoixDateInitiateur ||
+        p.statut == StatutPacte.enAttenteChoixDateDestinataire ||
+        p.statut == StatutPacte.enAttenteReponse;
+    if (enNegociation) {
+      return pacteEstMonTour(p.statut, jeSuisInitiateur) ? 0 : 1;
+    }
+    if (p.statut == StatutPacte.confirme) return 2;
+    return 3;
+  }
+
+  void _trierParPriorite(List<Pacte> pactes) {
+    pactes.sort((a, b) {
+      final pa = _priorite(a);
+      final pb = _priorite(b);
+      if (pa != pb) return pa.compareTo(pb);
+      final da = a.dateRetenue;
+      final db = b.dateRetenue;
+      if (da == null && db == null) return 0;
+      if (da == null) return 1;
+      if (db == null) return -1;
+      return da.compareTo(db);
+    });
+  }
+
+  String _prenom(String nomComplet) =>
+      nomComplet.trim().split(RegExp(r'\s+')).first;
+
   Widget _cardPacte(Pacte pacte) {
     final estInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
     final autreNom = estInitiateur
         ? pacte.destinataire.nomTitulaire
         : pacte.initiateur.nomTitulaire;
-    final tag = statutTag(pacte.statut);
+    final affichage = statutAffichagePourMoi(
+      pacte.statut,
+      jeSuisInitiateur: estInitiateur,
+      autrePrenom: _prenom(autreNom),
+    );
+    final tag = affichage.style;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
@@ -170,7 +209,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                               : null,
                         ),
                         child: Text(
-                          pacte.statut.libelle,
+                          affichage.libelle,
                           style: TextStyle(fontSize: 11.5, color: tag.texte),
                         ),
                       ),

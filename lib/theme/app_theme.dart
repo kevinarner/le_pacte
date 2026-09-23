@@ -44,10 +44,79 @@ StatutTag statutTag(StatutPacte statut) {
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
     case StatutPacte.confirme:
     case StatutPacte.maintenu:
-      return const StatutTag(fond: AppColors.accentClair, texte: AppColors.accentFonce);
+      return const StatutTag(
+        fond: AppColors.accentClair,
+        texte: AppColors.accentFonce,
+      );
     case StatutPacte.annule:
     case StatutPacte.annuleDoubleAbsence:
       return const StatutTag(fond: AppColors.neutre, texte: AppColors.texte);
+  }
+}
+
+/// Vrai si c'est le tour de l'utilisateur courant d'agir sur ce statut
+/// de négociation (choisir/contre-proposer une date, ou répondre) —
+/// logique unique, réutilisée partout où l'app doit savoir qui doit
+/// agir (hub, "Mes Swends", détail d'un Swend), pour ne jamais la
+/// dupliquer ni la faire diverger d'un écran à l'autre.
+bool pacteEstMonTour(StatutPacte statut, bool jeSuisInitiateur) {
+  switch (statut) {
+    case StatutPacte.enAttenteChoixDateInitiateur:
+      return jeSuisInitiateur;
+    case StatutPacte.enAttenteChoixDateDestinataire:
+    case StatutPacte.enAttenteReponse:
+      return !jeSuisInitiateur;
+    case StatutPacte.confirme:
+    case StatutPacte.maintenu:
+    case StatutPacte.annule:
+    case StatutPacte.annuleDoubleAbsence:
+      return false;
+  }
+}
+
+class StatutAffichage {
+  final String libelle;
+  final StatutTag style;
+  const StatutAffichage(this.libelle, this.style);
+}
+
+/// Le badge à afficher pour un Swend du point de vue de l'utilisateur
+/// courant : oriente vers l'action plutôt que de décrire l'état
+/// technique — qui doit agir, ou "Scellé" quand plus rien n'est requis.
+/// `autrePrenom` est le prénom de l'autre partie, affiché quand c'est
+/// son tour à elle.
+StatutAffichage statutAffichagePourMoi(
+  StatutPacte statut, {
+  required bool jeSuisInitiateur,
+  required String autrePrenom,
+}) {
+  switch (statut) {
+    case StatutPacte.enAttenteChoixDateInitiateur:
+    case StatutPacte.enAttenteChoixDateDestinataire:
+    case StatutPacte.enAttenteReponse:
+      if (pacteEstMonTour(statut, jeSuisInitiateur)) {
+        return const StatutAffichage(
+          'À vous de répondre',
+          StatutTag(fond: AppColors.accent, texte: Colors.white),
+        );
+      }
+      return StatutAffichage(
+        'En attente de $autrePrenom',
+        const StatutTag(
+          fond: Colors.transparent,
+          texte: AppColors.texteAttenue,
+          bordure: AppColors.outline,
+        ),
+      );
+    case StatutPacte.confirme:
+      return const StatutAffichage(
+        'Scellé',
+        StatutTag(fond: AppColors.accentClair, texte: AppColors.accentFonce),
+      );
+    case StatutPacte.maintenu:
+    case StatutPacte.annule:
+    case StatutPacte.annuleDoubleAbsence:
+      return StatutAffichage(statut.libelle, statutTag(statut));
   }
 }
 
