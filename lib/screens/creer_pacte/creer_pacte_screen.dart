@@ -473,10 +473,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
     final message =
         "$salutation, je t'invite à faire un Swend avec moi !\n"
-        "Le principe : on trouve une date qui nous convient pour dîner ensemble mais on a pas le "
-        "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
-        "se faire remplacer par quelqu'un de confiance. Je te laisse en découvrir plus en "
-        "téléchargeant l'app :) $lienTelechargementApp";
+        "Le principe : on choisit une date pour dîner ensemble, puis on n'en reparle plus "
+        "jusqu'au jour J. Et si l'un de nous a un imprévu, quelqu'un de confiance peut prendre "
+        "sa place. On se lance ?\n"
+        "Je te laisse en découvrir plus sur Swend :)\n"
+        "$lienTelechargementApp";
     final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
     await launchUrl(
       Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),

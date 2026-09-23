@@ -5,7 +5,7 @@ import '../constants.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
 import '../services/contact_picker_service.dart';
-import '../utils/date_fr.dart';
+import '../utils/noms.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
 /// Mute directement [remplacants] (ajout/suppression/édition).
@@ -206,13 +206,6 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     });
   }
 
-  String get _phraseDate {
-    if (widget.dates.isEmpty) return "(la date n'est pas encore fixée)";
-    if (widget.dates.length == 1)
-      return 'le ${formaterDateEtHeure(widget.dates.first)}';
-    return 'le ${widget.dates.map(formaterDateEtHeure).join(' ou le ')}';
-  }
-
   Future<void> _inviterParSms(Remplacant r) async {
     final numero = r.telephone.trim();
     if (numero.isEmpty) {
@@ -227,17 +220,15 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     }
     final prenom = r.prenom.trim();
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final autre = widget.nomAutrePartie.trim().isNotEmpty
-        ? widget.nomAutrePartie.trim()
-        : 'mon ami';
-    final verbe = widget.type == TypeRepas.dejeuner ? 'déjeuner' : 'dîner';
-    final phraseDate = _phraseDate;
+    final autreComplet = widget.nomAutrePartie.trim();
+    final autre = autreComplet.isNotEmpty ? prenomDe(autreComplet) : 'mon ami';
     final message =
-        "$salutation, j'ai un Swend avec $autre et j'aimerais que tu sois la personne "
-        "qui peut me remplacer en cas de besoin.\n"
-        "Le principe : je vais $verbe avec $autre $phraseDate. Si par malheur j'ai un empêchement, "
-        "j'aimerais que tu puisses prendre ma place :) Je te laisse en découvrir plus en téléchargeant "
-        "l'app $lienTelechargementApp";
+        "$salutation, j'ai proposé un Swend à $autre et j'aimerais pouvoir compter sur toi "
+        "en cas d'imprévu.\n"
+        "Si finalement je ne peux pas être là et que tu es dispo, tu pourrais prendre ma place. "
+        "Ça te dit ?\n"
+        "Je te laisse en découvrir plus sur Swend :)\n"
+        "$lienTelechargementApp";
     final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
     await launchUrl(
       Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
