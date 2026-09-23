@@ -48,20 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 40),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 28),
             child: Column(
               children: [
                 Container(
-                  width: 104,
-                  height: 104,
+                  width: 84,
+                  height: 84,
                   decoration: const BoxDecoration(
                     color: AppColors.accentClair,
                     shape: BoxShape.circle,
                   ),
-                  padding: const EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(16),
                   child: Image.asset('assets/images/logo_mains.png'),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 11),
                 Image.asset('assets/images/logo_swend_wordmark.png', width: 168),
                 const SizedBox(height: 8),
                 const SizedBox(
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 18),
                 if (inscriptionEnAttenteConfirmation)
                   _messageConfirmationEnvoyee()
                 else if (modeInscription)
