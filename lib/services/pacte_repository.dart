@@ -18,7 +18,8 @@ import '../models/type_repas.dart';
 class PacteRepository {
   static SupabaseClient get _client => Supabase.instance.client;
 
-  static const _colonnesPacte = 'id, type, statut, dates_proposees, date_retenue, '
+  static const _colonnesPacte =
+      'id, type, statut, dates_proposees, date_retenue, '
       'nombre_echanges_date, restaurant_id, initiateur_id, initiateur_nom, '
       'destinataire_id, destinataire_nom, destinataire_telephone, created_at';
 
@@ -93,29 +94,46 @@ class PacteRepository {
     return pactes;
   }
 
+  /// Supprime définitivement un pacte (et sa messagerie, ses remplaçants
+  /// des deux côtés) — passe par une fonction SECURITY DEFINER côté base
+  /// car les remplaçants sont cloisonnés par côté via RLS.
+  static Future<void> supprimerPacte(String pacteId) async {
+    await _client.rpc('supprimer_pacte', params: {'p_pacte_id': pacteId});
+  }
+
   /// Un pacte précis par son id — utilisé pour ouvrir directement le
   /// bon pacte au clic sur une notification.
   static Future<Pacte?> pacteParId(String id) async {
-    final rows = await _client.from('pactes').select(_colonnesPacte).eq('id', id).limit(1);
+    final rows = await _client
+        .from('pactes')
+        .select(_colonnesPacte)
+        .eq('id', id)
+        .limit(1);
     if (rows.isEmpty) return null;
     final restau = await restaurant();
     return _pacteDe(rows.first, restau);
   }
 
-  static Future<Pacte> _pacteDe(Map<String, dynamic> row, Restaurant restau) async {
+  static Future<Pacte> _pacteDe(
+    Map<String, dynamic> row,
+    Restaurant restau,
+  ) async {
     final id = row['id'] as String;
     final statut = StatutPacte.values.byName(row['statut'] as String);
     final remplacantsInitiateur = await remplacantsDe(id, 'initiateur');
     final remplacantsDestinataire = await remplacantsDe(id, 'destinataire');
-    final confirmeOuPlus = statut == StatutPacte.confirme || statut == StatutPacte.maintenu;
+    final confirmeOuPlus =
+        statut == StatutPacte.confirme || statut == StatutPacte.maintenu;
 
     final pacte = Pacte(
       id: id,
       type: TypeRepas.values.byName(row['type'] as String),
-      datesProposees:
-          (row['dates_proposees'] as List).map((s) => DateTime.parse(s as String)).toList(),
-      dateRetenue:
-          row['date_retenue'] != null ? DateTime.parse(row['date_retenue'] as String) : null,
+      datesProposees: (row['dates_proposees'] as List)
+          .map((s) => DateTime.parse(s as String))
+          .toList(),
+      dateRetenue: row['date_retenue'] != null
+          ? DateTime.parse(row['date_retenue'] as String)
+          : null,
       nombreEchangesDate: row['nombre_echanges_date'] as int,
       restaurantsProposes: [restau],
       statut: statut,
@@ -144,7 +162,10 @@ class PacteRepository {
 
   /// Les remplaçants d'un côté d'un pacte. La sécurité côté base ne
   /// renvoie que ceux du côté auquel j'appartiens.
-  static Future<List<Remplacant>> remplacantsDe(String pacteId, String cote) async {
+  static Future<List<Remplacant>> remplacantsDe(
+    String pacteId,
+    String cote,
+  ) async {
     final rows = await _client
         .from('remplacants')
         .select()
@@ -157,14 +178,14 @@ class PacteRepository {
   }
 
   static Remplacant _remplacantDe(Map<String, dynamic> row) => Remplacant(
-        id: row['id'] as String,
-        prenom: row['prenom'] as String? ?? '',
-        nom: row['nom'] as String? ?? '',
-        telephone: row['telephone'] as String? ?? '',
-        email: row['email'] as String? ?? '',
-        selectionne: row['selectionne'] as bool? ?? false,
-        profilId: row['profil_id'] as String?,
-      );
+    id: row['id'] as String,
+    prenom: row['prenom'] as String? ?? '',
+    nom: row['nom'] as String? ?? '',
+    telephone: row['telephone'] as String? ?? '',
+    email: row['email'] as String? ?? '',
+    selectionne: row['selectionne'] as bool? ?? false,
+    profilId: row['profil_id'] as String?,
+  );
 
   /// Crée un nouveau pacte avec les remplaçants de l'initiateur.
   static Future<Pacte> creerPacte({
@@ -177,14 +198,18 @@ class PacteRepository {
     required List<Remplacant> remplacantsInitiateur,
   }) async {
     final restau = await restaurant();
-    final destinataireId = await trouverProfilParTelephone(destinataireTelephone);
+    final destinataireId = await trouverProfilParTelephone(
+      destinataireTelephone,
+    );
 
     final row = await _client
         .from('pactes')
         .insert({
           'type': type.name,
           'statut': StatutPacte.enAttenteChoixDateDestinataire.name,
-          'dates_proposees': datesProposees.map((d) => d.toIso8601String()).toList(),
+          'dates_proposees': datesProposees
+              .map((d) => d.toIso8601String())
+              .toList(),
           'restaurant_id': restau.id,
           'initiateur_id': initiateurId,
           'initiateur_nom': initiateurNom,
@@ -204,7 +229,10 @@ class PacteRepository {
   }
 
   static Future<Remplacant> _insererRemplacant(
-      String pacteId, String cote, Remplacant r) async {
+    String pacteId,
+    String cote,
+    Remplacant r,
+  ) async {
     // Si cette personne a déjà un compte, on la relie tout de suite —
     // sinon, c'est handle_new_user() qui fera le lien plus tard, à son
     // inscription.
@@ -230,7 +258,10 @@ class PacteRepository {
   /// Enregistre les remplaçants sans id (nouveaux) d'un côté d'un pacte
   /// déjà existant — utilisé lors d'une délégation après confirmation.
   static Future<void> synchroniserRemplacants(
-      String pacteId, String cote, List<Remplacant> remplacants) async {
+    String pacteId,
+    String cote,
+    List<Remplacant> remplacants,
+  ) async {
     for (final r in remplacants.where((r) => r.estRempli && r.id == null)) {
       await _insererRemplacant(pacteId, cote, r);
     }
@@ -238,22 +269,32 @@ class PacteRepository {
 
   /// Marque ce remplaçant comme celui délégué pour son côté du pacte.
   static Future<void> selectionnerRemplacant(String remplacantId) async {
-    await _client.from('remplacants').update({'selectionne': true}).eq('id', remplacantId);
+    await _client
+        .from('remplacants')
+        .update({'selectionne': true})
+        .eq('id', remplacantId);
   }
 
   /// Relit uniquement le statut actuel d'un pacte — utilisé après une
   /// délégation pour savoir si le déclencheur côté base vient
   /// d'annuler le pacte (l'autre côté avait déjà délégué).
   static Future<StatutPacte> statutActuel(String pacteId) async {
-    final row = await _client.from('pactes').select('statut').eq('id', pacteId).single();
+    final row = await _client
+        .from('pactes')
+        .select('statut')
+        .eq('id', pacteId)
+        .single();
     return StatutPacte.values.byName(row['statut'] as String);
   }
 
   static Future<void> choisirDate(String pacteId, DateTime date) async {
-    await _client.from('pactes').update({
-      'date_retenue': date.toIso8601String(),
-      'statut': StatutPacte.enAttenteReponse.name,
-    }).eq('id', pacteId);
+    await _client
+        .from('pactes')
+        .update({
+          'date_retenue': date.toIso8601String(),
+          'statut': StatutPacte.enAttenteReponse.name,
+        })
+        .eq('id', pacteId);
   }
 
   static Future<void> contreProposerDates(
@@ -262,27 +303,37 @@ class PacteRepository {
     int nombreEchangesDate,
     bool jeSuisInitiateur,
   ) async {
-    await _client.from('pactes').update({
-      'dates_proposees': dates.map((d) => d.toIso8601String()).toList(),
-      'nombre_echanges_date': nombreEchangesDate,
-      'statut': (jeSuisInitiateur
-              ? StatutPacte.enAttenteChoixDateDestinataire
-              : StatutPacte.enAttenteChoixDateInitiateur)
-          .name,
-    }).eq('id', pacteId);
+    await _client
+        .from('pactes')
+        .update({
+          'dates_proposees': dates.map((d) => d.toIso8601String()).toList(),
+          'nombre_echanges_date': nombreEchangesDate,
+          'statut':
+              (jeSuisInitiateur
+                      ? StatutPacte.enAttenteChoixDateDestinataire
+                      : StatutPacte.enAttenteChoixDateInitiateur)
+                  .name,
+        })
+        .eq('id', pacteId);
   }
 
-  static Future<void> mettreAJourStatut(String pacteId, StatutPacte statut) async {
-    await _client.from('pactes').update({'statut': statut.name}).eq('id', pacteId);
+  static Future<void> mettreAJourStatut(
+    String pacteId,
+    StatutPacte statut,
+  ) async {
+    await _client
+        .from('pactes')
+        .update({'statut': statut.name})
+        .eq('id', pacteId);
   }
 
   static Message _messageDe(Map<String, dynamic> row) => Message(
-        id: row['id'] as String,
-        remplacantId: row['remplacant_id'] as String,
-        expediteurId: row['expediteur_id'] as String,
-        contenu: row['contenu'] as String,
-        createdAt: DateTime.parse(row['created_at'] as String),
-      );
+    id: row['id'] as String,
+    remplacantId: row['remplacant_id'] as String,
+    expediteurId: row['expediteur_id'] as String,
+    contenu: row['contenu'] as String,
+    createdAt: DateTime.parse(row['created_at'] as String),
+  );
 
   static Future<List<Message>> messagesDe(String remplacantId) async {
     final rows = await _client
@@ -290,10 +341,15 @@ class PacteRepository {
         .select()
         .eq('remplacant_id', remplacantId)
         .order('created_at');
-    return (rows as List).map((r) => _messageDe(r as Map<String, dynamic>)).toList();
+    return (rows as List)
+        .map((r) => _messageDe(r as Map<String, dynamic>))
+        .toList();
   }
 
-  static Future<void> envoyerMessage(String remplacantId, String contenu) async {
+  static Future<void> envoyerMessage(
+    String remplacantId,
+    String contenu,
+  ) async {
     final texte = contenu.trim();
     if (texte.isEmpty) return;
     await _client.from('messages').insert({
@@ -325,8 +381,10 @@ class PacteRepository {
     if (userId == null) return [];
     final rows = await _client
         .from('remplacants')
-        .select('id, cote, prenom, nom, telephone, profil_id, '
-            'pactes(initiateur_nom, destinataire_nom, date_retenue)')
+        .select(
+          'id, cote, prenom, nom, telephone, profil_id, '
+          'pactes(initiateur_nom, destinataire_nom, date_retenue)',
+        )
         .not('profil_id', 'is', null);
     final restau = await restaurant();
 
@@ -347,25 +405,30 @@ class PacteRepository {
             : pacteRow['destinataire_nom'] as String;
         telephoneInterlocuteur = null;
       } else {
-        nomInterlocuteur = [r['prenom'], r['nom']]
-            .whereType<String>()
-            .where((s) => s.trim().isNotEmpty)
-            .join(' ');
+        nomInterlocuteur = [
+          r['prenom'],
+          r['nom'],
+        ].whereType<String>().where((s) => s.trim().isNotEmpty).join(' ');
         telephoneInterlocuteur = r['telephone'] as String?;
       }
 
       final messages = await messagesDe(remplacantId);
       final dernier = messages.isNotEmpty ? messages.last : null;
-      fils.add(FilDeDiscussion(
-        remplacantId: remplacantId,
-        nomInterlocuteur: nomInterlocuteur,
-        telephoneInterlocuteur: telephoneInterlocuteur,
-        dernierMessage: dernier?.contenu,
-        dateDernierMessage: dernier?.createdAt,
-        dernierMessageDeMoi: dernier == null || dernier.expediteurId == userId,
-        dateConcernee: dateRetenue != null ? DateTime.parse(dateRetenue) : null,
-        restaurantNom: restau.nom,
-      ));
+      fils.add(
+        FilDeDiscussion(
+          remplacantId: remplacantId,
+          nomInterlocuteur: nomInterlocuteur,
+          telephoneInterlocuteur: telephoneInterlocuteur,
+          dernierMessage: dernier?.contenu,
+          dateDernierMessage: dernier?.createdAt,
+          dernierMessageDeMoi:
+              dernier == null || dernier.expediteurId == userId,
+          dateConcernee: dateRetenue != null
+              ? DateTime.parse(dateRetenue)
+              : null,
+          restaurantNom: restau.nom,
+        ),
+      );
     }
 
     fils.sort((a, b) {
