@@ -30,25 +30,31 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     // Suis-je l'initiateur de CE pacte ? On compare des identifiants
     // internes stables, jamais le nom affiché.
     final jeSuisInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
-    final cotePartenaire = jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
+    final cotePartenaire = jeSuisInitiateur
+        ? pacte.destinataire
+        : pacte.initiateur;
     final tag = statutTag(pacte.statut);
 
     // C'est mon tour de choisir/contre-proposer une date ?
     final estMonTourDate =
-        (jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
-            (!jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteChoixDateDestinataire);
+        (jeSuisInitiateur &&
+            pacte.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
+        (!jeSuisInitiateur &&
+            pacte.statut == StatutPacte.enAttenteChoixDateDestinataire);
     // C'est mon tour de répondre (accepter/refuser) ?
-    final estMonTourReponse = !jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse;
+    final estMonTourReponse =
+        !jeSuisInitiateur && pacte.statut == StatutPacte.enAttenteReponse;
     // Le pacte est en cours de négociation mais ce n'est pas mon tour :
     // on attend une action de l'autre partie.
-    final jAttendsLAutrePartie = !estMonTourDate &&
+    final jAttendsLAutrePartie =
+        !estMonTourDate &&
         !estMonTourReponse &&
         (pacte.statut == StatutPacte.enAttenteChoixDateDestinataire ||
             pacte.statut == StatutPacte.enAttenteChoixDateInitiateur ||
             pacte.statut == StatutPacte.enAttenteReponse);
 
     return Scaffold(
-      appBar: AppBar(title: Text('Pacte avec ${cotePartenaire.nomTitulaire}')),
+      appBar: AppBar(title: Text('Swend avec ${cotePartenaire.nomTitulaire}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -62,19 +68,31 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner',
-                          style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                          pacte.type == TypeRepas.dejeuner
+                              ? 'Déjeuner'
+                              : 'Dîner',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: tag.fond,
                           borderRadius: BorderRadius.circular(999),
-                          border: tag.bordure != null ? Border.all(color: tag.bordure!) : null,
+                          border: tag.bordure != null
+                              ? Border.all(color: tag.bordure!)
+                              : null,
                         ),
-                        child: Text(pacte.statut.libelle,
-                            style: TextStyle(fontSize: 11.5, color: tag.texte)),
+                        child: Text(
+                          pacte.statut.libelle,
+                          style: TextStyle(fontSize: 11.5, color: tag.texte),
+                        ),
                       ),
                     ],
                   ),
@@ -88,13 +106,21 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                   else if (pacte.datesProposees.isNotEmpty)
                     LigneInfo(
                       label: 'Dates proposées',
-                      valeur: pacte.datesProposees.map(formaterDateEtHeure).join(', '),
+                      valeur: pacte.datesProposees
+                          .map(formaterDateEtHeure)
+                          .join(', '),
                     ),
                   if (pacte.restaurantRetenu != null) ...[
                     const Divider(height: 24),
-                    LigneInfo(label: 'Lieu', valeur: pacte.restaurantRetenu!.nom),
+                    LigneInfo(
+                      label: 'Lieu',
+                      valeur: pacte.restaurantRetenu!.nom,
+                    ),
                     if (pacte.restaurantRetenu!.lien.isNotEmpty)
-                      LigneInfo(label: 'Lien', valeur: pacte.restaurantRetenu!.lien),
+                      LigneInfo(
+                        label: 'Lien',
+                        valeur: pacte.restaurantRetenu!.lien,
+                      ),
                   ],
                 ],
               ),

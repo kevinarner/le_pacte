@@ -7,7 +7,6 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
-import '../creer_pacte/creer_pacte_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
 class AccueilScreen extends StatefulWidget {
@@ -57,18 +56,6 @@ class _AccueilScreenState extends State<AccueilScreen> {
         ),
         title: const Text('Mes Swends'),
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.accent,
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const CreerPacteScreen()),
-          );
-          widget.onChanged();
-          await _charger();
-        },
-        child: Image.asset('assets/images/logo_mains_blanc.png', width: 26),
-      ),
       body: erreur != null
           ? Center(
               child: Padding(
@@ -83,7 +70,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      "Impossible de charger tes pactes.\n$erreur",
+                      "Impossible de charger tes Swends.\n$erreur",
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: AppColors.erreur,
@@ -106,7 +93,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
               child: Padding(
                 padding: EdgeInsets.all(24),
                 child: Text(
-                  "Aucun pacte pour l'instant.\nAppuie sur + pour en créer un.",
+                  "Aucun Swend pour l'instant.\nCrée-en un depuis l'accueil.",
                   textAlign: TextAlign.center,
                 ),
               ),
@@ -163,7 +150,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Pacte avec $autreNom',
+                          'Swend avec $autreNom',
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,

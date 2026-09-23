@@ -50,8 +50,10 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Choisis une date et un horaire qui te conviennent :',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Choisis une date et un horaire qui te conviennent :',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         for (final date in pacte.datesProposees)
           Card(
@@ -72,7 +74,9 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
                       child: TextButton.icon(
                         onPressed: () => _proposerAutreHoraire(date),
                         icon: const Icon(Icons.schedule, size: 16),
-                        label: const Text('Cette date me convient, mais pas cet horaire'),
+                        label: const Text(
+                          'Cette date me convient, mais pas cet horaire',
+                        ),
                         style: TextButton.styleFrom(
                           padding: EdgeInsets.zero,
                           minimumSize: Size.zero,
@@ -98,11 +102,11 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
         ] else
           const Text(
             "Dernière proposition : si aucune de ces dates ne convient, "
-            "le pacte sera annulé.",
+            "le Swend sera annulé.",
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
         const SizedBox(height: 8),
-        TextButton(onPressed: _annuler, child: const Text('Annuler le pacte')),
+        TextButton(onPressed: _annuler, child: const Text('Annuler le Swend')),
       ],
     );
   }
@@ -111,8 +115,10 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Propose une ou plusieurs nouvelles dates :',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Propose une ou plusieurs nouvelles dates :',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 8),
         DatesForm(
           dates: nouvellesDates,
@@ -121,7 +127,9 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
         ),
         const SizedBox(height: 12),
         FilledButton(
-          onPressed: nouvellesDates.isNotEmpty ? _validerContreProposition : null,
+          onPressed: nouvellesDates.isNotEmpty
+              ? _validerContreProposition
+              : null,
           child: const Text('Envoyer ces dates'),
         ),
         const SizedBox(height: 8),
@@ -160,7 +168,10 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
   }
 
   Future<void> _annuler() async {
-    await PacteRepository.mettreAJourStatut(widget.pacte.id, StatutPacte.annule);
+    await PacteRepository.mettreAJourStatut(
+      widget.pacte.id,
+      StatutPacte.annule,
+    );
     widget.pacte.statut = StatutPacte.annule;
     widget.onChanged();
   }

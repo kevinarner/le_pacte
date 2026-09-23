@@ -414,6 +414,9 @@ class PacteRepository {
 
       final messages = await messagesDe(remplacantId);
       final dernier = messages.isNotEmpty ? messages.last : null;
+      final autrePartieNom = r['cote'] == 'initiateur'
+          ? pacteRow['destinataire_nom'] as String?
+          : pacteRow['initiateur_nom'] as String?;
       fils.add(
         FilDeDiscussion(
           remplacantId: remplacantId,
@@ -427,6 +430,7 @@ class PacteRepository {
               ? DateTime.parse(dateRetenue)
               : null,
           restaurantNom: restau.nom,
+          autrePartieNom: autrePartieNom,
         ),
       );
     }

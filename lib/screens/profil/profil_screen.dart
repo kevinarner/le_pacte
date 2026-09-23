@@ -37,17 +37,24 @@ class _ProfilScreenState extends State<ProfilScreen> {
     try {
       final pactes = await PacteRepository.mesPactes();
       final termines = pactes
-          .where((p) =>
-              p.statut == StatutPacte.maintenu ||
-              p.statut == StatutPacte.confirme ||
-              p.statut == StatutPacte.annule ||
-              p.statut == StatutPacte.annuleDoubleAbsence)
+          .where(
+            (p) =>
+                p.statut == StatutPacte.maintenu ||
+                p.statut == StatutPacte.confirme ||
+                p.statut == StatutPacte.annule ||
+                p.statut == StatutPacte.annuleDoubleAbsence,
+          )
           .toList();
-      final honores =
-          termines.where((p) => p.statut == StatutPacte.maintenu || p.statut == StatutPacte.confirme);
+      final honores = termines.where(
+        (p) =>
+            p.statut == StatutPacte.maintenu ||
+            p.statut == StatutPacte.confirme,
+      );
       if (!mounted) return;
       setState(() {
-        pactesRealises = pactes.where((p) => p.statut == StatutPacte.maintenu).length;
+        pactesRealises = pactes
+            .where((p) => p.statut == StatutPacte.maintenu)
+            .length;
         fiabilite = termines.isEmpty
             ? null
             : (honores.length / termines.length * 100).round();
@@ -87,28 +94,36 @@ class _ProfilScreenState extends State<ProfilScreen> {
                   photo: utilisateur.photo,
                   nom: utilisateur.nomComplet,
                   taille: 76,
-                  libellePlaceholder: utilisateur.photo == null ? 'Ta photo' : null,
+                  libellePlaceholder: utilisateur.photo == null
+                      ? 'Ta photo'
+                      : null,
                   onPhotoChoisie: (octets) => setState(() {
                     utilisateur.photo = octets;
                     widget.onChanged();
                   }),
                 ),
                 const SizedBox(height: 12),
-                Text(utilisateur.nomComplet, style: Theme.of(context).textTheme.titleLarge),
-                Text(utilisateur.email, style: const TextStyle(color: AppColors.texteAttenue)),
+                Text(
+                  utilisateur.nomComplet,
+                  style: Theme.of(context).textTheme.titleLarge,
+                ),
+                Text(
+                  utilisateur.email,
+                  style: const TextStyle(color: AppColors.texteAttenue),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 20),
           Row(
             children: [
-              Expanded(child: _statTuile(pactesRealises, 'pactes réalisés')),
-              const SizedBox(width: 10),
-              Expanded(child: _statTuile(remplacementsEffectues, 'remplacements')),
+              Expanded(child: _statTuile(pactesRealises, 'Swends réalisés')),
               const SizedBox(width: 10),
               Expanded(
-                child: _statTuile(fiabilite, 'fiabilité', suffixe: '%'),
+                child: _statTuile(remplacementsEffectues, 'remplacements'),
               ),
+              const SizedBox(width: 10),
+              Expanded(child: _statTuile(fiabilite, 'fiabilité', suffixe: '%')),
             ],
           ),
           const SizedBox(height: 20),
@@ -151,7 +166,11 @@ class _ProfilScreenState extends State<ProfilScreen> {
           Text(
             label,
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 10.5, color: AppColors.texteAttenue, height: 1.2),
+            style: const TextStyle(
+              fontSize: 10.5,
+              color: AppColors.texteAttenue,
+              height: 1.2,
+            ),
           ),
         ],
       ),
@@ -192,8 +211,8 @@ class _ProfilScreenState extends State<ProfilScreen> {
   }
 
   void _bientotDisponible() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Bientôt disponible.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('Bientôt disponible.')));
   }
 }

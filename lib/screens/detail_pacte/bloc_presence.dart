@@ -9,11 +9,11 @@ import '../../theme/app_theme.dart';
 import 'chat_screen.dart';
 import 'mes_remplacants_screen.dart';
 
-/// "Mon relais" : résume, sur la page du pacte, le relais désigné pour
-/// mon côté (s'il y en a un) avec un accès direct à la conversation.
-/// Donne accès à `MesRemplacantsScreen` pour en choisir un ou gérer la
-/// liste complète — chaque Swend porte sa propre messagerie, il n'y a
-/// pas d'écran Messagerie séparé.
+/// "En cas d'imprévu" : résume, sur la page du Swend, la personne de
+/// confiance désignée pour mon côté (s'il y en a une) avec un accès
+/// direct à la conversation. Donne accès à `MesRemplacantsScreen` pour
+/// en choisir une ou gérer la liste complète — chaque Swend porte sa
+/// propre messagerie, il n'y a pas d'écran Messagerie séparé.
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
@@ -26,12 +26,16 @@ class BlocPresence extends StatelessWidget {
     required this.onChanged,
   });
 
-  CotePacte get _monCote => jeSuisInitiateur ? pacte.initiateur : pacte.destinataire;
-  CotePacte get _coteAutrePartie => jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
+  CotePacte get _monCote =>
+      jeSuisInitiateur ? pacte.initiateur : pacte.destinataire;
+  CotePacte get _coteAutrePartie =>
+      jeSuisInitiateur ? pacte.destinataire : pacte.initiateur;
 
   @override
   Widget build(BuildContext context) {
-    final remplacants = _monCote.listeRemplacants.where((r) => r.estRempli).toList();
+    final remplacants = _monCote.listeRemplacants
+        .where((r) => r.estRempli)
+        .toList();
     Remplacant? designe;
     for (final r in remplacants) {
       if (r.selectionne) {
@@ -47,7 +51,7 @@ class BlocPresence extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              'MON RELAIS',
+              "EN CAS D'IMPRÉVU",
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
@@ -57,12 +61,22 @@ class BlocPresence extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             if (designe != null) ...[
-              Text(designe.nomComplet,
-                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              Text(
+                designe.nomComplet,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 2),
               Text(
-                designe.profilId != null ? 'A rejoint Swend' : "N'a pas encore rejoint Swend",
-                style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue),
+                designe.profilId != null
+                    ? 'Peut prendre votre place'
+                    : "Peut prendre votre place — n'a pas encore rejoint Swend",
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.texteAttenue,
+                ),
               ),
               const SizedBox(height: 10),
               if (designe.profilId != null)
@@ -71,33 +85,39 @@ class BlocPresence extends StatelessWidget {
                   icon: const Icon(Icons.chat_bubble_outline, size: 16),
                   label: Text('Écrire à ${designe.prenom}'),
                 ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                  onPressed: () => _ouvrirMesRemplacants(context),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(0, 0),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Modifier cette personne',
+                    style: TextStyle(fontSize: 12.5),
+                  ),
+                ),
+              ),
             ] else ...[
-              Text(
-                remplacants.isEmpty
-                    ? "Tu n'as pas encore renseigné de relais pour ce Swend."
-                    : "Tu n'as pas encore désigné de relais.",
-                style: const TextStyle(fontSize: 13, color: AppColors.texteAttenue),
+              const Text(
+                'Choisissez une personne de confiance',
+                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                'Elle pourra prendre votre place si vous ne pouvez finalement pas venir.',
+                style: TextStyle(fontSize: 13, color: AppColors.texteAttenue),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () => _ouvrirMesRemplacants(context),
                 icon: const Icon(Icons.person_search, size: 16),
-                label: const Text('Choisir mon relais'),
+                label: const Text('Choisir une personne'),
               ),
             ],
-            const SizedBox(height: 6),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: TextButton(
-                onPressed: () => _ouvrirMesRemplacants(context),
-                style: TextButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(0, 0),
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: const Text('Gérer mes relais', style: TextStyle(fontSize: 12.5)),
-              ),
-            ),
           ],
         ),
       ),
@@ -132,7 +152,8 @@ class BlocPresence extends StatelessWidget {
       ),
     );
     if (quelqueChoseAChange == true) {
-      _monCote.statutPresence = _monCote.listeRemplacants.any((r) => r.selectionne)
+      _monCote.statutPresence =
+          _monCote.listeRemplacants.any((r) => r.selectionne)
           ? StatutPresence.remplacantSollicite
           : StatutPresence.titulaire;
       // Le déclencheur côté base peut avoir annulé le pacte si l'autre

@@ -18,11 +18,11 @@ extension StatutPacteLibelle on StatutPacte {
     switch (this) {
       case StatutPacte.enAttenteChoixDateDestinataire:
       case StatutPacte.enAttenteChoixDateInitiateur:
-        return 'En attente de date';
+        return 'Date à confirmer';
       case StatutPacte.enAttenteReponse:
         return 'En attente de réponse';
       case StatutPacte.confirme:
-        return 'Confirmé';
+        return 'Scellé';
       case StatutPacte.maintenu:
         return 'Maintenu ✅';
       case StatutPacte.annule:

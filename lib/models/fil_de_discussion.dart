@@ -25,6 +25,12 @@ class FilDeDiscussion {
   final DateTime? dateConcernee;
   final String? restaurantNom;
 
+  /// Le nom de l'autre titulaire du Swend concerné par ce fil (distinct
+  /// de [nomInterlocuteur], qui peut être la personne de confiance et
+  /// non l'autre partie) — sert à situer la notification ("Swend avec
+  /// David · ...") sur l'accueil.
+  final String? autrePartieNom;
+
   FilDeDiscussion({
     required this.remplacantId,
     required this.nomInterlocuteur,
@@ -34,5 +40,6 @@ class FilDeDiscussion {
     this.dernierMessageDeMoi = true,
     this.dateConcernee,
     this.restaurantNom,
+    this.autrePartieNom,
   });
 }

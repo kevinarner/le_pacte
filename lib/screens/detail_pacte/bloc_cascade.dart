@@ -16,8 +16,10 @@ class BlocCascade extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Simulation du garde-fou anti-désistement',
-            style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Simulation du garde-fou anti-désistement',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 4),
         const Text(
           "Ces boutons remplacent, en test, les notifications automatiques "
@@ -27,7 +29,10 @@ class BlocCascade extends StatelessWidget {
         const SizedBox(height: 12),
         FilledButton.tonal(
           onPressed: () async {
-            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.maintenu);
+            await PacteRepository.mettreAJourStatut(
+              pacte.id,
+              StatutPacte.maintenu,
+            );
             pacte.statut = StatutPacte.maintenu;
             onChanged();
           },
@@ -36,11 +41,16 @@ class BlocCascade extends StatelessWidget {
         const SizedBox(height: 8),
         OutlinedButton(
           onPressed: () async {
-            await PacteRepository.mettreAJourStatut(pacte.id, StatutPacte.annule);
+            await PacteRepository.mettreAJourStatut(
+              pacte.id,
+              StatutPacte.annule,
+            );
             pacte.statut = StatutPacte.annule;
             onChanged();
           },
-          child: const Text("Simuler J-1 : annulé (aucun remplaçant trouvé)"),
+          child: const Text(
+            'Simuler J-1 : annulé (aucune personne de confiance disponible)',
+          ),
         ),
       ],
     );

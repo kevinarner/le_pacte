@@ -60,7 +60,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     }
   }
 
-  bool _jeSuisInitiateur(Pacte p) => p.initiateur.idTitulaire == AppStore.moi.id;
+  bool _jeSuisInitiateur(Pacte p) =>
+      p.initiateur.idTitulaire == AppStore.moi.id;
 
   /// Un pacte attend une action de ma part : c'est mon tour de choisir
   /// une date, ou (côté destinataire) de répondre — même logique que
@@ -69,8 +70,9 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final initiateur = _jeSuisInitiateur(p);
     final estMonTourDate =
         (initiateur && p.statut == StatutPacte.enAttenteChoixDateInitiateur) ||
-            (!initiateur && p.statut == StatutPacte.enAttenteChoixDateDestinataire);
-    final estMonTourReponse = !initiateur && p.statut == StatutPacte.enAttenteReponse;
+        (!initiateur && p.statut == StatutPacte.enAttenteChoixDateDestinataire);
+    final estMonTourReponse =
+        !initiateur && p.statut == StatutPacte.enAttenteReponse;
     return estMonTourDate || estMonTourReponse;
   }
 
@@ -78,26 +80,32 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final liste = mesPactes;
     if (liste == null) return null;
     final maintenant = DateTime.now();
-    final confirmes = liste
-        .where((p) =>
-            p.statut == StatutPacte.confirme &&
-            p.dateRetenue != null &&
-            p.dateRetenue!.isAfter(maintenant))
-        .toList()
-      ..sort((a, b) => a.dateRetenue!.compareTo(b.dateRetenue!));
+    final confirmes =
+        liste
+            .where(
+              (p) =>
+                  p.statut == StatutPacte.confirme &&
+                  p.dateRetenue != null &&
+                  p.dateRetenue!.isAfter(maintenant),
+            )
+            .toList()
+          ..sort((a, b) => a.dateRetenue!.compareTo(b.dateRetenue!));
     return confirmes.isEmpty ? null : confirmes.first;
   }
 
   int get _pactesAVenir =>
       mesPactes
-          ?.where((p) =>
-              p.statut != StatutPacte.maintenu &&
-              p.statut != StatutPacte.annule &&
-              p.statut != StatutPacte.annuleDoubleAbsence)
+          ?.where(
+            (p) =>
+                p.statut != StatutPacte.maintenu &&
+                p.statut != StatutPacte.annule &&
+                p.statut != StatutPacte.annuleDoubleAbsence,
+          )
           .length ??
       0;
 
-  int get _nombreActionsRequises => mesPactes?.where(_actionRequise).length ?? 0;
+  int get _nombreActionsRequises =>
+      mesPactes?.where(_actionRequise).length ?? 0;
 
   /// Le message le plus récent qui ne vient pas de moi, tous fils
   /// confondus — pas un vrai suivi lu/non-lu (aucun état n'est
@@ -105,10 +113,15 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   FilDeDiscussion? get _messageAmeSignaler {
     final fils = mesFils;
     if (fils == null) return null;
-    final candidats = fils
-        .where((f) => !f.dernierMessageDeMoi && f.dateDernierMessage != null)
-        .toList()
-      ..sort((a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!));
+    final candidats =
+        fils
+            .where(
+              (f) => !f.dernierMessageDeMoi && f.dateDernierMessage != null,
+            )
+            .toList()
+          ..sort(
+            (a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!),
+          );
     return candidats.isEmpty ? null : candidats.first;
   }
 
@@ -134,8 +147,10 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
               const SizedBox(height: 8),
               Image.asset('assets/images/logo_swend_wordmark.png', width: 140),
               const SizedBox(height: 4),
-              Text('Bonjour ${AppStore.moi.prenom}',
-                  style: const TextStyle(color: AppColors.texteAttenue)),
+              Text(
+                'Bonjour ${AppStore.moi.prenom}',
+                style: const TextStyle(color: AppColors.texteAttenue),
+              ),
               const SizedBox(height: 20),
               if (prochain != null) ...[
                 _cartePlusProche(prochain),
@@ -157,8 +172,11 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 iconeColor: AppColors.accentFonce,
                 label: 'Mes Swends',
                 sousLabel: mesPactes == null ? '...' : '$_pactesAVenir à venir',
-                badge: _nombreActionsRequises > 0 ? _nombreActionsRequises : null,
-                onTap: () => _ouvrir(AccueilScreen(onChanged: widget.onChanged)),
+                badge: _nombreActionsRequises > 0
+                    ? _nombreActionsRequises
+                    : null,
+                onTap: () =>
+                    _ouvrir(AccueilScreen(onChanged: widget.onChanged)),
               ),
               const SizedBox(height: 18),
               _lignProfil(),
@@ -173,41 +191,47 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final autreNom = _jeSuisInitiateur(pacte)
         ? pacte.destinataire.nomTitulaire
         : pacte.initiateur.nomTitulaire;
-    return Card(
-      color: AppColors.accentFonce,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(radiusLg),
-        onTap: () => _ouvrir(DetailPacteScreen(pacte: pacte)),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'TON PROCHAIN SWEND',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accentClair,
-                  letterSpacing: 0.06,
+    return FractionallySizedBox(
+      widthFactor: 0.82,
+      child: Card(
+        color: AppColors.accentFonce,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(radiusLg),
+          onTap: () => _ouvrir(DetailPacteScreen(pacte: pacte)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'TON PROCHAIN SWEND',
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accentClair,
+                    letterSpacing: 0.06,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                formaterDateEtHeure(pacte.dateRetenue!),
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                const SizedBox(height: 6),
+                Text(
+                  formaterDateEtHeure(pacte.dateRetenue!),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Avec $autreNom'
-                '${pacte.restaurantRetenu != null ? ' · ${pacte.restaurantRetenu!.nom}' : ''}',
-                style: const TextStyle(fontSize: 13, color: AppColors.accentClair),
-              ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  'Avec $autreNom'
+                  '${pacte.restaurantRetenu != null ? ' · ${pacte.restaurantRetenu!.nom}' : ''}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.accentClair,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -215,18 +239,24 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   }
 
   Widget _carteMessage(FilDeDiscussion fil) {
-    final contexte = fil.dateConcernee != null && fil.restaurantNom != null
-        ? 'À propos de votre Swend du ${_libelleDateCourt(fil.dateConcernee!)} · ${fil.restaurantNom}'
-        : 'À propos de votre Swend';
+    final avecQui = fil.autrePartieNom;
+    final base = avecQui != null && avecQui.trim().isNotEmpty
+        ? 'Swend avec $avecQui'
+        : 'Ton Swend';
+    final contexte = fil.dateConcernee != null
+        ? '$base · ${_libelleDateCourt(fil.dateConcernee!)} à ${formaterHeure(heureDe(fil.dateConcernee!))}'
+        : base;
     return Card(
       color: AppColors.pecheClair,
       child: InkWell(
         borderRadius: BorderRadius.circular(radiusLg),
-        onTap: () => _ouvrir(ChatScreen(
-          remplacantId: fil.remplacantId,
-          nomInterlocuteur: fil.nomInterlocuteur,
-          telephoneInterlocuteur: fil.telephoneInterlocuteur,
-        )),
+        onTap: () => _ouvrir(
+          ChatScreen(
+            remplacantId: fil.remplacantId,
+            nomInterlocuteur: fil.nomInterlocuteur,
+            telephoneInterlocuteur: fil.telephoneInterlocuteur,
+          ),
+        ),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -237,10 +267,20 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${fil.nomInterlocuteur} vous a écrit',
-                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
-                    Text(contexte,
-                        style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue)),
+                    Text(
+                      '${fil.nomInterlocuteur} vous a écrit',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 14,
+                      ),
+                    ),
+                    Text(
+                      contexte,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: AppColors.texteAttenue,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -253,7 +293,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   }
 
   String _libelleDateCourt(DateTime date) =>
-      '${date.day} ${moisAnnee[date.month - 1].substring(0, 3)}.';
+      '${date.day} ${moisAnnee[date.month - 1]}';
 
   Widget _tuilePrincipale({
     required IconData icone,
@@ -284,15 +324,29 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                    Text(sousLabel,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.texteAttenue)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      sousLabel,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.texteAttenue,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (badge != null) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 7,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.erreur,
                     borderRadius: BorderRadius.circular(999),
@@ -321,16 +375,22 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   Widget _lignProfil() {
     return InkWell(
       borderRadius: BorderRadius.circular(radiusLg),
-      onTap: () => _ouvrir(ProfilScreen(
-        onDeconnexion: widget.onDeconnexion,
-        onChanged: widget.onChanged,
-      )),
+      onTap: () => _ouvrir(
+        ProfilScreen(
+          onDeconnexion: widget.onDeconnexion,
+          onChanged: widget.onChanged,
+        ),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.person_outline, color: AppColors.texteAttenue, size: 18),
+            const Icon(
+              Icons.person_outline,
+              color: AppColors.texteAttenue,
+              size: 18,
+            ),
             const SizedBox(width: 6),
             Text(
               'Profil',

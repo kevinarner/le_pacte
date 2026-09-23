@@ -9,9 +9,9 @@ const _minimumRemplacants = 2;
 
 /// Bloc affiché quand le destinataire doit répondre à un pacte :
 /// accepter ou refuser. Accepter demande aussi de renseigner ses
-/// propres remplaçants (comme l'initiateur le fait déjà à la
-/// création) — les deux côtés pourront en ajouter d'autres plus tard,
-/// à tout moment, depuis l'écran "Mes remplaçants".
+/// propres personnes de confiance (comme l'initiateur le fait déjà à
+/// la création) — les deux côtés pourront en ajouter d'autres plus
+/// tard, à tout moment, depuis l'écran "Personnes de confiance".
 class BlocReponse extends StatefulWidget {
   final Pacte pacte;
   final VoidCallback onChanged;
@@ -26,7 +26,9 @@ class _BlocReponseState extends State<BlocReponse> {
   String? erreur;
 
   bool get _peutAccepter =>
-      widget.pacte.destinataire.listeRemplacants.where((r) => r.estRempli).length >=
+      widget.pacte.destinataire.listeRemplacants
+          .where((r) => r.estRempli)
+          .length >=
       _minimumRemplacants;
 
   @override
@@ -34,13 +36,18 @@ class _BlocReponseState extends State<BlocReponse> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('Que souhaites-tu faire ?', style: TextStyle(fontWeight: FontWeight.bold)),
+        const Text(
+          'Que souhaites-tu faire ?',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 12),
-        const Text('Renseigne au moins 2 remplaçants avant d\'accepter :',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        const Text(
+          'Renseigne au moins 2 personnes de confiance avant d\'accepter :',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 4),
         const Text(
-          "Propres à ce pacte : cette liste ne sera jamais visible par l'initiateur.",
+          "Propres à ce Swend : cette liste ne sera jamais visible par l'initiateur.",
           style: TextStyle(fontSize: 12, color: Colors.black54),
         ),
         const SizedBox(height: 8),
@@ -49,12 +56,17 @@ class _BlocReponseState extends State<BlocReponse> {
           minimum: _minimumRemplacants,
           nomAutrePartie: widget.pacte.initiateur.nomTitulaire,
           type: widget.pacte.type,
-          dates: widget.pacte.dateRetenue != null ? [widget.pacte.dateRetenue!] : [],
+          dates: widget.pacte.dateRetenue != null
+              ? [widget.pacte.dateRetenue!]
+              : [],
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 8),
         if (erreur != null) ...[
-          Text(erreur!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+          Text(
+            erreur!,
+            style: const TextStyle(color: Colors.red, fontSize: 12),
+          ),
           const SizedBox(height: 8),
         ],
         FilledButton(
@@ -63,14 +75,17 @@ class _BlocReponseState extends State<BlocReponse> {
               ? const SizedBox(
                   height: 16,
                   width: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
-              : const Text('Accepter le pacte'),
+              : const Text('Accepter le Swend'),
         ),
         const SizedBox(height: 8),
         TextButton(
           onPressed: enCours ? null : _refuser,
-          child: const Text('Refuser le pacte'),
+          child: const Text('Refuser le Swend'),
         ),
       ],
     );
@@ -87,7 +102,10 @@ class _BlocReponseState extends State<BlocReponse> {
         'destinataire',
         widget.pacte.destinataire.listeRemplacants,
       );
-      await PacteRepository.mettreAJourStatut(widget.pacte.id, StatutPacte.confirme);
+      await PacteRepository.mettreAJourStatut(
+        widget.pacte.id,
+        StatutPacte.confirme,
+      );
       widget.pacte.restaurantRetenu = widget.pacte.restaurantsProposes.first;
       widget.pacte.statut = StatutPacte.confirme;
       widget.onChanged();
@@ -95,7 +113,7 @@ class _BlocReponseState extends State<BlocReponse> {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible d'accepter le pacte pour le moment. Réessaie.";
+        erreur = "Impossible d'accepter le Swend pour le moment. Réessaie.";
       });
     }
   }
@@ -103,14 +121,17 @@ class _BlocReponseState extends State<BlocReponse> {
   Future<void> _refuser() async {
     setState(() => enCours = true);
     try {
-      await PacteRepository.mettreAJourStatut(widget.pacte.id, StatutPacte.annule);
+      await PacteRepository.mettreAJourStatut(
+        widget.pacte.id,
+        StatutPacte.annule,
+      );
       widget.pacte.statut = StatutPacte.annule;
       widget.onChanged();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible de refuser le pacte pour le moment. Réessaie.";
+        erreur = "Impossible de refuser le Swend pour le moment. Réessaie.";
       });
     }
   }

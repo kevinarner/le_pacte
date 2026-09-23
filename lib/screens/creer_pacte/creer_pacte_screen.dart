@@ -65,14 +65,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     final restau = restaurant;
     if (erreurChargement != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Nouveau pacte')),
+        appBar: AppBar(title: const Text('Nouveau Swend')),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.error_outline, color: AppColors.erreur, size: 32),
+                const Icon(
+                  Icons.error_outline,
+                  color: AppColors.erreur,
+                  size: 32,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   "Impossible de charger le restaurant.\n$erreurChargement",
@@ -80,7 +84,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                   style: const TextStyle(color: AppColors.erreur, fontSize: 12),
                 ),
                 const SizedBox(height: 12),
-                OutlinedButton(onPressed: _chargerRestaurant, child: const Text('Réessayer')),
+                OutlinedButton(
+                  onPressed: _chargerRestaurant,
+                  child: const Text('Réessayer'),
+                ),
               ],
             ),
           ),
@@ -89,7 +96,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     }
     if (restau == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Nouveau pacte')),
+        appBar: AppBar(title: const Text('Nouveau Swend')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
@@ -102,7 +109,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 onPressed: () => setState(() => etape -= 1),
               )
             : null,
-        title: const Text('Nouveau pacte'),
+        title: const Text('Nouveau Swend'),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -116,7 +123,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           if (erreur != null) ...[
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: Text(erreur!, style: const TextStyle(color: AppColors.erreur)),
+              child: Text(
+                erreur!,
+                style: const TextStyle(color: AppColors.erreur),
+              ),
             ),
           ],
           FilledButton(
@@ -125,9 +135,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 ? const SizedBox(
                     height: 16,
                     width: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
-                : Text(etape == _nombreEtapes - 1 ? 'Envoyer le pacte' : 'Suivant'),
+                : Text(
+                    etape == _nombreEtapes - 1 ? 'Envoyer le Swend' : 'Suivant',
+                  ),
           ),
         ],
       ),
@@ -156,7 +171,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   List<Widget> _etapeAvecQui() {
     return [
       Text('Avec qui ?', style: Theme.of(context).textTheme.titleLarge),
-      Text('Étape 1 sur $_nombreEtapes', style: const TextStyle(color: AppColors.texteAttenue)),
+      Text(
+        'Étape 1 sur $_nombreEtapes',
+        style: const TextStyle(color: AppColors.texteAttenue),
+      ),
       const SizedBox(height: 16),
       Row(
         children: [
@@ -225,9 +243,15 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   List<Widget> _etapeOuEtQuand(Restaurant restau) {
     return [
       Text('Où et quand ?', style: Theme.of(context).textTheme.titleLarge),
-      Text('Étape 2 sur $_nombreEtapes', style: const TextStyle(color: AppColors.texteAttenue)),
+      Text(
+        'Étape 2 sur $_nombreEtapes',
+        style: const TextStyle(color: AppColors.texteAttenue),
+      ),
       const SizedBox(height: 16),
-      const Text('Type de repas', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Text(
+        'Type de repas',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
       RadioListTile<TypeRepas>(
         title: const Text('Déjeuner'),
         value: TypeRepas.dejeuner,
@@ -241,11 +265,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         onChanged: (v) => setState(() => type = v!),
       ),
       const SizedBox(height: 8),
-      const Text('Dates proposées', style: TextStyle(fontWeight: FontWeight.bold)),
+      const Text(
+        'Dates proposées',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
       const SizedBox(height: 4),
       const Text(
         "Propose une ou plusieurs dates avec un horaire : la personne avec qui tu fais "
-        "ce pacte choisira celle qui lui convient.",
+        "ce Swend choisira celle qui lui convient.",
         style: TextStyle(fontSize: 12, color: Colors.black54),
       ),
       const SizedBox(height: 8),
@@ -262,10 +289,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Restaurant proposé',
-                  style: TextStyle(fontSize: 11, color: Colors.black54)),
+              const Text(
+                'Restaurant proposé',
+                style: TextStyle(fontSize: 11, color: Colors.black54),
+              ),
               const SizedBox(height: 2),
-              Text(restau.nom, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+              Text(
+                restau.nom,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
               const SizedBox(height: 6),
               InkWell(
                 onTap: () => _ouvrirLienRestaurant(restau.lien),
@@ -288,7 +323,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           style: const TextStyle(fontSize: 12, color: Colors.black54),
           children: [
             const TextSpan(
-              text: "D'autres restaurants vous seront bientôt proposés, "
+              text:
+                  "D'autres restaurants vous seront bientôt proposés, "
                   'vous pouvez nous en suggérer : ',
             ),
             TextSpan(
@@ -315,13 +351,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   List<Widget> _etapeRemplacants() {
     return [
-      Text('Tes remplaçants', style: Theme.of(context).textTheme.titleLarge),
-      Text('Étape 3 sur $_nombreEtapes · minimum $_minimumRemplacants',
-          style: const TextStyle(color: AppColors.texteAttenue)),
+      Text(
+        'Tes personnes de confiance',
+        style: Theme.of(context).textTheme.titleLarge,
+      ),
+      Text(
+        'Étape 3 sur $_nombreEtapes · minimum $_minimumRemplacants',
+        style: const TextStyle(color: AppColors.texteAttenue),
+      ),
       const SizedBox(height: 4),
       const Text(
-        "Propres à ce pacte : cette liste ne sera jamais visible par la personne avec qui "
-        "tu fais le pacte.",
+        "Propres à ce Swend : cette liste ne sera jamais visible par la personne avec qui "
+        "tu fais ce Swend.",
         style: TextStyle(fontSize: 12, color: Colors.black54),
       ),
       const SizedBox(height: 8),
@@ -345,7 +386,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       case 1:
         return datesProposees.isNotEmpty;
       case 2:
-        return remplacants.where((r) => r.estRempli).length >= _minimumRemplacants;
+        return remplacants.where((r) => r.estRempli).length >=
+            _minimumRemplacants;
       default:
         return false;
     }
@@ -373,19 +415,26 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     final numero = telephoneDestinataireController.text.trim();
     if (numero.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Renseigne le numéro de téléphone pour inviter par SMS.')),
+        const SnackBar(
+          content: Text(
+            'Renseigne le numéro de téléphone pour inviter par SMS.',
+          ),
+        ),
       );
       return;
     }
     final prenom = prenomDestinataireController.text.trim();
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Swend !\n"
+    final message =
+        "$salutation, je t'invite à faire un Swend avec moi !\n"
         "Le principe : on trouve une date qui nous convient pour dîner ensemble mais on a pas le "
         "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
-        "faire appel à des remplaçants. Je te laisse en découvrir plus en téléchargeant l'app :) "
-        "$lienTelechargementApp";
+        "se faire remplacer par quelqu'un de confiance. Je te laisse en découvrir plus en "
+        "téléchargeant l'app :) $lienTelechargementApp";
     final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
-    await launchUrl(Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'));
+    await launchUrl(
+      Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
+    );
   }
 
   Future<void> _creerPacte(Restaurant restau) async {
@@ -409,7 +458,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible d'envoyer le pacte pour le moment.\n$e";
+        erreur = "Impossible d'envoyer le Swend pour le moment.\n$e";
       });
     }
   }

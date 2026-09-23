@@ -56,12 +56,12 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
         if (!didPop) Navigator.pop(context, _quelqueChoseAChange);
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Mes relais')),
+        appBar: AppBar(title: const Text('Personnes de confiance')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              "Propres à ce pacte : cette liste ne sera jamais visible par l'autre partie. Tu peux "
+              "Propres à ce Swend : cette liste ne sera jamais visible par l'autre partie. Tu peux "
               "en ajouter à tout moment, pas seulement si tu te désistes.",
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
@@ -77,13 +77,19 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
             if (erreur != null) ...[
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text(erreur!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                child: Text(
+                  erreur!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                ),
               ),
             ],
             if (valides.isNotEmpty) ...[
               const Divider(),
               const SizedBox(height: 8),
-              const Text('Tes relais', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                'Personnes ajoutées',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
               for (final r in valides) _carteRemplacant(r),
             ],
@@ -107,16 +113,23 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
             Row(
               children: [
                 Expanded(
-                  child: Text(r.nomComplet, style: const TextStyle(fontWeight: FontWeight.w600)),
+                  child: Text(
+                    r.nomComplet,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
                 ),
                 if (r.selectionne)
-                  const Text('Désigné(e) ✓',
-                      style: TextStyle(fontSize: 12, color: Colors.black54)),
+                  const Text(
+                    'Désigné(e) ✓',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
-              aUnCompte ? 'A rejoint l\'application' : "N'a pas encore rejoint l'application",
+              aUnCompte
+                  ? 'A rejoint l\'application'
+                  : "N'a pas encore rejoint l'application",
               style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 8),
@@ -135,9 +148,12 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                     onPressed: enCours ? null : () => _designer(r),
                     icon: enCours
                         ? const SizedBox(
-                            height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                            height: 14,
+                            width: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
                         : const Icon(Icons.person_search, size: 16),
-                    label: const Text('Le/la désigner comme relais'),
+                    label: const Text('La/le désigner'),
                   ),
               ],
             ),
@@ -165,10 +181,16 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmer'),
-        content: Text('Désigner ${r.nomComplet} comme ton relais pour ce Swend ?'),
+        content: Text('Désigner ${r.nomComplet} pour ce Swend ?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmer')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Confirmer'),
+          ),
         ],
       ),
     );
@@ -179,7 +201,11 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       erreur = null;
     });
     try {
-      await PacteRepository.synchroniserRemplacants(widget.pacteId, widget.cote, remplacants);
+      await PacteRepository.synchroniserRemplacants(
+        widget.pacteId,
+        widget.cote,
+        remplacants,
+      );
       await PacteRepository.selectionnerRemplacant(r.id!);
       if (!mounted) return;
       setState(() {

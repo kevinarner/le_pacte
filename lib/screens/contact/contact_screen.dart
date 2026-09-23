@@ -29,10 +29,12 @@ class ContactScreen extends StatelessWidget {
               fond: AppColors.pecheClair,
               iconeColor: AppColors.peche,
               label: "Suggestion d'un restaurant",
-              sousLabel: 'Propose-nous un restaurant pour tes prochains pactes',
+              sousLabel: 'Propose-nous un restaurant pour tes prochains Swends',
               onTap: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SuggestionRestaurantScreen()),
+                MaterialPageRoute(
+                  builder: (_) => const SuggestionRestaurantScreen(),
+                ),
               ),
             ),
             const SizedBox(height: 10),
@@ -81,9 +83,20 @@ class ContactScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
-                    Text(sousLabel,
-                        style: const TextStyle(fontSize: 12.5, color: AppColors.texteAttenue)),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                      ),
+                    ),
+                    Text(
+                      sousLabel,
+                      style: const TextStyle(
+                        fontSize: 12.5,
+                        color: AppColors.texteAttenue,
+                      ),
+                    ),
                   ],
                 ),
               ),

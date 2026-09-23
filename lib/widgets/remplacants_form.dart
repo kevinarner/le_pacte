@@ -49,14 +49,16 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     }
   }
 
-  TextEditingController _prenomCtrl(Remplacant r) =>
-      _prenomControllers.putIfAbsent(r, () => TextEditingController(text: r.prenom));
+  TextEditingController _prenomCtrl(Remplacant r) => _prenomControllers
+      .putIfAbsent(r, () => TextEditingController(text: r.prenom));
 
   TextEditingController _nomCtrl(Remplacant r) =>
       _nomControllers.putIfAbsent(r, () => TextEditingController(text: r.nom));
 
-  TextEditingController _telCtrl(Remplacant r) =>
-      _telControllers.putIfAbsent(r, () => TextEditingController(text: r.telephone));
+  TextEditingController _telCtrl(Remplacant r) => _telControllers.putIfAbsent(
+    r,
+    () => TextEditingController(text: r.telephone),
+  );
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +71,11 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
           OutlinedButton.icon(
             onPressed: _ajouter,
             icon: const Icon(Icons.add, size: 18),
-            label: const Text('Ajouter un remplaçant'),
+            label: const Text('Ajouter une personne'),
           )
         else
           Text(
-            'Maximum ${RemplacantsForm.maximum} remplaçants atteint.',
+            'Maximum ${RemplacantsForm.maximum} personnes atteint.',
             style: const TextStyle(fontSize: 12, color: Colors.black54),
           ),
       ],
@@ -95,8 +97,13 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
           Row(
             children: [
               Expanded(
-                child: Text('Remplaçant ${index + 1}',
-                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                child: Text(
+                  'Personne ${index + 1}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 13,
+                  ),
+                ),
               ),
               if (widget.remplacants.length > widget.minimum)
                 IconButton(
@@ -201,7 +208,8 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
 
   String get _phraseDate {
     if (widget.dates.isEmpty) return "(la date n'est pas encore fixée)";
-    if (widget.dates.length == 1) return 'le ${formaterDateEtHeure(widget.dates.first)}';
+    if (widget.dates.length == 1)
+      return 'le ${formaterDateEtHeure(widget.dates.first)}';
     return 'le ${widget.dates.map(formaterDateEtHeure).join(' ou le ')}';
   }
 
@@ -209,21 +217,30 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     final numero = r.telephone.trim();
     if (numero.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Renseigne le numéro de téléphone pour inviter par SMS.')),
+        const SnackBar(
+          content: Text(
+            'Renseigne le numéro de téléphone pour inviter par SMS.',
+          ),
+        ),
       );
       return;
     }
     final prenom = r.prenom.trim();
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final autre = widget.nomAutrePartie.trim().isNotEmpty ? widget.nomAutrePartie.trim() : 'mon ami';
+    final autre = widget.nomAutrePartie.trim().isNotEmpty
+        ? widget.nomAutrePartie.trim()
+        : 'mon ami';
     final verbe = widget.type == TypeRepas.dejeuner ? 'déjeuner' : 'dîner';
     final phraseDate = _phraseDate;
-    final message = "$salutation, j'ai fait un pacte avec $autre et j'aimerais que tu fasses partie "
-        "de mes remplaçants.\n"
+    final message =
+        "$salutation, j'ai un Swend avec $autre et j'aimerais que tu sois la personne "
+        "qui peut me remplacer en cas de besoin.\n"
         "Le principe : je vais $verbe avec $autre $phraseDate. Si par malheur j'ai un empêchement, "
-        "j'aimerais que tu puisses me remplacer :) Je te laisse en découvrir plus en téléchargeant "
+        "j'aimerais que tu puisses prendre ma place :) Je te laisse en découvrir plus en téléchargeant "
         "l'app $lienTelechargementApp";
     final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
-    await launchUrl(Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'));
+    await launchUrl(
+      Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
+    );
   }
 }

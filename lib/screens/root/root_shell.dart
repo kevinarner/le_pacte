@@ -12,7 +12,7 @@ import 'menu_principal_screen.dart';
 /// Coquille principale : héberge la session (écoute de session partagée,
 /// déconnexion) et affiche le menu principal — prochain Swend, création,
 /// Mes Swends, Profil. Chaque Swend porte sa propre messagerie (voir sa
-/// page de détail, section "Mon relais") : pas d'onglet Messagerie
+/// page de détail, section "En cas d'imprévu") : pas d'onglet Messagerie
 /// séparé.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
@@ -37,9 +37,11 @@ class _RootShellState extends State<RootShell> {
       if (_deconnexionVolontaire) return;
       final idActuel = data.session?.user.id;
       if (idActuel != AppStore.moi.id) {
-        _forcerReconnexion(idActuel == null
-            ? 'Tu as été déconnecté(e). Reconnecte-toi.'
-            : 'Ta session a changé (connecté depuis un autre onglet). Reconnecte-toi.');
+        _forcerReconnexion(
+          idActuel == null
+              ? 'Tu as été déconnecté(e). Reconnecte-toi.'
+              : 'Ta session a changé (connecté depuis un autre onglet). Reconnecte-toi.',
+        );
       }
     });
 
@@ -61,7 +63,9 @@ class _RootShellState extends State<RootShell> {
       MaterialPageRoute(builder: (_) => const LoginScreen()),
       (route) => false,
     );
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> deconnexion() async {

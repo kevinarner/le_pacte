@@ -26,19 +26,19 @@ class BlocEpilogue extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              maintenu ? 'Rendez-vous maintenu' : 'Pacte annulé',
+              maintenu ? 'Rendez-vous maintenu' : 'Swend annulé',
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
             const SizedBox(height: 8),
             Text(
               maintenu
-                  ? "Quelqu'un — titulaire ou remplaçant, tu ne le sauras qu'en arrivant — "
-                      "sera présent en face de toi."
+                  ? "Quelqu'un sera présent en face de toi — impossible de savoir si c'est "
+                        "elle ou la personne qui la remplace avant d'arriver."
                   : doubleAbsence
-                      ? "Vous avez chacun dû faire appel à un remplaçant : le pacte est "
-                          "annulé. Vous pouvez en créer un nouveau quand vous voulez."
-                      : "Personne n'a pu être trouvé côté partenaire à temps. Le mystère "
-                          "s'arrête ici, pour cette fois.",
+                  ? "Vous avez chacun dû faire appel à quelqu'un pour vous remplacer : le "
+                        "Swend est annulé. Vous pouvez en créer un nouveau quand vous voulez."
+                  : "Personne n'a pu être trouvé côté partenaire à temps. Le mystère "
+                        "s'arrête ici, pour cette fois.",
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.black54, fontSize: 13),
             ),
