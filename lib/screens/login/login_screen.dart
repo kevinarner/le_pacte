@@ -62,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Image.asset('assets/images/logo_mains.png'),
                 ),
                 const SizedBox(height: 16),
-                Text('Pakt', style: Theme.of(context).textTheme.titleLarge),
+                Image.asset('assets/images/logo_swend_wordmark.png', width: 168),
                 const SizedBox(height: 8),
                 const SizedBox(
                   width: 260,

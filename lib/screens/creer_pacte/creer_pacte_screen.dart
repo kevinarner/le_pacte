@@ -379,7 +379,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     }
     final prenom = prenomDestinataireController.text.trim();
     final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Pakt !\n"
+    final message = "$salutation, je t'invite à faire un pacte avec moi sur l'application Swend !\n"
         "Le principe : on trouve une date qui nous convient pour dîner ensemble mais on a pas le "
         "droit d'en parler jusqu'au jour J. Si jamais on est finalement pas dispo, on a le droit de "
         "faire appel à des remplaçants. Je te laisse en découvrir plus en téléchargeant l'app :) "

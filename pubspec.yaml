@@ -74,6 +74,7 @@ flutter:
   assets:
     - assets/images/logo_mains.png
     - assets/images/logo_mains_blanc.png
+    - assets/images/logo_swend_wordmark.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

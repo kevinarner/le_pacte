@@ -78,7 +78,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
             children: [
               Image.asset('assets/images/logo_mains.png', width: 52),
               const SizedBox(height: 8),
-              Text('Pakt', style: Theme.of(context).textTheme.titleLarge),
+              Image.asset('assets/images/logo_swend_wordmark.png', width: 140),
+              const SizedBox(height: 4),
               Text('Bonjour ${AppStore.moi.prenom}',
                   style: const TextStyle(color: AppColors.texteAttenue)),
               const SizedBox(height: 28),
