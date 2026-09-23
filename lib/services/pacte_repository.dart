@@ -362,6 +362,7 @@ class PacteRepository {
         telephoneInterlocuteur: telephoneInterlocuteur,
         dernierMessage: dernier?.contenu,
         dateDernierMessage: dernier?.createdAt,
+        dernierMessageDeMoi: dernier == null || dernier.expediteurId == userId,
         dateConcernee: dateRetenue != null ? DateTime.parse(dateRetenue) : null,
         restaurantNom: restau.nom,
       ));

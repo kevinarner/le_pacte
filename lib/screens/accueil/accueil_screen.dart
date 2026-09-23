@@ -55,7 +55,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
           tooltip: 'Menu principal',
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Mes Pactes'),
+        title: const Text('Mes Swends'),
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.accent,

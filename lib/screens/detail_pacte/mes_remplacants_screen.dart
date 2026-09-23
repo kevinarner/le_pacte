@@ -56,7 +56,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
         if (!didPop) Navigator.pop(context, _quelqueChoseAChange);
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Mes remplaçants')),
+        appBar: AppBar(title: const Text('Mes relais')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -83,7 +83,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
             if (valides.isNotEmpty) ...[
               const Divider(),
               const SizedBox(height: 8),
-              const Text('Tes remplaçants', style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text('Tes relais', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               for (final r in valides) _carteRemplacant(r),
             ],
@@ -137,7 +137,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                         ? const SizedBox(
                             height: 14, width: 14, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.person_search, size: 16),
-                    label: const Text('Le/la désigner comme remplaçant'),
+                    label: const Text('Le/la désigner comme relais'),
                   ),
               ],
             ),
@@ -165,7 +165,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Confirmer'),
-        content: Text('Désigner ${r.nomComplet} comme ton remplaçant pour ce pacte ?'),
+        content: Text('Désigner ${r.nomComplet} comme ton relais pour ce Swend ?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Annuler')),
           FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmer')),

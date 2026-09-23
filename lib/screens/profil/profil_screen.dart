@@ -5,6 +5,7 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/photo_avatar.dart';
+import '../contact/contact_screen.dart';
 import 'mes_informations_screen.dart';
 
 class ProfilScreen extends StatefulWidget {
@@ -117,6 +118,8 @@ class _ProfilScreenState extends State<ProfilScreen> {
                 _ligneReglage('Mes informations', _ouvrirMesInformations),
                 _separateur(),
                 _ligneReglage('Notifications', _bientotDisponible),
+                _separateur(),
+                _ligneReglage('Aide / Nous contacter', _ouvrirContact),
               ],
             ),
           ),
@@ -179,6 +182,13 @@ class _ProfilScreenState extends State<ProfilScreen> {
     );
     if (!mounted) return;
     setState(() {});
+  }
+
+  Future<void> _ouvrirContact() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ContactScreen()),
+    );
   }
 
   void _bientotDisponible() {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/fil_de_discussion.dart';
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/app_store.dart';
@@ -7,15 +8,17 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../accueil/accueil_screen.dart';
-import '../contact/contact_screen.dart';
+import '../creer_pacte/creer_pacte_screen.dart';
+import '../detail_pacte/chat_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
-import '../messagerie/messagerie_screen.dart';
 import '../profil/profil_screen.dart';
 
-/// Écran d'accueil général après connexion : donne accès aux quatre
-/// sections (Mes Pactes, Messagerie, Profil, Nous contacter) plutôt que
-/// d'atterrir directement sur l'une d'elles. Chacune ramène ici d'un tap
-/// sur son logo, ce qui remplace l'ancienne barre de navigation basse.
+/// Écran d'accueil général après connexion. Chaque Swend est pensé comme
+/// un objet autonome qui porte lui-même sa messagerie (voir le détail
+/// d'un pacte) : cet écran ne propose donc plus de section Messagerie
+/// indépendante, seulement le prochain rendez-vous, une éventuelle
+/// notification de message, la liste des Swends et un accès discret au
+/// profil.
 class MenuPrincipalScreen extends StatefulWidget {
   final VoidCallback onDeconnexion;
   final VoidCallback onChanged;
@@ -32,7 +35,7 @@ class MenuPrincipalScreen extends StatefulWidget {
 
 class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   List<Pacte>? mesPactes;
-  int? nombreConversations;
+  List<FilDeDiscussion>? mesFils;
 
   @override
   void initState() {
@@ -51,7 +54,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     try {
       final fils = await PacteRepository.mesFilsDeDiscussion();
       if (!mounted) return;
-      setState(() => nombreConversations = fils.length);
+      setState(() => mesFils = fils);
     } catch (_) {
       // Idem.
     }
@@ -85,7 +88,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     return confirmes.isEmpty ? null : confirmes.first;
   }
 
-  int get _pactesEnCours =>
+  int get _pactesAVenir =>
       mesPactes
           ?.where((p) =>
               p.statut != StatutPacte.maintenu &&
@@ -96,6 +99,19 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
 
   int get _nombreActionsRequises => mesPactes?.where(_actionRequise).length ?? 0;
 
+  /// Le message le plus récent qui ne vient pas de moi, tous fils
+  /// confondus — pas un vrai suivi lu/non-lu (aucun état n'est
+  /// persisté), juste "le dernier mot n'est pas de moi".
+  FilDeDiscussion? get _messageAmeSignaler {
+    final fils = mesFils;
+    if (fils == null) return null;
+    final candidats = fils
+        .where((f) => !f.dernierMessageDeMoi && f.dateDernierMessage != null)
+        .toList()
+      ..sort((a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!));
+    return candidats.isEmpty ? null : candidats.first;
+  }
+
   Future<void> _ouvrir(Widget ecran) async {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => ecran));
     widget.onChanged();
@@ -105,6 +121,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   @override
   Widget build(BuildContext context) {
     final prochain = _prochainPacte;
+    final message = _messageAmeSignaler;
 
     return Scaffold(
       body: SafeArea(
@@ -122,53 +139,29 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
               const SizedBox(height: 20),
               if (prochain != null) ...[
                 _cartePlusProche(prochain),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
               ],
+              if (message != null) ...[
+                _carteMessage(message),
+                const SizedBox(height: 12),
+              ],
+              FilledButton.icon(
+                onPressed: () => _ouvrir(const CreerPacteScreen()),
+                icon: const Icon(Icons.add, size: 20),
+                label: const Text('Créer un Swend'),
+              ),
+              const SizedBox(height: 18),
               _tuilePrincipale(
                 icone: Icons.favorite_outline,
                 fond: AppColors.accentClair,
                 iconeColor: AppColors.accentFonce,
-                label: 'Mes Pactes',
-                sousLabel: mesPactes == null ? '...' : '$_pactesEnCours en cours',
+                label: 'Mes Swends',
+                sousLabel: mesPactes == null ? '...' : '$_pactesAVenir à venir',
                 badge: _nombreActionsRequises > 0 ? _nombreActionsRequises : null,
                 onTap: () => _ouvrir(AccueilScreen(onChanged: widget.onChanged)),
               ),
-              const SizedBox(height: 10),
-              _tuilePrincipale(
-                icone: Icons.mail_outline,
-                fond: AppColors.pecheClair,
-                iconeColor: AppColors.peche,
-                label: 'Messagerie',
-                sousLabel: nombreConversations == null
-                    ? '...'
-                    : nombreConversations == 0
-                        ? 'Aucune conversation'
-                        : '$nombreConversations conversation${nombreConversations! > 1 ? 's' : ''}',
-                onTap: () => _ouvrir(const MessagerieScreen()),
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _tuileSecondaire(
-                      icone: Icons.person_outline,
-                      label: 'Profil',
-                      onTap: () => _ouvrir(ProfilScreen(
-                        onDeconnexion: widget.onDeconnexion,
-                        onChanged: widget.onChanged,
-                      )),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _tuileSecondaire(
-                      icone: Icons.chat_bubble_outline,
-                      label: 'Nous contacter',
-                      onTap: () => _ouvrir(const ContactScreen()),
-                    ),
-                  ),
-                ],
-              ),
+              const SizedBox(height: 18),
+              _lignProfil(),
             ],
           ),
         ),
@@ -191,7 +184,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'TON PROCHAIN PACTE',
+                'TON PROCHAIN SWEND',
                 style: TextStyle(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
@@ -220,6 +213,47 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
       ),
     );
   }
+
+  Widget _carteMessage(FilDeDiscussion fil) {
+    final contexte = fil.dateConcernee != null && fil.restaurantNom != null
+        ? 'À propos de votre Swend du ${_libelleDateCourt(fil.dateConcernee!)} · ${fil.restaurantNom}'
+        : 'À propos de votre Swend';
+    return Card(
+      color: AppColors.pecheClair,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(radiusLg),
+        onTap: () => _ouvrir(ChatScreen(
+          remplacantId: fil.remplacantId,
+          nomInterlocuteur: fil.nomInterlocuteur,
+          telephoneInterlocuteur: fil.telephoneInterlocuteur,
+        )),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              const Icon(Icons.mail_outline, color: AppColors.peche, size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('${fil.nomInterlocuteur} vous a écrit',
+                        style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+                    Text(contexte,
+                        style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.black38),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _libelleDateCourt(DateTime date) =>
+      '${date.day} ${moisAnnee[date.month - 1].substring(0, 3)}.';
 
   Widget _tuilePrincipale({
     required IconData icone,
@@ -282,28 +316,31 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     );
   }
 
-  Widget _tuileSecondaire({
-    required IconData icone,
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(radiusLg),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
-          child: Column(
-            children: [
-              Icon(icone, color: AppColors.texteAttenue, size: 20),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 12.5),
-                textAlign: TextAlign.center,
+  /// Profil est volontairement discret : plus de tuile-carte pleine
+  /// largeur comme les Swends, une simple ligne.
+  Widget _lignProfil() {
+    return InkWell(
+      borderRadius: BorderRadius.circular(radiusLg),
+      onTap: () => _ouvrir(ProfilScreen(
+        onDeconnexion: widget.onDeconnexion,
+        onChanged: widget.onChanged,
+      )),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.person_outline, color: AppColors.texteAttenue, size: 18),
+            const SizedBox(width: 6),
+            Text(
+              'Profil',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+                color: AppColors.texteAttenue,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

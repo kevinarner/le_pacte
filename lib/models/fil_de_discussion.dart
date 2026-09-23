@@ -13,6 +13,12 @@ class FilDeDiscussion {
   final String? dernierMessage;
   final DateTime? dateDernierMessage;
 
+  /// True si c'est moi qui ai envoyé le dernier message du fil — sert à
+  /// repérer un message de l'interlocuteur pas encore "vu" (au sens
+  /// large : pas de vrai suivi lu/non-lu, juste "le dernier mot n'est
+  /// pas de moi").
+  final bool dernierMessageDeMoi;
+
   /// La date retenue du pacte concerné par ce fil, et le nom du
   /// restaurant — affichés sous le nom de l'interlocuteur pour situer la
   /// conversation. Nulle si aucune date n'est encore retenue.
@@ -25,6 +31,7 @@ class FilDeDiscussion {
     this.telephoneInterlocuteur,
     this.dernierMessage,
     this.dateDernierMessage,
+    this.dernierMessageDeMoi = true,
     this.dateConcernee,
     this.restaurantNom,
   });

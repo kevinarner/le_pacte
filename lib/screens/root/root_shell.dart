@@ -10,9 +10,10 @@ import '../../services/notification_service.dart';
 import 'menu_principal_screen.dart';
 
 /// Coquille principale : héberge la session (écoute de session partagée,
-/// déconnexion) et affiche le menu principal, qui donne accès aux trois
-/// sections (Mes Pactes, Messagerie, Profil) — chacune ramène ici d'un
-/// tap sur son logo plutôt que via une barre de navigation basse.
+/// déconnexion) et affiche le menu principal — prochain Swend, création,
+/// Mes Swends, Profil. Chaque Swend porte sa propre messagerie (voir sa
+/// page de détail, section "Mon relais") : pas d'onglet Messagerie
+/// séparé.
 class RootShell extends StatefulWidget {
   const RootShell({super.key});
 

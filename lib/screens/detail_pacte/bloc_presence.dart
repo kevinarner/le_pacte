@@ -2,14 +2,18 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
+import '../../models/remplacant.dart';
 import '../../models/statut_presence.dart';
 import '../../services/pacte_repository.dart';
+import '../../theme/app_theme.dart';
+import 'chat_screen.dart';
 import 'mes_remplacants_screen.dart';
 
-/// Bloc affiché une fois le pacte confirmé : donne accès, à tout
-/// moment, à ses propres remplaçants — pour en ajouter, discuter avec
-/// ceux qui ont un compte, ou déléguer sa présence à l'un d'eux si on
-/// devient finalement indisponible.
+/// "Mon relais" : résume, sur la page du pacte, le relais désigné pour
+/// mon côté (s'il y en a un) avec un accès direct à la conversation.
+/// Donne accès à `MesRemplacantsScreen` pour en choisir un ou gérer la
+/// liste complète — chaque Swend porte sa propre messagerie, il n'y a
+/// pas d'écran Messagerie séparé.
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
@@ -27,18 +31,87 @@ class BlocPresence extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final nb = _monCote.listeRemplacants.where((r) => r.estRempli).length;
-    final delegue = _monCote.statutPresence != StatutPresence.titulaire;
+    final remplacants = _monCote.listeRemplacants.where((r) => r.estRempli).toList();
+    Remplacant? designe;
+    for (final r in remplacants) {
+      if (r.selectionne) {
+        designe = r;
+        break;
+      }
+    }
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: OutlinedButton.icon(
-        onPressed: () => _ouvrirMesRemplacants(context),
-        icon: const Icon(Icons.people_outline, size: 18),
-        label: Text(
-          delegue
-              ? 'Mes remplaçants — tu as délégué ta présence'
-              : 'Mes remplaçants${nb > 0 ? ' ($nb)' : ''}',
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'MON RELAIS',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.texteAttenue,
+                letterSpacing: 0.06,
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (designe != null) ...[
+              Text(designe.nomComplet,
+                  style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15)),
+              const SizedBox(height: 2),
+              Text(
+                designe.profilId != null ? 'A rejoint Swend' : "N'a pas encore rejoint Swend",
+                style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue),
+              ),
+              const SizedBox(height: 10),
+              if (designe.profilId != null)
+                FilledButton.icon(
+                  onPressed: () => _ouvrirChat(context, designe!),
+                  icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                  label: Text('Écrire à ${designe.prenom}'),
+                ),
+            ] else ...[
+              Text(
+                remplacants.isEmpty
+                    ? "Tu n'as pas encore renseigné de relais pour ce Swend."
+                    : "Tu n'as pas encore désigné de relais.",
+                style: const TextStyle(fontSize: 13, color: AppColors.texteAttenue),
+              ),
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                onPressed: () => _ouvrirMesRemplacants(context),
+                icon: const Icon(Icons.person_search, size: 16),
+                label: const Text('Choisir mon relais'),
+              ),
+            ],
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(
+                onPressed: () => _ouvrirMesRemplacants(context),
+                style: TextButton.styleFrom(
+                  padding: EdgeInsets.zero,
+                  minimumSize: const Size(0, 0),
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text('Gérer mes relais', style: TextStyle(fontSize: 12.5)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _ouvrirChat(BuildContext context, Remplacant r) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          remplacantId: r.id!,
+          nomInterlocuteur: r.nomComplet,
+          telephoneInterlocuteur: r.telephone,
         ),
       ),
     );
