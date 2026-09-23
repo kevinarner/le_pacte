@@ -67,8 +67,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(
                   width: 260,
                   child: Text(
-                    "Un rendez-vous fixé loin devant. Aucune nouvelle avant le jour J. "
-                    "Et un doute qui vous accompagne jusqu'au bout : qui, vraiment, sera là ?",
+                    "Un restaurant. Une date. Un engagement.\n"
+                    "Un mystère persiste : le jour venu… qui sera vraiment là ?",
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
