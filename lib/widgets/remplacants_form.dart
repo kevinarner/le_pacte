@@ -163,7 +163,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
           ],
           const SizedBox(height: 8),
           const Text(
-            "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
+            "Cette personne n'a pas encore Swend ?",
             style: TextStyle(fontSize: 12, color: Colors.black54),
           ),
           const SizedBox(height: 8),

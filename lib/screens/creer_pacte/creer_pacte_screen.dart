@@ -17,8 +17,8 @@ import '../contact/suggestion_restaurant_screen.dart';
 const _minimumRemplacants = 2;
 const _nombreEtapes = 3;
 
-/// Création d'un pacte en 3 étapes courtes (avec qui, où et quand, tes
-/// remplaçants) plutôt qu'un seul long formulaire — chaque étape se
+/// Création d'un Swend en 3 étapes courtes (avec qui, quand et où, en
+/// cas d'imprévu) plutôt qu'un seul long formulaire — chaque étape se
 /// valide avant de passer à la suivante.
 class CreerPacteScreen extends StatefulWidget {
   const CreerPacteScreen({super.key});
@@ -111,38 +111,50 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             : null,
         title: const Text('Nouveau Swend'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+      body: Column(
         children: [
-          _indicateurEtapes(),
-          const SizedBox(height: 16),
-          if (etape == 0) ..._etapeAvecQui(),
-          if (etape == 1) ..._etapeOuEtQuand(restau),
-          if (etape == 2) ..._etapeRemplacants(),
-          const SizedBox(height: 24),
-          if (erreur != null) ...[
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                erreur!,
-                style: const TextStyle(color: AppColors.erreur),
-              ),
-            ),
-          ],
-          FilledButton(
-            onPressed: !enCours && _peutValiderEtape(etape) ? _suivant : null,
-            child: enCours
-                ? const SizedBox(
-                    height: 16,
-                    width: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+            child: _indicateurEtapes(),
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              children: [
+                if (etape == 0) ..._etapeAvecQui(),
+                if (etape == 1) ..._etapeOuEtQuand(restau),
+                if (etape == 2) ..._etapeRemplacants(),
+                const SizedBox(height: 24),
+                if (erreur != null) ...[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      erreur!,
+                      style: const TextStyle(color: AppColors.erreur),
                     ),
-                  )
-                : Text(
-                    etape == _nombreEtapes - 1 ? 'Envoyer le Swend' : 'Suivant',
                   ),
+                ],
+                FilledButton(
+                  onPressed: !enCours && _peutValiderEtape(etape)
+                      ? _suivant
+                      : null,
+                  child: enCours
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          etape == _nombreEtapes - 1
+                              ? 'Envoyer le Swend'
+                              : 'Suivant',
+                        ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -168,12 +180,19 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
+  String get _prenomDestinataire => prenomDestinataireController.text.trim();
+
   List<Widget> _etapeAvecQui() {
     return [
       Text('Avec qui ?', style: Theme.of(context).textTheme.titleLarge),
       Text(
         'Étape 1 sur $_nombreEtapes',
         style: const TextStyle(color: AppColors.texteAttenue),
+      ),
+      const SizedBox(height: 12),
+      const Text(
+        'Choisis la personne avec qui tu veux créer ce Swend.',
+        style: TextStyle(fontSize: 13, color: Colors.black54),
       ),
       const SizedBox(height: 16),
       Row(
@@ -212,7 +231,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       ],
       const SizedBox(height: 8),
       const Text(
-        "Si cette personne n'a pas encore l'application, invitez-la à la télécharger :",
+        "Cette personne n'a pas encore Swend ?",
         style: TextStyle(fontSize: 12, color: Colors.black54),
       ),
       const SizedBox(height: 8),
@@ -242,38 +261,45 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   List<Widget> _etapeOuEtQuand(Restaurant restau) {
     return [
-      Text('Où et quand ?', style: Theme.of(context).textTheme.titleLarge),
+      Text('Quand et où ?', style: Theme.of(context).textTheme.titleLarge),
       Text(
         'Étape 2 sur $_nombreEtapes',
         style: const TextStyle(color: AppColors.texteAttenue),
+      ),
+      const SizedBox(height: 4),
+      Text(
+        'Swend avec $_prenomDestinataire',
+        style: const TextStyle(
+          fontSize: 12.5,
+          color: AppColors.texteAttenue,
+          fontStyle: FontStyle.italic,
+        ),
       ),
       const SizedBox(height: 16),
       const Text(
         'Type de repas',
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
-      RadioListTile<TypeRepas>(
-        title: const Text('Déjeuner'),
-        value: TypeRepas.dejeuner,
-        groupValue: type,
-        onChanged: (v) => setState(() => type = v!),
-      ),
-      RadioListTile<TypeRepas>(
-        title: const Text('Dîner'),
-        value: TypeRepas.diner,
-        groupValue: type,
-        onChanged: (v) => setState(() => type = v!),
-      ),
       const SizedBox(height: 8),
+      SegmentedButton<TypeRepas>(
+        showSelectedIcon: false,
+        segments: const [
+          ButtonSegment(value: TypeRepas.dejeuner, label: Text('Déjeuner')),
+          ButtonSegment(value: TypeRepas.diner, label: Text('Dîner')),
+        ],
+        selected: {type},
+        onSelectionChanged: (s) => setState(() => type = s.first),
+      ),
+      const SizedBox(height: 16),
       const Text(
         'Dates proposées',
         style: TextStyle(fontWeight: FontWeight.bold),
       ),
       const SizedBox(height: 4),
-      const Text(
-        "Propose une ou plusieurs dates avec un horaire : la personne avec qui tu fais "
-        "ce Swend choisira celle qui lui convient.",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
+      Text(
+        'Propose une ou plusieurs dates.\n'
+        '$_prenomDestinataire choisira celle qui lui convient.',
+        style: const TextStyle(fontSize: 12, color: Colors.black54),
       ),
       const SizedBox(height: 8),
       DatesForm(
@@ -290,10 +316,15 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Restaurant proposé',
-                style: TextStyle(fontSize: 11, color: Colors.black54),
+                'RESTAURANT PROPOSÉ',
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.texteAttenue,
+                  letterSpacing: 0.06,
+                ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 6),
               Text(
                 restau.nom,
                 style: const TextStyle(
@@ -301,18 +332,20 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                   fontSize: 15,
                 ),
               ),
-              const SizedBox(height: 6),
-              InkWell(
-                onTap: () => _ouvrirLienRestaurant(restau.lien),
-                child: Text(
-                  restau.lien,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.accent,
-                    decoration: TextDecoration.underline,
+              if (restau.lien.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                InkWell(
+                  onTap: () => _ouvrirLienRestaurant(restau.lien),
+                  child: const Text(
+                    'Voir le restaurant ↗',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.accent,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -351,25 +384,31 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   List<Widget> _etapeRemplacants() {
     return [
-      Text(
-        'Tes personnes de confiance',
-        style: Theme.of(context).textTheme.titleLarge,
-      ),
+      Text("En cas d'imprévu", style: Theme.of(context).textTheme.titleLarge),
       Text(
         'Étape 3 sur $_nombreEtapes · minimum $_minimumRemplacants',
         style: const TextStyle(color: AppColors.texteAttenue),
       ),
       const SizedBox(height: 4),
-      const Text(
-        "Propres à ce Swend : cette liste ne sera jamais visible par la personne avec qui "
-        "tu fais ce Swend.",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
+      Text(
+        'Swend avec $_prenomDestinataire',
+        style: const TextStyle(
+          fontSize: 12.5,
+          color: AppColors.texteAttenue,
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+      const SizedBox(height: 8),
+      Text(
+        'Choisis au moins 2 personnes qui pourraient prendre ta place si nécessaire.\n'
+        '$_prenomDestinataire ne verra jamais cette liste.',
+        style: const TextStyle(fontSize: 12, color: Colors.black54),
       ),
       const SizedBox(height: 8),
       RemplacantsForm(
         remplacants: remplacants,
         minimum: _minimumRemplacants,
-        nomAutrePartie: prenomDestinataireController.text.trim(),
+        nomAutrePartie: _prenomDestinataire,
         type: type,
         dates: datesProposees,
         onChanged: () => setState(() {}),

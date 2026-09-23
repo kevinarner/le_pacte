@@ -58,49 +58,40 @@ class _DatesFormState extends State<DatesForm> {
   Widget _ligne(int index) {
     final date = widget.dates[index];
     final creneaux = widget.creneaux;
-    final heureActuelle = creneaux.contains(heureDe(date)) ? heureDe(date) : creneaux.first;
+    final heureActuelle = creneaux.contains(heureDe(date))
+        ? heureDe(date)
+        : creneaux.first;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        children: [
-          ListTile(
-            leading: const Icon(Icons.calendar_today),
-            title: Text(formaterDateEnToutesLettres(date)),
-            onTap: () => _modifierDate(index),
-            trailing: widget.dates.length > widget.minimum
-                ? IconButton(
-                    icon: const Icon(Icons.close, size: 18),
-                    onPressed: () => _retirer(index),
-                  )
-                : null,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: Row(
-              children: [
-                const Icon(Icons.schedule, size: 18, color: Colors.black54),
-                const SizedBox(width: 8),
-                const Text('Horaire :', style: TextStyle(fontSize: 13)),
-                const SizedBox(width: 8),
-                DropdownButton<TimeOfDay>(
-                  value: heureActuelle,
-                  underline: const SizedBox(),
-                  items: [
-                    for (final c in creneaux)
-                      DropdownMenuItem(value: c, child: Text(formaterHeure(c))),
-                  ],
-                  onChanged: (h) {
-                    if (h == null) return;
-                    setState(() {
-                      widget.dates[index] = avecHeure(date, h);
-                      widget.onChanged();
-                    });
-                  },
-                ),
+      child: ListTile(
+        leading: const Icon(Icons.calendar_today, size: 20),
+        title: Text(formaterDateEnToutesLettres(date)),
+        onTap: () => _modifierDate(index),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButton<TimeOfDay>(
+              value: heureActuelle,
+              underline: const SizedBox(),
+              items: [
+                for (final c in creneaux)
+                  DropdownMenuItem(value: c, child: Text(formaterHeure(c))),
               ],
+              onChanged: (h) {
+                if (h == null) return;
+                setState(() {
+                  widget.dates[index] = avecHeure(date, h);
+                  widget.onChanged();
+                });
+              },
             ),
-          ),
-        ],
+            if (widget.dates.length > widget.minimum)
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                onPressed: () => _retirer(index),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -120,8 +111,9 @@ class _DatesFormState extends State<DatesForm> {
     final d = await _choisirDate(initial: actuel);
     if (d != null) {
       setState(() {
-        final heure =
-            widget.creneaux.contains(heureDe(actuel)) ? heureDe(actuel) : widget.creneaux.first;
+        final heure = widget.creneaux.contains(heureDe(actuel))
+            ? heureDe(actuel)
+            : widget.creneaux.first;
         widget.dates[index] = avecHeure(d, heure);
         widget.onChanged();
       });
@@ -138,7 +130,9 @@ class _DatesFormState extends State<DatesForm> {
   Future<DateTime?> _choisirDate({DateTime? initial}) {
     return showDatePicker(
       context: context,
-      initialDate: initial ?? prochainJourAutorise(DateTime.now().add(const Duration(days: 60))),
+      initialDate:
+          initial ??
+          prochainJourAutorise(DateTime.now().add(const Duration(days: 60))),
       firstDate: DateTime.now(),
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('fr', 'FR'),
