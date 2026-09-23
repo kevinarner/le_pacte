@@ -52,13 +52,13 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               children: [
                 Container(
-                  width: 64,
-                  height: 64,
+                  width: 104,
+                  height: 104,
                   decoration: const BoxDecoration(
                     color: AppColors.accentClair,
                     shape: BoxShape.circle,
                   ),
-                  padding: const EdgeInsets.all(14),
+                  padding: const EdgeInsets.all(20),
                   child: Image.asset('assets/images/logo_mains.png'),
                 ),
                 const SizedBox(height: 16),
