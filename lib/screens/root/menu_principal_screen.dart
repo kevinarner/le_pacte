@@ -7,6 +7,7 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/noms.dart';
 import '../accueil/accueil_screen.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
 import '../detail_pacte/chat_screen.dart';
@@ -234,7 +235,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   Widget _carteMessage(FilDeDiscussion fil) {
     final avecQui = fil.autrePartieNom;
     final base = avecQui != null && avecQui.trim().isNotEmpty
-        ? 'Swend avec $avecQui'
+        ? 'Swend avec ${prenomDe(avecQui)}'
         : 'Ton Swend';
     final contexte = fil.dateConcernee != null
         ? '$base · ${_libelleDateCourt(fil.dateConcernee!)} à ${formaterHeure(heureDe(fil.dateConcernee!))}'

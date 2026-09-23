@@ -7,6 +7,7 @@ import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
 import 'bloc_attente.dart';
 import 'bloc_cascade.dart';
@@ -33,13 +34,11 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     final cotePartenaire = jeSuisInitiateur
         ? pacte.destinataire
         : pacte.initiateur;
+    final autrePrenom = prenomDe(cotePartenaire.nomTitulaire);
     final affichage = statutAffichagePourMoi(
       pacte.statut,
       jeSuisInitiateur: jeSuisInitiateur,
-      autrePrenom: cotePartenaire.nomTitulaire
-          .trim()
-          .split(RegExp(r'\s+'))
-          .first,
+      autrePrenom: autrePrenom,
     );
     final tag = affichage.style;
 
@@ -105,30 +104,47 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  LigneInfo(label: 'Avec', valeur: cotePartenaire.nomTitulaire),
                   if (pacte.dateRetenue != null)
-                    LigneInfo(
-                      label: 'Date',
-                      valeur: formaterDateEtHeure(pacte.dateRetenue!),
+                    Text(
+                      formaterDateEtHeure(pacte.dateRetenue!),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
                     )
                   else if (pacte.datesProposees.isNotEmpty)
                     LigneInfo(
-                      label: 'Dates proposées',
+                      label: pacte.datesProposees.length > 1
+                          ? 'Dates proposées'
+                          : 'Date proposée',
                       valeur: pacte.datesProposees
                           .map(formaterDateEtHeure)
                           .join(', '),
                     ),
                   if (pacte.restaurantRetenu != null) ...[
                     const Divider(height: 24),
-                    LigneInfo(
-                      label: 'Lieu',
-                      valeur: pacte.restaurantRetenu!.nom,
-                    ),
-                    if (pacte.restaurantRetenu!.lien.isNotEmpty)
-                      LigneInfo(
-                        label: 'Lien',
-                        valeur: pacte.restaurantRetenu!.lien,
+                    Text(
+                      pacte.restaurantRetenu!.nom,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
                       ),
+                    ),
+                    if (pacte.restaurantRetenu!.lien.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      InkWell(
+                        onTap: () =>
+                            _reserverLaTable(pacte.restaurantRetenu!.lien),
+                        child: const Text(
+                          'Voir le restaurant ↗',
+                          style: TextStyle(
+                            color: AppColors.accent,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -152,8 +168,10 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           if (jAttendsLAutrePartie)
             BlocAttente(
               texte: pacte.statut == StatutPacte.enAttenteReponse
-                  ? 'En attente de la réponse de ${cotePartenaire.nomTitulaire}.'
-                  : 'En attente du choix de date de ${cotePartenaire.nomTitulaire}.',
+                  ? '$autrePrenom peut accepter ce Swend ou le refuser.'
+                  : pacte.datesProposees.length > 1
+                  ? '$autrePrenom peut choisir une de ces dates ou en proposer d\'autres.'
+                  : '$autrePrenom peut choisir cette date ou en proposer une autre.',
             ),
 
           // --- Cas : le pacte est confirmé, chacun peut déléguer sa présence ---

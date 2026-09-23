@@ -7,6 +7,7 @@ import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/noms.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
 class AccueilScreen extends StatefulWidget {
@@ -106,8 +107,9 @@ class _AccueilScreenState extends State<AccueilScreen> {
     );
   }
 
-  /// Priorité d'affichage : mon tour à moi (0) < j'attends l'autre
-  /// partie (1) < scellé, trié chronologiquement dans ce groupe (2) <
+  /// Priorité d'affichage : mon tour à moi (0) < scellé, trié
+  /// chronologiquement dans ce groupe (1) < j'attends l'autre partie,
+  /// visible mais pas plus urgent qu'un scellé à venir (2) <
   /// terminé/annulé (3). Une seule solution de tri, pas de sections.
   int _priorite(Pacte p) {
     final jeSuisInitiateur = p.initiateur.idTitulaire == AppStore.moi.id;
@@ -116,12 +118,14 @@ class _AccueilScreenState extends State<AccueilScreen> {
         p.statut == StatutPacte.enAttenteChoixDateDestinataire ||
         p.statut == StatutPacte.enAttenteReponse;
     if (enNegociation) {
-      return pacteEstMonTour(p.statut, jeSuisInitiateur) ? 0 : 1;
+      return pacteEstMonTour(p.statut, jeSuisInitiateur) ? 0 : 2;
     }
-    if (p.statut == StatutPacte.confirme) return 2;
+    if (p.statut == StatutPacte.confirme) return 1;
     return 3;
   }
 
+  /// Tri stable même à priorité et date égales (ou absentes) : l'id
+  /// départage en dernier recours pour un ordre déterministe.
   void _trierParPriorite(List<Pacte> pactes) {
     pactes.sort((a, b) {
       final pa = _priorite(a);
@@ -129,15 +133,12 @@ class _AccueilScreenState extends State<AccueilScreen> {
       if (pa != pb) return pa.compareTo(pb);
       final da = a.dateRetenue;
       final db = b.dateRetenue;
-      if (da == null && db == null) return 0;
-      if (da == null) return 1;
-      if (db == null) return -1;
-      return da.compareTo(db);
+      if (da != null && db != null && da != db) return da.compareTo(db);
+      if (da == null && db != null) return 1;
+      if (da != null && db == null) return -1;
+      return a.id.compareTo(b.id);
     });
   }
-
-  String _prenom(String nomComplet) =>
-      nomComplet.trim().split(RegExp(r'\s+')).first;
 
   Widget _cardPacte(Pacte pacte) {
     final estInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
@@ -147,7 +148,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
     final affichage = statutAffichagePourMoi(
       pacte.statut,
       jeSuisInitiateur: estInitiateur,
-      autrePrenom: _prenom(autreNom),
+      autrePrenom: prenomDe(autreNom),
     );
     final tag = affichage.style;
 
