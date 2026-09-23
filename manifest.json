@@ -1,11 +1,11 @@
 {
-    "name": "Pakt",
-    "short_name": "Pakt",
+    "name": "Swend",
+    "short_name": "Swend",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "Pakt, l'application des pactes entre amis.",
+    "description": "Swend, l'application des pactes entre amis.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
