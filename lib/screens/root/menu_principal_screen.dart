@@ -116,9 +116,6 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
               Image.asset('assets/images/logo_mains.png', width: 52),
               const SizedBox(height: 8),
               Image.asset('assets/images/logo_swend_wordmark.png', width: 140),
-              const SizedBox(height: 4),
-              Text('Bonjour ${AppStore.moi.prenom}',
-                  style: const TextStyle(color: AppColors.texteAttenue)),
               const SizedBox(height: 20),
               if (prochain != null) ...[
                 _cartePlusProche(prochain),
@@ -146,7 +143,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                         : '$nombreConversations conversation${nombreConversations! > 1 ? 's' : ''}',
                 onTap: () => _ouvrir(const MessagerieScreen()),
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 26),
               Row(
                 children: [
                   Expanded(
@@ -190,13 +187,17 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'TON PROCHAIN PACTE',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accentClair,
-                  letterSpacing: 0.06,
+              const SizedBox(
+                width: double.infinity,
+                child: Text(
+                  'TON PROCHAIN PACTE',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.accentClair,
+                    letterSpacing: 0.06,
+                  ),
                 ),
               ),
               const SizedBox(height: 6),
