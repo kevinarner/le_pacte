@@ -135,13 +135,24 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                       InkWell(
                         onTap: () =>
                             _reserverLaTable(pacte.restaurantRetenu!.lien),
-                        child: const Text(
-                          'Voir le restaurant ↗',
-                          style: TextStyle(
-                            color: AppColors.accent,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Voir le restaurant',
+                              style: TextStyle(
+                                color: AppColors.accent,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              Icons.north_east,
+                              size: 13,
+                              color: AppColors.accent,
+                            ),
+                          ],
                         ),
                       ),
                     ],

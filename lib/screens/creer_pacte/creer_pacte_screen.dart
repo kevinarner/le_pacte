@@ -336,13 +336,20 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 const SizedBox(height: 4),
                 InkWell(
                   onTap: () => _ouvrirLienRestaurant(restau.lien),
-                  child: const Text(
-                    'Voir le restaurant ↗',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppColors.accent,
-                      fontWeight: FontWeight.w600,
-                    ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Voir le restaurant',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.accent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(width: 2),
+                      Icon(Icons.north_east, size: 13, color: AppColors.accent),
+                    ],
                   ),
                 ),
               ],
