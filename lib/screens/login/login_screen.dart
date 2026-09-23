@@ -66,11 +66,21 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 8),
                 const SizedBox(
                   width: 260,
-                  child: Text(
-                    "Un restaurant. Une date. Un engagement.\n"
-                    "Un mystère persiste : le jour venu… qui sera vraiment là ?",
+                  child: Text.rich(
+                    TextSpan(
+                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      children: [
+                        TextSpan(
+                          text: 'Un restaurant. Une date. Un engagement.\n',
+                          style: TextStyle(fontStyle: FontStyle.italic),
+                        ),
+                        TextSpan(
+                          text: 'Un mystère persiste : le jour venu…\n'
+                              'qui sera vraiment là ?',
+                        ),
+                      ],
+                    ),
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                 ),
                 const SizedBox(height: 18),
