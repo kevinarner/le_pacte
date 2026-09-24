@@ -10,7 +10,6 @@ import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
 import 'bloc_attente.dart';
-import 'bloc_cascade.dart';
 import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_presence.dart';
@@ -201,8 +200,6 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               jeSuisInitiateur: jeSuisInitiateur,
               onChanged: () => setState(() {}),
             ),
-            const SizedBox(height: 16),
-            BlocCascade(pacte: pacte, onChanged: () => setState(() {})),
           ],
 
           // --- Cas : le pacte est arrivé à son terme ---
