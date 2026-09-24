@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
+import '../../models/demande_statut.dart';
 import '../../models/remplacant.dart';
 import '../../models/type_repas.dart';
 import '../../services/pacte_repository.dart';
@@ -120,7 +121,17 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                 ),
                 if (r.selectionne)
                   const Text(
-                    'Désigné(e) ✓',
+                    'A accepté ✓',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  )
+                else if (r.demandeStatut == DemandeStatut.envoyee)
+                  const Text(
+                    'En attente',
+                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                  )
+                else if (r.demandeStatut == DemandeStatut.refusee)
+                  const Text(
+                    'Indisponible',
                     style: TextStyle(fontSize: 12, color: Colors.black54),
                   ),
               ],
@@ -143,9 +154,9 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                     icon: const Icon(Icons.chat_bubble_outline, size: 16),
                     label: const Text('Discuter'),
                   ),
-                if (!r.selectionne)
+                if (!r.selectionne && r.demandeStatut == null)
                   OutlinedButton.icon(
-                    onPressed: enCours ? null : () => _designer(r),
+                    onPressed: enCours ? null : () => _demander(r),
                     icon: enCours
                         ? const SizedBox(
                             height: 14,
@@ -153,7 +164,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           )
                         : const Icon(Icons.person_search, size: 16),
-                    label: const Text('La/le désigner'),
+                    label: const Text('Lui demander'),
                   ),
               ],
             ),
@@ -176,20 +187,20 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     );
   }
 
-  Future<void> _designer(Remplacant r) async {
+  Future<void> _demander(Remplacant r) async {
     final confirme = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmer'),
-        content: Text('Désigner ${r.nomComplet} pour ce Swend ?'),
+        title: Text('Demander à ${r.prenom} de prendre ta place ?'),
+        content: const Text('Elle pourra accepter ou refuser.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Annuler'),
+            child: const Text('Retour'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmer'),
+            child: const Text('Envoyer la demande'),
           ),
         ],
       ),
@@ -206,10 +217,10 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
         widget.cote,
         remplacants,
       );
-      await PacteRepository.selectionnerRemplacant(r.id!);
+      await PacteRepository.envoyerDemandeRemplacement(r.id!);
       if (!mounted) return;
       setState(() {
-        r.selectionne = true;
+        r.demandeStatut = DemandeStatut.envoyee;
         enCoursPour = null;
         _quelqueChoseAChange = true;
       });
@@ -217,7 +228,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       if (!mounted) return;
       setState(() {
         enCoursPour = null;
-        erreur = "Impossible d'enregistrer ce choix pour le moment. Réessaie.";
+        erreur = "Impossible d'envoyer la demande pour le moment. Réessaie.";
       });
     }
   }

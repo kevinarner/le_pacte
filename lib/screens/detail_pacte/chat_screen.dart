@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/demande_statut.dart';
 import '../../models/message.dart';
+import '../../models/pacte.dart';
+import '../../models/remplacant.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 
 /// Fil de discussion privé entre le titulaire et l'un de ses
 /// remplaçants (ou l'inverse, vu du remplaçant). Se met à jour en
@@ -37,6 +41,14 @@ class _ChatScreenState extends State<ChatScreen> {
   bool enCours = false;
   String? _telephone;
 
+  /// Ma propre fiche remplaçant dans ce fil, si j'en suis moi-même le
+  /// destinataire (pour savoir si une demande "Un imprévu ?" m'attend).
+  /// Reste null tant qu'elle n'a pas fini de charger, ou si je suis le
+  /// titulaire de ce côté (pas concerné).
+  Remplacant? _maFiche;
+  bool _enCoursReponse = false;
+  Pacte? _pacteAccepte;
+
   String get _monId => Supabase.instance.client.auth.currentUser!.id;
 
   @override
@@ -47,12 +59,31 @@ class _ChatScreenState extends State<ChatScreen> {
     if (_telephone == null) {
       _chargerTelephone();
     }
+    _chargerDemande();
   }
 
   Future<void> _chargerTelephone() async {
-    final tel = await PacteRepository.telephoneTitulaireDuPacte(widget.remplacantId);
+    final tel = await PacteRepository.telephoneTitulaireDuPacte(
+      widget.remplacantId,
+    );
     if (!mounted || tel == null) return;
     setState(() => _telephone = tel);
+  }
+
+  /// Vérifie si une demande "Un imprévu ?" me concerne dans ce fil — je
+  /// ne suis le destinataire d'une telle demande que si c'est bien ma
+  /// fiche remplaçant (`profil_id = moi`), jamais côté titulaire.
+  Future<void> _chargerDemande() async {
+    final fiche = await PacteRepository.remplacantParId(widget.remplacantId);
+    if (!mounted || fiche == null || fiche.profilId != _monId) return;
+    setState(() => _maFiche = fiche);
+    if (fiche.selectionne) _chargerPacteAccepte();
+  }
+
+  Future<void> _chargerPacteAccepte() async {
+    final pacte = await PacteRepository.pacteDuRemplacant(widget.remplacantId);
+    if (!mounted) return;
+    setState(() => _pacteAccepte = pacte);
   }
 
   Future<void> _appeler() async {
@@ -81,6 +112,7 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final telephone = _telephone?.trim();
+    final bandeau = _bandeauImprevu();
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.nomInterlocuteur),
@@ -95,6 +127,7 @@ class _ChatScreenState extends State<ChatScreen> {
       ),
       body: Column(
         children: [
+          ?bandeau,
           Expanded(
             child: StreamBuilder<List<Message>>(
               stream: _messages,
@@ -136,7 +169,9 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: _controller,
-                      decoration: const InputDecoration(hintText: 'Écrire un message…'),
+                      decoration: const InputDecoration(
+                        hintText: 'Écrire un message…',
+                      ),
                       minLines: 1,
                       maxLines: 4,
                       textInputAction: TextInputAction.send,
@@ -164,7 +199,9 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 3),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           color: estMoi ? AppColors.accentClair : AppColors.neutre,
           borderRadius: BorderRadius.circular(14),
@@ -172,6 +209,163 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Text(m.contenu),
       ),
     );
+  }
+
+  /// Le bandeau lié à une demande "Un imprévu ?" éventuellement en jeu
+  /// dans ce fil, du point de vue de la personne sollicitée — null s'il
+  /// n'y a rien à montrer (je suis le titulaire, ou aucune demande).
+  Widget? _bandeauImprevu() {
+    final fiche = _maFiche;
+    if (fiche == null) return null;
+
+    if (fiche.selectionne) {
+      final pacte = _pacteAccepte;
+      return _bandeau(
+        couleur: AppColors.accentClair,
+        enfants: [
+          const Text(
+            'Tu prends la place pour ce Swend.',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'Il reste scellé.',
+            style: TextStyle(fontSize: 12.5, color: Colors.black54),
+          ),
+          if (pacte?.dateRetenue != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              formaterDateEtHeure(pacte!.dateRetenue!),
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+          if (pacte?.restaurantRetenu != null)
+            Text(
+              pacte!.restaurantRetenu!.nom,
+              style: const TextStyle(fontSize: 12.5, color: Colors.black54),
+            ),
+        ],
+      );
+    }
+
+    if (fiche.demandeStatut == DemandeStatut.envoyee) {
+      return _bandeau(
+        couleur: AppColors.pecheClair,
+        enfants: [
+          const Text(
+            'On te demande de prendre la place pour ce Swend.',
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _enCoursReponse ? null : () => _repondre(false),
+                  child: const Text('Refuser'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _enCoursReponse ? null : () => _repondre(true),
+                  child: _enCoursReponse
+                      ? const SizedBox(
+                          height: 16,
+                          width: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('Accepter'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    if (fiche.demandeStatut == DemandeStatut.cloturee) {
+      return _bandeau(
+        couleur: AppColors.neutre,
+        enfants: const [
+          Text(
+            "C'est bon, quelqu'un a pu prendre la place.",
+            style: TextStyle(fontSize: 12.5, color: Colors.black54),
+          ),
+        ],
+      );
+    }
+
+    return null;
+  }
+
+  Widget _bandeau({required Color couleur, required List<Widget> enfants}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      color: couleur,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: enfants,
+      ),
+    );
+  }
+
+  Future<void> _repondre(bool accepte) async {
+    final fiche = _maFiche;
+    if (fiche == null) return;
+    setState(() => _enCoursReponse = true);
+    try {
+      await PacteRepository.repondreDemandeRemplacement(
+        widget.remplacantId,
+        accepte,
+      );
+      if (!mounted) return;
+      setState(() {
+        fiche.demandeStatut = accepte
+            ? DemandeStatut.acceptee
+            : DemandeStatut.refusee;
+        fiche.selectionne = accepte;
+        _enCoursReponse = false;
+      });
+      if (accepte) {
+        _chargerPacteAccepte();
+      } else {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Réponse envoyée.')));
+      }
+    } on PostgrestException catch (e) {
+      if (!mounted) return;
+      final placeDejaPrise = e.message.contains('place_deja_prise');
+      setState(() {
+        _enCoursReponse = false;
+        if (placeDejaPrise) fiche.demandeStatut = DemandeStatut.cloturee;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            placeDejaPrise
+                ? 'La place vient déjà d\'être prise.'
+                : 'Impossible de répondre pour le moment. Réessaie.',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _enCoursReponse = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Impossible de répondre pour le moment. Réessaie.'),
+        ),
+      );
+    }
   }
 
   Future<void> _envoyer() async {

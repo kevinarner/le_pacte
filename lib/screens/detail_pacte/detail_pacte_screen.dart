@@ -14,6 +14,7 @@ import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_presence.dart';
 import 'bloc_reponse.dart';
+import 'imprevu_screen.dart';
 
 class DetailPacteScreen extends StatefulWidget {
   final Pacte pacte;
@@ -200,6 +201,19 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               jeSuisInitiateur: jeSuisInitiateur,
               onChanged: () => setState(() {}),
             ),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton(
+                onPressed: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.texteAttenue,
+                ),
+                child: const Text(
+                  'Un imprévu ?',
+                  style: TextStyle(fontSize: 13),
+                ),
+              ),
+            ),
           ],
 
           // --- Cas : le pacte est arrivé à son terme ---
@@ -214,5 +228,19 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
 
   Future<void> _reserverLaTable(String lien) async {
     await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
+  }
+
+  Future<void> _ouvrirImprevu(Pacte pacte, bool jeSuisInitiateur) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ImprevuScreen(
+          pacte: pacte,
+          jeSuisInitiateur: jeSuisInitiateur,
+          onChanged: () => setState(() {}),
+        ),
+      ),
+    );
+    setState(() {});
   }
 }

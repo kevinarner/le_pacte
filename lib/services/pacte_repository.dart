@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cote_pacte.dart';
+import '../models/demande_statut.dart';
 import '../models/fil_de_discussion.dart';
 import '../models/message.dart';
 import '../models/pacte.dart';
@@ -185,6 +186,9 @@ class PacteRepository {
     email: row['email'] as String? ?? '',
     selectionne: row['selectionne'] as bool? ?? false,
     profilId: row['profil_id'] as String?,
+    demandeStatut: row['demande_statut'] != null
+        ? DemandeStatut.values.byName(row['demande_statut'] as String)
+        : null,
   );
 
   /// Crée un nouveau pacte avec les remplaçants de l'initiateur.
@@ -273,6 +277,64 @@ class PacteRepository {
         .from('remplacants')
         .update({'selectionne': true})
         .eq('id', remplacantId);
+  }
+
+  /// Envoie une demande "Un imprévu ?" à cette personne — appelé par le
+  /// titulaire, propriétaire de la ligne (même droit déjà utilisé par
+  /// [selectionnerRemplacant]). Ne fait que passer la demande en
+  /// attente : rien n'est transféré tant qu'elle n'a pas accepté.
+  static Future<void> envoyerDemandeRemplacement(String remplacantId) async {
+    await _client
+        .from('remplacants')
+        .update({'demande_statut': DemandeStatut.envoyee.name})
+        .eq('id', remplacantId);
+  }
+
+  /// Répond à une demande reçue — appelé par la personne sollicitée
+  /// elle-même. Passe par une fonction serveur car elle doit, en cas
+  /// d'acceptation, clôturer les autres demandes en attente du même
+  /// côté (des fiches qu'elle n'a normalement pas le droit de voir), et
+  /// garantir qu'une seule personne peut accepter même en cas de double
+  /// acceptation presque simultanée. Lève une [PostgrestException] dont
+  /// le message contient `place_deja_prise` si quelqu'un d'autre a déjà
+  /// accepté entre-temps.
+  static Future<void> repondreDemandeRemplacement(
+    String remplacantId,
+    bool accepte,
+  ) async {
+    await _client.rpc(
+      'repondre_demande_remplacement',
+      params: {'p_remplacant_id': remplacantId, 'p_accepte': accepte},
+    );
+  }
+
+  /// Une fiche remplaçant précise par son id — utilisé par `ChatScreen`
+  /// pour savoir, à l'ouverture d'un fil, si une demande "Un imprévu ?"
+  /// est en attente pour la personne qui regarde.
+  static Future<Remplacant?> remplacantParId(String id) async {
+    final rows = await _client
+        .from('remplacants')
+        .select()
+        .eq('id', id)
+        .limit(1);
+    if (rows.isEmpty) return null;
+    return _remplacantDe(rows.first);
+  }
+
+  /// Le pacte concerné par une fiche remplaçant — utilisé une fois une
+  /// demande acceptée pour donner à la personne qui prend la place la
+  /// date, l'heure et le restaurant. La RLS de `pactes` laisse déjà un
+  /// remplaçant lire le pacte concerné (voir `est_remplacant_du_pacte`).
+  static Future<Pacte?> pacteDuRemplacant(String remplacantId) async {
+    final row = await _client
+        .from('remplacants')
+        .select('pacte_id')
+        .eq('id', remplacantId)
+        .limit(1);
+    if (row.isEmpty) return null;
+    final pacteId = row.first['pacte_id'] as String?;
+    if (pacteId == null) return null;
+    return pacteParId(pacteId);
   }
 
   /// Relit uniquement le statut actuel d'un pacte — utilisé après une
