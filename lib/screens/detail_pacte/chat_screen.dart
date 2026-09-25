@@ -344,19 +344,24 @@ class _ChatScreenState extends State<ChatScreen> {
     } on PostgrestException catch (e) {
       if (!mounted) return;
       final placeDejaPrise = e.message.contains('place_deja_prise');
+      final dejaAutreCote = e.message.contains('deja_remplacant_autre_cote');
       setState(() {
         _enCoursReponse = false;
         if (placeDejaPrise) fiche.demandeStatut = DemandeStatut.cloturee;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            placeDejaPrise
-                ? 'La place vient déjà d\'être prise.'
-                : 'Impossible de répondre pour le moment. Réessaie.',
-          ),
-        ),
-      );
+      final String message;
+      if (placeDejaPrise) {
+        message = 'La place vient déjà d\'être prise.';
+      } else if (dejaAutreCote) {
+        message =
+            "Tu prends déjà la place de l'autre participant sur ce Swend — "
+            'impossible de remplacer les deux à la fois.';
+      } else {
+        message = 'Impossible de répondre pour le moment. Réessaie.';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } catch (_) {
       if (!mounted) return;
       setState(() => _enCoursReponse = false);
