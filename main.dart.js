@@ -107959,30 +107959,34 @@ return m},
 Jc(a,b){var s=null
 return A.en(s,A.bT(b,B.ah,B.m,B.r),B.A,a,s,s,s,s,s,B.hP,s,s,1/0)},
 xS(a){return this.au0(a)},
-au0(a){var s=0,r=A.q(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h
+au0(a){var s=0,r=A.q(t.H),q,p=2,o=[],n=this,m,l,k,j,i,h,g,f
 var $async$xS=A.r(function(b,c){if(b===1){o.push(c)
-s=p}for(;;)switch(s){case 0:i=n.x
-if(i==null){s=1
+s=p}for(;;)switch(s){case 0:g=n.x
+if(g==null){s=1
 break}n.M(new A.aDE(n))
 p=4
 s=7
 return A.j(A.aqx(n.a.c,a),$async$xS)
 case 7:if(n.c==null){s=1
-break}n.M(new A.aDF(n,i,a))
+break}n.M(new A.aDF(n,g,a))
 if(a)n.wK()
 else n.c.aj(t.W).f.iZ(B.abS)
 p=2
 s=6
 break
 case 4:p=3
-h=o.pop()
-j=A.V(h)
-if(j instanceof A.p2){m=j
+f=o.pop()
+h=A.V(f)
+if(h instanceof A.p2){m=h
 if(n.c==null){s=1
 break}l=B.c.n(m.a,"place_deja_prise")
-n.M(new A.aDG(n,l,i))
-j=n.c.aj(t.W).f
-j.iZ(A.YZ(null,null,null,null,null,B.v,null,A.aq(l?"La place vient d\xe9j\xe0 d'\xeatre prise.":u.y,null,null,null,null,null,null,null),null,B.c7,null,null,null,null,null,null,null,null,null,null))}else{if(n.c==null){s=1
+k=B.c.n(m.a,"deja_remplacant_autre_cote")
+n.M(new A.aDG(n,l,g))
+j=null
+if(l)j="La place vient d\xe9j\xe0 d'\xeatre prise."
+else if(k)j="Tu prends d\xe9j\xe0 la place de l'autre participant sur ce Swend \u2014 impossible de remplacer les deux \xe0 la fois."
+else j=u.y
+n.c.aj(t.W).f.iZ(A.YZ(null,null,null,null,null,B.v,null,A.aq(j,null,null,null,null,null,null,null),null,B.c7,null,null,null,null,null,null,null,null,null,null))}else{if(n.c==null){s=1
 break}n.M(new A.aDH(n))
 n.c.aj(t.W).f.iZ(B.abR)}s=6
 break
