@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -5,6 +7,8 @@ import '../constants.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
 import '../services/contact_picker_service.dart';
+import '../services/pacte_repository.dart';
+import '../theme/app_theme.dart';
 import '../utils/noms.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
@@ -41,12 +45,25 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
   final Map<Remplacant, TextEditingController> _nomControllers = {};
   final Map<Remplacant, TextEditingController> _telControllers = {};
 
+  /// Id du compte Swend de chaque personne, si un numéro déjà tapé y
+  /// correspond — absent tant que la vérification n'a rien trouvé.
+  final Map<Remplacant, String?> _profilIds = {};
+  final Map<Remplacant, Timer> _debounces = {};
+
   @override
   void initState() {
     super.initState();
     while (widget.remplacants.length < widget.minimum) {
       widget.remplacants.add(Remplacant());
     }
+  }
+
+  @override
+  void dispose() {
+    for (final t in _debounces.values) {
+      t.cancel();
+    }
+    super.dispose();
   }
 
   TextEditingController _prenomCtrl(Remplacant r) => _prenomControllers
@@ -151,6 +168,7 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
             onChanged: (v) {
               r.telephone = v;
               widget.onChanged();
+              _onTelephoneChange(r, v);
             },
           ),
           if (ContactPickerService.disponible) ...[
@@ -162,19 +180,54 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
             ),
           ],
           const SizedBox(height: 8),
-          const Text(
-            "Cette personne n'a pas encore Swend ?",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () => _inviterParSms(r),
-            icon: const Icon(Icons.sms_outlined, size: 18),
-            label: const Text('Inviter par SMS'),
-          ),
+          if (_profilIds[r] != null)
+            const Row(
+              children: [
+                Icon(Icons.check_circle_outline, size: 16, color: AppColors.accentFonce),
+                SizedBox(width: 6),
+                Text(
+                  'Déjà sur Swend',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.accentFonce,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            )
+          else ...[
+            const Text(
+              "Cette personne n'a pas encore Swend ?",
+              style: TextStyle(fontSize: 12, color: Colors.black54),
+            ),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () => _inviterParSms(r),
+              icon: const Icon(Icons.sms_outlined, size: 18),
+              label: const Text('Inviter par SMS'),
+            ),
+          ],
         ],
       ),
     );
+  }
+
+  /// Vérifie si ce numéro correspond à un compte Swend existant, avec un
+  /// léger délai pour laisser l'utilisateur finir de taper.
+  void _onTelephoneChange(Remplacant r, String valeur) {
+    setState(() => _profilIds[r] = null);
+    _debounces[r]?.cancel();
+    final numero = valeur.trim();
+    if (numero.length < 6) return;
+    _debounces[r] = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final id = await PacteRepository.trouverProfilParTelephone(numero);
+        if (!mounted || _telCtrl(r).text.trim() != numero) return;
+        setState(() => _profilIds[r] = id);
+      } catch (_) {
+        // Pas grave : le bouton "Inviter par SMS" reste simplement affiché.
+      }
+    });
   }
 
   Future<void> _choisirDansLesContacts(Remplacant r) async {

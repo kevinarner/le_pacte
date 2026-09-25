@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -41,6 +43,13 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   bool enCours = false;
   String? erreur;
   String? erreurChargement;
+
+  /// Id du compte Swend du destinataire s'il en a déjà un avec ce
+  /// numéro — null tant que la vérification n'a rien trouvé (ou n'a pas
+  /// encore eu lieu). Revérifié à chaque changement du numéro, avec un
+  /// léger délai pour ne pas interroger le serveur à chaque frappe.
+  String? _destinataireProfilId;
+  Timer? _debounceDestinataire;
 
   @override
   void initState() {
@@ -219,7 +228,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         controller: telephoneDestinataireController,
         keyboardType: TextInputType.phone,
         decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-        onChanged: (_) => setState(() {}),
+        onChanged: _onTelephoneDestinataireChanged,
       ),
       if (ContactPickerService.disponible) ...[
         const SizedBox(height: 8),
@@ -230,17 +239,54 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         ),
       ],
       const SizedBox(height: 8),
-      const Text(
-        "Cette personne n'a pas encore Swend ?",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
-      ),
-      const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: _inviterParSms,
-        icon: const Icon(Icons.sms_outlined, size: 18),
-        label: const Text('Inviter par SMS'),
-      ),
+      if (_destinataireProfilId != null)
+        const Row(
+          children: [
+            Icon(Icons.check_circle_outline, size: 16, color: AppColors.accentFonce),
+            SizedBox(width: 6),
+            Text(
+              'Déjà sur Swend',
+              style: TextStyle(
+                fontSize: 12.5,
+                color: AppColors.accentFonce,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        )
+      else ...[
+        const Text(
+          "Cette personne n'a pas encore Swend ?",
+          style: TextStyle(fontSize: 12, color: Colors.black54),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _inviterParSms,
+          icon: const Icon(Icons.sms_outlined, size: 18),
+          label: const Text('Inviter par SMS'),
+        ),
+      ],
     ];
+  }
+
+  /// Vérifie si ce numéro correspond à un compte Swend existant, avec un
+  /// léger délai pour laisser l'utilisateur finir de taper.
+  void _onTelephoneDestinataireChanged(String valeur) {
+    setState(() => _destinataireProfilId = null);
+    _debounceDestinataire?.cancel();
+    final numero = valeur.trim();
+    if (numero.length < 6) return;
+    _debounceDestinataire = Timer(const Duration(milliseconds: 500), () async {
+      try {
+        final id = await PacteRepository.trouverProfilParTelephone(numero);
+        if (!mounted || telephoneDestinataireController.text.trim() != numero) {
+          return;
+        }
+        setState(() => _destinataireProfilId = id);
+      } catch (_) {
+        // Pas grave : le bouton "Inviter par SMS" reste simplement affiché.
+      }
+    });
   }
 
   Future<void> _choisirDansLesContacts() async {
