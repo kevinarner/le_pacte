@@ -48,6 +48,49 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
   bool _quelqueChoseAChange = false;
 
   @override
+  void initState() {
+    super.initState();
+    _rafraichir();
+  }
+
+  /// Remet à jour les fiches déjà enregistrées avec ce que le serveur a
+  /// de plus récent (compte créé/lié entre-temps, demande acceptée ou
+  /// refusée depuis un autre appareil...) — cet écran affichait jusque
+  /// là uniquement ce que `DetailPacteScreen` avait en mémoire depuis
+  /// son dernier chargement, sans jamais se resynchroniser à l'ouverture
+  /// (contrairement à `ImprevuScreen`, qui le fait déjà pour la même
+  /// raison). Ne touche pas aux nouvelles fiches en cours de saisie dans
+  /// `RemplacantsForm` (celles sans id, pas encore enregistrées).
+  Future<void> _rafraichir() async {
+    try {
+      final liste = await PacteRepository.remplacantsDe(
+        widget.pacteId,
+        widget.cote,
+      );
+      if (!mounted) return;
+      setState(() {
+        for (final frais in liste) {
+          final i = remplacants.indexWhere((r) => r.id == frais.id);
+          if (i != -1) {
+            remplacants[i]
+              ..prenom = frais.prenom
+              ..nom = frais.nom
+              ..telephone = frais.telephone
+              ..email = frais.email
+              ..selectionne = frais.selectionne
+              ..profilId = frais.profilId
+              ..demandeStatut = frais.demandeStatut;
+          } else {
+            remplacants.add(frais);
+          }
+        }
+      });
+    } catch (_) {
+      // Pas grave : on garde ce qui était déjà en mémoire.
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final valides = remplacants.where((r) => r.estRempli).toList();
 
