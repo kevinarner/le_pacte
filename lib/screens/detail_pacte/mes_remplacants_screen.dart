@@ -55,12 +55,13 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
 
   /// Remet à jour les fiches déjà enregistrées avec ce que le serveur a
   /// de plus récent (compte créé/lié entre-temps, demande acceptée ou
-  /// refusée depuis un autre appareil...) — cet écran affichait jusque
-  /// là uniquement ce que `DetailPacteScreen` avait en mémoire depuis
-  /// son dernier chargement, sans jamais se resynchroniser à l'ouverture
-  /// (contrairement à `ImprevuScreen`, qui le fait déjà pour la même
-  /// raison). Ne touche pas aux nouvelles fiches en cours de saisie dans
-  /// `RemplacantsForm` (celles sans id, pas encore enregistrées).
+  /// refusée depuis un autre appareil, fiche supprimée entre-temps...)
+  /// — cet écran affichait jusque là uniquement ce que `DetailPacteScreen`
+  /// avait en mémoire depuis son dernier chargement, sans jamais se
+  /// resynchroniser à l'ouverture (contrairement à `ImprevuScreen`, qui
+  /// le fait déjà pour la même raison). Ne touche pas aux nouvelles
+  /// fiches en cours de saisie dans `RemplacantsForm` (celles sans id,
+  /// pas encore enregistrées).
   Future<void> _rafraichir() async {
     try {
       final liste = await PacteRepository.remplacantsDe(
@@ -69,6 +70,10 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       );
       if (!mounted) return;
       setState(() {
+        final idsServeur = liste.map((f) => f.id).toSet();
+        remplacants.removeWhere(
+          (r) => r.id != null && !idsServeur.contains(r.id),
+        );
         for (final frais in liste) {
           final i = remplacants.indexWhere((r) => r.id == frais.id);
           if (i != -1) {
