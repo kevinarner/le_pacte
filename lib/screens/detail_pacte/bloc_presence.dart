@@ -9,11 +9,10 @@ import '../../theme/app_theme.dart';
 import 'chat_screen.dart';
 import 'mes_remplacants_screen.dart';
 
-/// "En cas d'imprévu" : résume, sur la page du Swend, la personne de
-/// confiance désignée pour mon côté (s'il y en a une) avec un accès
-/// direct à la conversation. Donne accès à `MesRemplacantsScreen` pour
-/// en choisir une ou gérer la liste complète — chaque Swend porte sa
-/// propre messagerie, il n'y a pas d'écran Messagerie séparé.
+/// "En cas d'imprévu" (titulaire) : résume, sur la page du Swend, la
+/// personne qui a accepté de prendre ma place (s'il y en a une) ou les
+/// personnes prévues, et donne accès à `MesRemplacantsScreen` pour gérer
+/// la liste (préparation uniquement).
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
@@ -62,21 +61,16 @@ class BlocPresence extends StatelessWidget {
             const SizedBox(height: 8),
             if (designe != null) ...[
               Text(
-                designe.nomComplet,
+                '${designe.prenom} prendra votre place',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),
               ),
               const SizedBox(height: 2),
-              Text(
-                designe.profilId != null
-                    ? 'Peut prendre votre place'
-                    : "Peut prendre votre place — n'a pas encore rejoint Swend",
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppColors.texteAttenue,
-                ),
+              const Text(
+                'Votre Swend reste scellé.',
+                style: TextStyle(fontSize: 12, color: AppColors.texteAttenue),
               ),
               const SizedBox(height: 10),
               if (designe.profilId != null)
@@ -96,26 +90,39 @@ class BlocPresence extends StatelessWidget {
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   child: const Text(
-                    'Modifier cette personne',
+                    'Voir les personnes prévues',
                     style: TextStyle(fontSize: 12.5),
                   ),
                 ),
               ),
             ] else ...[
-              const Text(
-                'Choisissez une personne de confiance',
-                style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              Text(
+                remplacants.isEmpty
+                    ? 'Aucune personne prévue'
+                    : remplacants.map((r) => r.prenom).join(', '),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
               ),
               const SizedBox(height: 4),
-              const Text(
-                'Elle pourra prendre votre place si vous ne pouvez finalement pas venir.',
-                style: TextStyle(fontSize: 13, color: AppColors.texteAttenue),
+              Text(
+                remplacants.length > 1
+                    ? 'Ces personnes pourront prendre votre place si vous ne pouvez finalement pas venir.'
+                    : remplacants.length == 1
+                    ? 'Cette personne pourra prendre votre place si vous ne pouvez finalement pas venir.'
+                    : 'Une personne de confiance pourra prendre votre place si vous ne pouvez finalement pas venir.',
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.texteAttenue,
+                ),
               ),
               const SizedBox(height: 10),
               OutlinedButton.icon(
                 onPressed: () => _ouvrirMesRemplacants(context),
-                icon: const Icon(Icons.person_search, size: 16),
-                label: const Text('Choisir une personne'),
+                icon: const Icon(Icons.group_outlined, size: 16),
+                label: Text(
+                  remplacants.isEmpty
+                      ? 'Ajouter des personnes'
+                      : 'Gérer les personnes prévues',
+                ),
               ),
             ],
           ],

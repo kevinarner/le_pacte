@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../models/demande_statut.dart';
+import '../models/remplacant.dart';
 import '../models/statut_pacte.dart';
 
 /// Palette pêche / bleu ardoise / crème, validée le 29/08 (voir la
@@ -118,6 +120,42 @@ StatutAffichage statutAffichagePourMoi(
     case StatutPacte.annuleDoubleAbsence:
       return StatutAffichage(statut.libelle, statutTag(statut));
   }
+}
+
+/// Le badge d'un Swend vu par une personne tierce "en cas d'imprévu".
+StatutAffichage statutAffichageTiers(StatutPacte statut, Remplacant fiche) {
+  const discret = StatutTag(
+    fond: Colors.transparent,
+    texte: AppColors.texteAttenue,
+    bordure: AppColors.outline,
+  );
+  if (statut == StatutPacte.maintenu ||
+      statut == StatutPacte.annule ||
+      statut == StatutPacte.annuleDoubleAbsence) {
+    return StatutAffichage(statut.libelle, statutTag(statut));
+  }
+  if (statut != StatutPacte.confirme) {
+    return const StatutAffichage("En cas d'imprévu", discret);
+  }
+  if (fiche.selectionne) {
+    return const StatutAffichage(
+      'Tu prends la place',
+      StatutTag(fond: AppColors.accentClair, texte: AppColors.accentFonce),
+    );
+  }
+  if (fiche.demandeStatut == DemandeStatut.envoyee) {
+    return const StatutAffichage(
+      'Demande reçue',
+      StatutTag(fond: AppColors.accent, texte: Colors.white),
+    );
+  }
+  if (fiche.demandeStatut.estIndisponible) {
+    return const StatutAffichage(
+      'Terminé',
+      StatutTag(fond: AppColors.neutre, texte: AppColors.texteAttenue),
+    );
+  }
+  return const StatutAffichage("En cas d'imprévu", discret);
 }
 
 ThemeData buildAppTheme() {

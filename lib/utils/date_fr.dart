@@ -62,3 +62,10 @@ String formaterHeure(TimeOfDay t) => '${t.hour}h${t.minute.toString().padLeft(2,
 
 String formaterDateEtHeure(DateTime d) =>
     '${formaterDateEnToutesLettres(d)} à ${formaterHeure(heureDe(d))}';
+
+/// "Mardi 13 octobre · 20h00"
+String formaterJourEtHeureCourt(DateTime d) {
+  final jour = joursSemaine[d.weekday - 1];
+  return '${jour[0].toUpperCase()}${jour.substring(1)} ${d.day} '
+      '${moisAnnee[d.month - 1]} · ${formaterHeure(heureDe(d))}';
+}

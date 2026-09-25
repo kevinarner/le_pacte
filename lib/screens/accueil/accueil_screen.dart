@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../models/demande_statut.dart';
 import '../../models/pacte.dart';
+import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
@@ -112,7 +114,22 @@ class _AccueilScreenState extends State<AccueilScreen> {
   /// visible mais pas plus urgent qu'un scellé à venir (2) <
   /// terminé/annulé (3). Une seule solution de tri, pas de sections.
   int _priorite(Pacte p) {
-    final jeSuisInitiateur = p.initiateur.idTitulaire == AppStore.moi.id;
+    final perspective = PerspectivePacte.de(p, AppStore.moi.id);
+    if (perspective == null) return 3;
+    if (!perspective.estTitulaire) {
+      final fiche = perspective.maFiche!;
+      if (p.statut != StatutPacte.confirme) {
+        return p.statut == StatutPacte.maintenu ||
+                p.statut == StatutPacte.annule ||
+                p.statut == StatutPacte.annuleDoubleAbsence
+            ? 3
+            : 2;
+      }
+      if (fiche.demandeStatut == DemandeStatut.envoyee) return 0;
+      if (fiche.selectionne) return 1;
+      return fiche.demandeStatut.estIndisponible ? 3 : 2;
+    }
+    final jeSuisInitiateur = perspective.jeSuisInitiateur;
     final enNegociation =
         p.statut == StatutPacte.enAttenteChoixDateInitiateur ||
         p.statut == StatutPacte.enAttenteChoixDateDestinataire ||
@@ -141,22 +158,39 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   Widget _cardPacte(Pacte pacte) {
-    final estInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
-    final autreNom = estInitiateur
-        ? pacte.destinataire.nomTitulaire
-        : pacte.initiateur.nomTitulaire;
-    final affichage = statutAffichagePourMoi(
-      pacte.statut,
-      jeSuisInitiateur: estInitiateur,
-      autrePrenom: prenomDe(autreNom),
-    );
+    final perspective = PerspectivePacte.de(pacte, AppStore.moi.id);
+    final estTiers = perspective != null && !perspective.estTitulaire;
+    final String autreNom;
+    final String titre;
+    final StatutAffichage affichage;
+    if (estTiers) {
+      autreNom = perspective.coteAutreParticipant!.nomTitulaire;
+      titre =
+          'Swend ${deNom(prenomDe(perspective.coteTitulaire!.nomTitulaire))} '
+          'avec ${prenomDe(autreNom)}';
+      affichage = statutAffichageTiers(pacte.statut, perspective.maFiche!);
+    } else {
+      final estInitiateur = perspective?.jeSuisInitiateur ?? false;
+      autreNom = estInitiateur
+          ? pacte.destinataire.nomTitulaire
+          : pacte.initiateur.nomTitulaire;
+      titre = 'Swend avec $autreNom';
+      affichage = statutAffichagePourMoi(
+        pacte.statut,
+        jeSuisInitiateur: estInitiateur,
+        autrePrenom: prenomDe(autreNom),
+      );
+    }
     final tag = affichage.style;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Dismissible(
         key: ValueKey(pacte.id),
-        direction: DismissDirection.endToStart,
+        // Seuls les titulaires peuvent supprimer un Swend.
+        direction: estTiers
+            ? DismissDirection.none
+            : DismissDirection.endToStart,
         background: Container(
           alignment: Alignment.centerRight,
           padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -190,7 +224,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                     children: [
                       Expanded(
                         child: Text(
-                          'Swend avec $autreNom',
+                          titre,
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,

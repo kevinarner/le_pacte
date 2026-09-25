@@ -5,14 +5,15 @@ import '../../models/demande_statut.dart';
 import '../../models/remplacant.dart';
 import '../../models/type_repas.dart';
 import '../../services/pacte_repository.dart';
+import '../../theme/app_theme.dart';
 import '../../widgets/remplacants_form.dart';
 import 'chat_screen.dart';
 
-/// Espace permanent, accessible tant que le pacte est confirmé : ajouter
-/// des remplaçants à tout moment (pas seulement au moment de se
-/// désister), discuter avec ceux qui ont déjà un compte, et déléguer sa
-/// présence à l'un d'eux. Propre à ce pacte, jamais visible par
-/// l'autre partie.
+/// Gestion des personnes prévues "en cas d'imprévu" pour ce Swend :
+/// les voir, en ajouter, en retirer, discuter avec elles. C'est de la
+/// préparation — aucune demande de remplacement ne part d'ici (seul le
+/// parcours "Un imprévu ?" en envoie). Propre à ce pacte, jamais visible
+/// par l'autre partie.
 class MesRemplacantsScreen extends StatefulWidget {
   final String pacteId;
   final String cote;
@@ -36,32 +37,27 @@ class MesRemplacantsScreen extends StatefulWidget {
 }
 
 class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
-  List<Remplacant> get remplacants => widget.cotePacte.listeRemplacants;
+  /// Les personnes déjà enregistrées (vérité serveur).
+  List<Remplacant> get _enregistrees => widget.cotePacte.listeRemplacants;
 
-  /// id (ou identité mémoire pour un remplaçant pas encore enregistré)
-  /// de celui en cours de désignation, pour désactiver son bouton.
-  Object? enCoursPour;
-  String? erreur;
+  /// Les personnes en cours de saisie, pas encore enregistrées.
+  final List<Remplacant> _brouillons = [];
 
-  /// True si une désignation a eu lieu pendant cette visite de l'écran
-  /// — signale à l'appelant qu'il doit rafraîchir le statut du pacte.
+  Object? _enCoursPour;
+  bool _enregistrementEnCours = false;
+  String? _erreur;
+
+  /// Signale à l'appelant qu'il doit rafraîchir la fiche du Swend.
   bool _quelqueChoseAChange = false;
 
   @override
   void initState() {
     super.initState();
+    _brouillons.addAll(_enregistrees.where((r) => r.id == null));
+    _enregistrees.removeWhere((r) => r.id == null);
     _rafraichir();
   }
 
-  /// Remet à jour les fiches déjà enregistrées avec ce que le serveur a
-  /// de plus récent (compte créé/lié entre-temps, demande acceptée ou
-  /// refusée depuis un autre appareil, fiche supprimée entre-temps...)
-  /// — cet écran affichait jusque là uniquement ce que `DetailPacteScreen`
-  /// avait en mémoire depuis son dernier chargement, sans jamais se
-  /// resynchroniser à l'ouverture (contrairement à `ImprevuScreen`, qui
-  /// le fait déjà pour la même raison). Ne touche pas aux nouvelles
-  /// fiches en cours de saisie dans `RemplacantsForm` (celles sans id,
-  /// pas encore enregistrées).
   Future<void> _rafraichir() async {
     try {
       final liste = await PacteRepository.remplacantsDe(
@@ -70,34 +66,18 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       );
       if (!mounted) return;
       setState(() {
-        final idsServeur = liste.map((f) => f.id).toSet();
-        remplacants.removeWhere(
-          (r) => r.id != null && !idsServeur.contains(r.id),
-        );
-        for (final frais in liste) {
-          final i = remplacants.indexWhere((r) => r.id == frais.id);
-          if (i != -1) {
-            remplacants[i]
-              ..prenom = frais.prenom
-              ..nom = frais.nom
-              ..telephone = frais.telephone
-              ..email = frais.email
-              ..selectionne = frais.selectionne
-              ..profilId = frais.profilId
-              ..demandeStatut = frais.demandeStatut;
-          } else {
-            remplacants.add(frais);
-          }
-        }
+        _enregistrees
+          ..clear()
+          ..addAll(liste);
       });
     } catch (_) {
-      // Pas grave : on garde ce qui était déjà en mémoire.
+      // On garde ce qui était déjà en mémoire.
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final valides = remplacants.where((r) => r.estRempli).toList();
+    final aEnregistrer = _brouillons.where((r) => r.estRempli).isNotEmpty;
 
     return PopScope(
       canPop: false,
@@ -110,37 +90,52 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             const Text(
-              "Propres à ce Swend : cette liste ne sera jamais visible par l'autre partie. Tu peux "
-              "en ajouter à tout moment, pas seulement si tu te désistes.",
+              "Propres à ce Swend : cette liste ne sera jamais visible par l'autre partie. "
+              "Tu peux en ajouter ou en retirer à tout moment.",
               style: TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 16),
+            if (_enregistrees.isNotEmpty) ...[
+              const Text(
+                'Personnes prévues',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              for (final r in _enregistrees) _carte(r),
+              const SizedBox(height: 8),
+              const Divider(),
+              const SizedBox(height: 8),
+            ],
             RemplacantsForm(
-              remplacants: remplacants,
+              remplacants: _brouillons,
               minimum: 0,
               nomAutrePartie: widget.nomAutrePartie,
               type: widget.type,
               dates: widget.dates,
               onChanged: () => setState(() {}),
             ),
-            if (erreur != null) ...[
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(
-                  erreur!,
-                  style: const TextStyle(color: Colors.red, fontSize: 12),
-                ),
+            if (_erreur != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _erreur!,
+                style: const TextStyle(color: AppColors.erreur, fontSize: 12),
               ),
             ],
-            if (valides.isNotEmpty) ...[
-              const Divider(),
-              const SizedBox(height: 8),
-              const Text(
-                'Personnes ajoutées',
-                style: TextStyle(fontWeight: FontWeight.bold),
+            if (aEnregistrer) ...[
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: _enregistrementEnCours ? null : _enregistrer,
+                child: _enregistrementEnCours
+                    ? const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Enregistrer'),
               ),
-              const SizedBox(height: 8),
-              for (final r in valides) _carteRemplacant(r),
             ],
           ],
         ),
@@ -148,10 +143,21 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     );
   }
 
-  Widget _carteRemplacant(Remplacant r) {
+  Widget _carte(Remplacant r) {
     final aUnCompte = r.profilId != null;
-    final enCours = enCoursPour == (r.id ?? r);
+    final enCours = _enCoursPour == r.id;
+    final String? etat;
+    if (r.selectionne) {
+      etat = 'Prend ta place ✓';
+    } else if (r.demandeStatut == DemandeStatut.envoyee) {
+      etat = 'En attente';
+    } else if (r.demandeStatut.estIndisponible) {
+      etat = 'Indisponible';
+    } else {
+      etat = null;
+    }
 
+    const petitBouton = Size(0, 38);
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
       child: Padding(
@@ -167,28 +173,18 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                 ),
-                if (r.selectionne)
-                  const Text(
-                    'A accepté ✓',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  )
-                else if (r.demandeStatut == DemandeStatut.envoyee)
-                  const Text(
-                    'En attente',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
-                  )
-                else if (r.demandeStatut == DemandeStatut.refusee)
-                  const Text(
-                    'Indisponible',
-                    style: TextStyle(fontSize: 12, color: Colors.black54),
+                if (etat != null)
+                  Text(
+                    etat,
+                    style: const TextStyle(fontSize: 12, color: Colors.black54),
                   ),
               ],
             ),
             const SizedBox(height: 4),
             Text(
               aUnCompte
-                  ? 'A rejoint l\'application'
-                  : "N'a pas encore rejoint l'application",
+                  ? 'A rejoint Swend'
+                  : "N'a pas encore rejoint Swend",
               style: const TextStyle(fontSize: 12, color: Colors.black54),
             ),
             const SizedBox(height: 8),
@@ -198,21 +194,36 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
               children: [
                 if (aUnCompte)
                   OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(minimumSize: petitBouton),
                     onPressed: () => _ouvrirChat(r),
                     icon: const Icon(Icons.chat_bubble_outline, size: 16),
                     label: const Text('Discuter'),
                   ),
-                if (!r.selectionne && r.demandeStatut == null)
+                if (!aUnCompte && !r.selectionne)
                   OutlinedButton.icon(
-                    onPressed: enCours ? null : () => _demander(r),
-                    icon: enCours
-                        ? const SizedBox(
-                            height: 14,
-                            width: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Icon(Icons.person_search, size: 16),
-                    label: const Text('Lui demander'),
+                    style: OutlinedButton.styleFrom(minimumSize: petitBouton),
+                    onPressed: () => inviterPersonneDeConfianceParSms(
+                      context,
+                      r,
+                      widget.nomAutrePartie,
+                    ),
+                    icon: const Icon(Icons.sms_outlined, size: 16),
+                    label: const Text('Inviter par SMS'),
+                  ),
+                if (r.demandeStatut == DemandeStatut.envoyee)
+                  TextButton(
+                    style: TextButton.styleFrom(minimumSize: petitBouton),
+                    onPressed: enCours ? null : () => _annulerDemande(r),
+                    child: const Text('Annuler la demande'),
+                  )
+                else if (!r.selectionne)
+                  TextButton(
+                    style: TextButton.styleFrom(
+                      minimumSize: petitBouton,
+                      foregroundColor: AppColors.erreur,
+                    ),
+                    onPressed: enCours ? null : () => _retirer(r),
+                    child: const Text('Retirer'),
                   ),
               ],
             ),
@@ -235,49 +246,100 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     );
   }
 
-  Future<void> _demander(Remplacant r) async {
+  Future<void> _enregistrer() async {
+    setState(() {
+      _enregistrementEnCours = true;
+      _erreur = null;
+    });
+    try {
+      await PacteRepository.synchroniserRemplacants(
+        widget.pacteId,
+        widget.cote,
+        _brouillons,
+      );
+      if (!mounted) return;
+      setState(() {
+        final enregistres = _brouillons.where((r) => r.id != null).toList();
+        _enregistrees.addAll(enregistres);
+        _brouillons.removeWhere((r) => r.id != null);
+        _enregistrementEnCours = false;
+        _quelqueChoseAChange = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _enregistrementEnCours = false;
+        _erreur = "Impossible d'enregistrer pour le moment. Réessaie.";
+      });
+    }
+  }
+
+  Future<void> _retirer(Remplacant r) async {
     final confirme = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Demander à ${r.prenom} de prendre ta place ?'),
-        content: const Text('Elle pourra accepter ou refuser.'),
+        title: Text('Retirer ${r.prenom} de la liste ?'),
+        content: Text(
+          '${r.prenom} ne fera plus partie des personnes prévues pour ce Swend.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Retour'),
           ),
           FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: AppColors.erreur),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Envoyer la demande'),
+            child: const Text('Retirer'),
           ),
         ],
       ),
     );
     if (confirme != true) return;
+    await _action(r, () => PacteRepository.retirerRemplacant(r.id!), () {
+      _enregistrees.remove(r);
+    });
+  }
 
+  Future<void> _annulerDemande(Remplacant r) async {
+    await _action(r, () => PacteRepository.annulerDemandeRemplacement(r.id!), () {
+      r.demandeStatut = null;
+    });
+  }
+
+  Future<void> _action(
+    Remplacant r,
+    Future<void> Function() appel,
+    VoidCallback succes,
+  ) async {
     setState(() {
-      enCoursPour = r.id ?? r;
-      erreur = null;
+      _enCoursPour = r.id;
+      _erreur = null;
     });
     try {
-      await PacteRepository.synchroniserRemplacants(
-        widget.pacteId,
-        widget.cote,
-        remplacants,
-      );
-      await PacteRepository.envoyerDemandeRemplacement(r.id!);
+      await appel();
       if (!mounted) return;
       setState(() {
-        r.demandeStatut = DemandeStatut.envoyee;
-        enCoursPour = null;
+        succes();
+        _enCoursPour = null;
         _quelqueChoseAChange = true;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
+      final code = PacteRepository.codeErreurMetier(e);
       setState(() {
-        enCoursPour = null;
-        erreur = "Impossible d'envoyer la demande pour le moment. Réessaie.";
+        _enCoursPour = null;
+        _erreur = switch (code) {
+          'deja_acceptee' =>
+            '${r.prenom} a déjà accepté de prendre ta place : le remplacement est définitif.',
+          'retrait_impossible' =>
+            '${r.prenom} a une demande en cours : impossible de la retirer.',
+          'demande_non_active' => "Cette demande n'est plus en attente.",
+          _ => 'Impossible pour le moment. Réessaie.',
+        };
+        _quelqueChoseAChange = true;
       });
+      if (code != null) _rafraichir();
     }
   }
 }

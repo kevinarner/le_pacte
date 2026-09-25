@@ -254,8 +254,14 @@ class PacteRepository {
         })
         .select()
         .single();
-    r.id = row['id'] as String;
-    r.profilId = row['profil_id'] as String?;
+    // La base recalcule le lien de compte et peut faire naître la fiche
+    // "indisponible" (personne déjà engagée de l'autre côté) : on reprend
+    // sa version à elle, pas celle envoyée.
+    final enBase = _remplacantDe(row);
+    r.id = enBase.id;
+    r.profilId = enBase.profilId;
+    r.selectionne = enBase.selectionne;
+    r.demandeStatut = enBase.demandeStatut;
     return r;
   }
 
@@ -271,23 +277,85 @@ class PacteRepository {
     }
   }
 
-  /// Marque ce remplaçant comme celui délégué pour son côté du pacte.
-  static Future<void> selectionnerRemplacant(String remplacantId) async {
-    await _client
-        .from('remplacants')
-        .update({'selectionne': true})
-        .eq('id', remplacantId);
+  /// Envoie une demande "Un imprévu ?" à cette personne (titulaire
+  /// uniquement). Rien n'est transféré tant qu'elle n'a pas accepté.
+  /// Toutes les transitions d'une demande passent par des fonctions
+  /// serveur : l'app n'a plus le droit d'écrire directement dans
+  /// `remplacants` (hors ajout d'une personne).
+  static Future<void> envoyerDemandeRemplacement(String remplacantId) async {
+    await _client.rpc(
+      'envoyer_demande_remplacement',
+      params: {'p_remplacant_id': remplacantId},
+    );
   }
 
-  /// Envoie une demande "Un imprévu ?" à cette personne — appelé par le
-  /// titulaire, propriétaire de la ligne (même droit déjà utilisé par
-  /// [selectionnerRemplacant]). Ne fait que passer la demande en
-  /// attente : rien n'est transféré tant qu'elle n'a pas accepté.
-  static Future<void> envoyerDemandeRemplacement(String remplacantId) async {
-    await _client
-        .from('remplacants')
-        .update({'demande_statut': DemandeStatut.envoyee.name})
-        .eq('id', remplacantId);
+  /// Annule une demande encore en attente — impossible dès que la
+  /// personne a accepté (transfert définitif).
+  static Future<void> annulerDemandeRemplacement(String remplacantId) async {
+    await _client.rpc(
+      'annuler_demande_remplacement',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Appelé par la personne qui avait accepté : rouvre la recherche côté
+  /// titulaire.
+  static Future<void> seDesister(String remplacantId) async {
+    await _client.rpc(
+      'se_desister_du_remplacement',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Retire une personne de la liste (et son fil de discussion) — refusé
+  /// par la base si une demande est en attente ou si elle a accepté.
+  static Future<void> retirerRemplacant(String remplacantId) async {
+    await _client.rpc(
+      'retirer_remplacant',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Ajoute quelqu'un pendant un imprévu ET lui envoie la demande, en une
+  /// seule opération côté base (tout ou rien).
+  static Future<String> ajouterEtDemanderRemplacement({
+    required String pacteId,
+    required String cote,
+    required String prenom,
+    required String nom,
+    required String telephone,
+  }) async {
+    final id = await _client.rpc<String>(
+      'ajouter_et_demander_remplacement',
+      params: {
+        'p_pacte_id': pacteId,
+        'p_cote': cote,
+        'p_prenom': prenom,
+        'p_nom': nom,
+        'p_telephone': telephone,
+      },
+    );
+    return id;
+  }
+
+  /// Le code métier levé par une fonction serveur (`place_deja_prise`,
+  /// `personne_indisponible`...), ou null pour une erreur technique.
+  static String? codeErreurMetier(Object erreur) {
+    if (erreur is! PostgrestException) return null;
+    const codes = [
+      'place_deja_prise',
+      'personne_indisponible',
+      'deja_remplacant_autre_cote',
+      'demande_non_active',
+      'deja_acceptee',
+      'retrait_impossible',
+      'swend_inactif',
+      'champs_manquants',
+    ];
+    for (final code in codes) {
+      if (erreur.message.contains(code)) return code;
+    }
+    return null;
   }
 
   /// Répond à une demande reçue — appelé par la personne sollicitée

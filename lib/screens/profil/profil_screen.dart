@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
@@ -35,7 +36,14 @@ class _ProfilScreenState extends State<ProfilScreen> {
 
   Future<void> _charger() async {
     try {
-      final pactes = await PacteRepository.mesPactes();
+      // Seuls les Swends dont je suis titulaire comptent ici : ceux où je
+      // suis seulement prévu "en cas d'imprévu" ne sont pas les miens.
+      final pactes = (await PacteRepository.mesPactes())
+          .where(
+            (p) =>
+                PerspectivePacte.de(p, AppStore.moi.id)?.estTitulaire ?? false,
+          )
+          .toList();
       final termines = pactes
           .where(
             (p) =>

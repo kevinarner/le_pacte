@@ -259,32 +259,39 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     });
   }
 
-  Future<void> _inviterParSms(Remplacant r) async {
-    final numero = r.telephone.trim();
-    if (numero.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Renseigne le numéro de téléphone pour inviter par SMS.',
-          ),
-        ),
-      );
-      return;
-    }
-    final prenom = r.prenom.trim();
-    final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final autreComplet = widget.nomAutrePartie.trim();
-    final autre = autreComplet.isNotEmpty ? prenomDe(autreComplet) : 'mon ami';
-    final message =
-        "$salutation, j'ai proposé un Swend à $autre et j'aimerais pouvoir compter sur toi "
-        "en cas d'imprévu.\n"
-        "Si finalement je ne peux pas être là et que tu es dispo, tu pourrais prendre ma place. "
-        "Ça te dit ?\n"
-        "Je te laisse en découvrir plus sur Swend :)\n"
-        "$lienTelechargementApp";
-    final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
-    await launchUrl(
-      Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
+  Future<void> _inviterParSms(Remplacant r) =>
+      inviterPersonneDeConfianceParSms(context, r, widget.nomAutrePartie);
+}
+
+/// SMS d'invitation générique d'une personne de confiance (pas encore
+/// sur Swend) — préparation, sans demande de remplacement réelle.
+Future<void> inviterPersonneDeConfianceParSms(
+  BuildContext context,
+  Remplacant r,
+  String nomAutrePartie,
+) async {
+  final numero = r.telephone.trim();
+  if (numero.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Renseigne le numéro de téléphone pour inviter par SMS.'),
+      ),
     );
+    return;
   }
+  final prenom = r.prenom.trim();
+  final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
+  final autreComplet = nomAutrePartie.trim();
+  final autre = autreComplet.isNotEmpty ? prenomDe(autreComplet) : 'mon ami';
+  final message =
+      "$salutation, j'ai proposé un Swend à $autre et j'aimerais pouvoir compter sur toi "
+      "en cas d'imprévu.\n"
+      "Si finalement je ne peux pas être là et que tu es dispo, tu pourrais prendre ma place. "
+      "Ça te dit ?\n"
+      "Je te laisse en découvrir plus sur Swend :)\n"
+      "$lienTelechargementApp";
+  final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
+  await launchUrl(
+    Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
+  );
 }

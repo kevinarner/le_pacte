@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/pacte.dart';
+import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
@@ -14,6 +16,7 @@ import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_presence.dart';
 import 'bloc_reponse.dart';
+import 'bloc_tiers.dart';
 import 'imprevu_screen.dart';
 
 class DetailPacteScreen extends StatefulWidget {
@@ -25,12 +28,30 @@ class DetailPacteScreen extends StatefulWidget {
 }
 
 class _DetailPacteScreenState extends State<DetailPacteScreen> {
+  late Pacte _pacte = widget.pacte;
+
+  Future<void> _recharger() async {
+    try {
+      final frais = await PacteRepository.pacteParId(_pacte.id);
+      if (!mounted || frais == null) return;
+      setState(() => _pacte = frais);
+    } catch (_) {
+      // On garde l'état affiché.
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final pacte = widget.pacte;
-    // Suis-je l'initiateur de CE pacte ? On compare des identifiants
-    // internes stables, jamais le nom affiché.
-    final jeSuisInitiateur = pacte.initiateur.idTitulaire == AppStore.moi.id;
+    final pacte = _pacte;
+    // Qui suis-je sur CE pacte ? Déterminé explicitement (identifiants
+    // internes, jamais le nom affiché) : titulaire initiateur, titulaire
+    // destinataire, ou personne tierce "en cas d'imprévu" — jamais de
+    // repli implicite vers "destinataire".
+    final perspective = PerspectivePacte.de(pacte, AppStore.moi.id);
+    if (perspective == null || !perspective.estTitulaire) {
+      return _vueTiers(pacte, perspective);
+    }
+    final jeSuisInitiateur = perspective.jeSuisInitiateur;
     final cotePartenaire = jeSuisInitiateur
         ? pacte.destinataire
         : pacte.initiateur;
@@ -222,6 +243,36 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               pacte.statut == StatutPacte.annuleDoubleAbsence)
             BlocEpilogue(statut: pacte.statut),
         ],
+      ),
+    );
+  }
+
+  Widget _vueTiers(Pacte pacte, PerspectivePacte? perspective) {
+    if (perspective == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Swend')),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Text(
+              "Ce Swend n'est plus accessible.",
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      );
+    }
+    final titulaire = prenomDe(perspective.coteTitulaire!.nomTitulaire);
+    final autre = prenomDe(perspective.coteAutreParticipant!.nomTitulaire);
+    return Scaffold(
+      appBar: AppBar(title: Text('Swend ${deNom(titulaire)} avec $autre')),
+      body: RefreshIndicator(
+        onRefresh: _recharger,
+        child: BlocTiers(
+          pacte: pacte,
+          perspective: perspective,
+          onRecharger: _recharger,
+        ),
       ),
     );
   }

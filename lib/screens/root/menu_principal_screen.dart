@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../models/demande_statut.dart';
 import '../../models/fil_de_discussion.dart';
 import '../../models/pacte.dart';
+import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
@@ -61,14 +63,31 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     }
   }
 
-  bool _jeSuisInitiateur(Pacte p) =>
-      p.initiateur.idTitulaire == AppStore.moi.id;
+  PerspectivePacte? _perspective(Pacte p) =>
+      PerspectivePacte.de(p, AppStore.moi.id);
+
+  /// Je serai réellement présent à ce Swend : titulaire, ou personne
+  /// tierce qui a accepté de prendre une place. Une personne seulement
+  /// "prévue en cas d'imprévu" n'y va pas.
+  bool _jyVais(Pacte p) {
+    final v = _perspective(p);
+    if (v == null) return false;
+    return v.estTitulaire || v.maFiche!.selectionne;
+  }
 
   /// Un pacte attend une action de ma part : c'est mon tour de choisir
-  /// une date, ou (côté destinataire) de répondre — même logique que
-  /// `DetailPacteScreen`.
-  bool _actionRequise(Pacte p) =>
-      pacteEstMonTour(p.statut, _jeSuisInitiateur(p));
+  /// une date ou de répondre (titulaire), ou une demande "Un imprévu ?"
+  /// m'attend (personne tierce).
+  bool _actionRequise(Pacte p) {
+    final v = _perspective(p);
+    if (v == null) return false;
+    if (!v.estTitulaire) {
+      return p.statut == StatutPacte.confirme &&
+          !v.maFiche!.selectionne &&
+          v.maFiche!.demandeStatut == DemandeStatut.envoyee;
+    }
+    return pacteEstMonTour(p.statut, v.jeSuisInitiateur);
+  }
 
   Pacte? get _prochainPacte {
     final liste = mesPactes;
@@ -79,6 +98,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
             .where(
               (p) =>
                   p.statut == StatutPacte.confirme &&
+                  _jyVais(p) &&
                   p.dateRetenue != null &&
                   p.dateRetenue!.isAfter(maintenant),
             )
@@ -91,6 +111,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
       mesPactes
           ?.where(
             (p) =>
+                _jyVais(p) &&
                 p.statut != StatutPacte.maintenu &&
                 p.statut != StatutPacte.annule &&
                 p.statut != StatutPacte.annuleDoubleAbsence,
@@ -182,9 +203,12 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   }
 
   Widget _cartePlusProche(Pacte pacte) {
-    final autreNom = _jeSuisInitiateur(pacte)
-        ? pacte.destinataire.nomTitulaire
-        : pacte.initiateur.nomTitulaire;
+    final v = _perspective(pacte)!;
+    final autreNom = v.estTitulaire
+        ? (v.jeSuisInitiateur
+              ? pacte.destinataire.nomTitulaire
+              : pacte.initiateur.nomTitulaire)
+        : v.coteAutreParticipant!.nomTitulaire;
     return FractionallySizedBox(
       widthFactor: 0.82,
       child: Card(
