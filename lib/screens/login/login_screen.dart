@@ -7,6 +7,7 @@ import '../../constants.dart';
 import '../../models/utilisateur.dart';
 import '../../services/app_store.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/telephone.dart';
 import '../../widgets/photo_avatar.dart';
 import '../root/root_shell.dart';
 
@@ -206,7 +207,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        _champ('Numéro de téléphone', '06 12 34 56 78', telephoneController,
+        _champ('Numéro de mobile', '06 12 34 56 78', telephoneController,
             type: TextInputType.phone, onChanged: true),
         const SizedBox(height: 12),
         _champ('Adresse email', 'toi@exemple.com', emailInscriptionController,
@@ -302,7 +303,9 @@ class _LoginScreenState extends State<LoginScreen> {
       erreurs.add('Renseigne ton prénom et ton nom.');
     }
     if (telephoneController.text.trim().isEmpty) {
-      erreurs.add('Renseigne ton numéro de téléphone.');
+      erreurs.add('Renseigne ton numéro de mobile.');
+    } else if (!telephoneValide(telephoneController.text)) {
+      erreurs.add(messageTelephoneInvalide);
     }
     if (emailInscriptionController.text.trim().isEmpty) {
       erreurs.add('Renseigne ton adresse email.');
@@ -335,6 +338,11 @@ class _LoginScreenState extends State<LoginScreen> {
         return 'Un compte existe déjà avec cette adresse email.';
       case 'missing email or phone':
         return "Renseigne ton adresse email.";
+      // Refus de la base à la création du profil : numéro déjà associé à
+      // un autre compte (unicité canonique) ou invalide (déjà vérifié ici).
+      case 'Database error saving new user':
+        return 'Impossible de créer le compte avec ce numéro : il est peut-être déjà '
+            'associé à un autre compte.';
       default:
         return message;
     }

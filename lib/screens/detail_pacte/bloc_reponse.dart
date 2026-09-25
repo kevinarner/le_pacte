@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
+import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
+import '../../utils/telephone.dart';
 import '../../widgets/remplacants_form.dart';
 
 const _minimumRemplacants = 2;
@@ -25,11 +27,20 @@ class _BlocReponseState extends State<BlocReponse> {
   bool enCours = false;
   String? erreur;
 
+  Map<String, String> get _telephonesInterdits {
+    final moi = normaliserTelephone(AppStore.moi.telephone);
+    return {?moi: "C'est ton propre numéro."};
+  }
+
   bool get _peutAccepter =>
       widget.pacte.destinataire.listeRemplacants
-          .where((r) => r.estRempli)
-          .length >=
-      _minimumRemplacants;
+                  .where((r) => r.estRempli)
+                  .length >=
+              _minimumRemplacants &&
+      RemplacantsForm.listeValide(
+        widget.pacte.destinataire.listeRemplacants,
+        _telephonesInterdits,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +70,7 @@ class _BlocReponseState extends State<BlocReponse> {
           dates: widget.pacte.dateRetenue != null
               ? [widget.pacte.dateRetenue!]
               : [],
+          telephonesInterdits: _telephonesInterdits,
           onChanged: () => setState(() {}),
         ),
         const SizedBox(height: 8),
@@ -109,11 +121,17 @@ class _BlocReponseState extends State<BlocReponse> {
       widget.pacte.restaurantRetenu = widget.pacte.restaurantsProposes.first;
       widget.pacte.statut = StatutPacte.confirme;
       widget.onChanged();
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible d'accepter le Swend pour le moment. Réessaie.";
+        erreur = switch (PacteRepository.codeErreurMetier(e)) {
+          'personne_est_participant' =>
+            "${widget.pacte.initiateur.nomTitulaire} participe à ce Swend : impossible d'en faire une personne de confiance.",
+          'personne_deja_prevue' => 'Une même personne apparaît deux fois dans ta liste.',
+          'telephone_invalide' => messageTelephoneInvalide,
+          _ => "Impossible d'accepter le Swend pour le moment. Réessaie.",
+        };
       });
     }
   }

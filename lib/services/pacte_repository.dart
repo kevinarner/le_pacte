@@ -55,19 +55,6 @@ class PacteRepository {
     }).toList();
   }
 
-  /// Retrouve l'id du profil correspondant à un numéro de téléphone, ou
-  /// null si personne n'a encore de compte avec ce numéro. Passe par une
-  /// fonction serveur dédiée : impossible de parcourir les profils des
-  /// autres directement.
-  static Future<String?> trouverProfilParTelephone(String telephone) async {
-    if (telephone.trim().isEmpty) return null;
-    final result = await _client.rpc<String?>(
-      'trouver_profil_par_telephone',
-      params: {'p_telephone': telephone.trim()},
-    );
-    return result;
-  }
-
   /// Le téléphone du titulaire d'un pacte, du point de vue de son
   /// remplaçant (pour pouvoir l'appeler) — ne renvoie quelque chose que
   /// si l'appelant est bien ce remplaçant, jamais pour un tiers.
@@ -202,10 +189,9 @@ class PacteRepository {
     required List<Remplacant> remplacantsInitiateur,
   }) async {
     final restau = await restaurant();
-    final destinataireId = await trouverProfilParTelephone(
-      destinataireTelephone,
-    );
 
+    // Le destinataire (s'il a déjà un compte) est retrouvé par la base à
+    // partir du numéro canonique : l'app n'envoie jamais destinataire_id.
     final row = await _client
         .from('pactes')
         .insert({
@@ -217,7 +203,6 @@ class PacteRepository {
           'restaurant_id': restau.id,
           'initiateur_id': initiateurId,
           'initiateur_nom': initiateurNom,
-          if (destinataireId != null) 'destinataire_id': destinataireId,
           'destinataire_nom': destinataireNom,
           'destinataire_telephone': destinataireTelephone,
         })
@@ -237,10 +222,8 @@ class PacteRepository {
     String cote,
     Remplacant r,
   ) async {
-    // Si cette personne a déjà un compte, on la relie tout de suite —
-    // sinon, c'est handle_new_user() qui fera le lien plus tard, à son
-    // inscription.
-    final profilId = await trouverProfilParTelephone(r.telephone);
+    // Le lien vers un compte existant (profil_id) est calculé par la base
+    // à partir du numéro canonique — ou à l'inscription de la personne.
     final row = await _client
         .from('remplacants')
         .insert({
@@ -250,7 +233,6 @@ class PacteRepository {
           'nom': r.nom,
           'telephone': r.telephone,
           'email': r.email,
-          if (profilId != null) 'profil_id': profilId,
         })
         .select()
         .single();
@@ -351,6 +333,12 @@ class PacteRepository {
       'retrait_impossible',
       'swend_inactif',
       'champs_manquants',
+      'telephone_invalide',
+      'personne_est_participant',
+      'personne_deja_prevue',
+      'destinataire_est_initiateur',
+      'telephone_fige',
+      'modification_interdite',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;

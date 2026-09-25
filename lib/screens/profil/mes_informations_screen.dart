@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import '../../services/app_store.dart';
 import '../../services/profil_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/telephone.dart';
 
-/// Détail des informations de compte : Nom (non modifiable ici), puis
-/// Téléphone / Email / Mot de passe, chacun avec un bouton "Modifier" qui
-/// persiste réellement le changement dans Supabase.
+/// Détail des informations de compte : Nom et Téléphone (non
+/// modifiables ici — le numéro est figé après l'inscription en V1), puis
+/// Email / Mot de passe, chacun avec un bouton "Modifier" qui persiste
+/// réellement le changement dans Supabase.
 class MesInformationsScreen extends StatefulWidget {
   const MesInformationsScreen({super.key});
 
@@ -28,12 +30,21 @@ class _MesInformationsScreenState extends State<MesInformationsScreen> {
               children: [
                 _ligne('Nom', utilisateur.nomComplet),
                 _separateur(),
-                _ligne('Téléphone', utilisateur.telephone, onModifier: _modifierTelephone),
+                _ligne('Téléphone', formaterTelephone(utilisateur.telephone)),
                 _separateur(),
                 _ligne('Email', utilisateur.email, onModifier: _modifierEmail),
                 _separateur(),
                 _ligne('Mot de passe', '••••••••', onModifier: _modifierMotDePasse),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              "Ton numéro permet aux personnes qui t'invitent de te retrouver : il ne peut pas "
+              'être modifié pour le moment. Pour en changer, écris-nous depuis "Aide / Nous contacter".',
+              style: TextStyle(fontSize: 12, color: AppColors.texteAttenue),
             ),
           ),
         ],
@@ -66,28 +77,6 @@ class _MesInformationsScreenState extends State<MesInformationsScreen> {
             TextButton(onPressed: onModifier, child: const Text('Modifier')),
         ],
       ),
-    );
-  }
-
-  Future<void> _modifierTelephone() async {
-    final valeur = await _dialogueChampUnique(
-      titre: 'Modifier le téléphone',
-      labelChamp: 'Numéro de téléphone',
-      valeurInitiale: AppStore.moi.telephone,
-      clavier: TextInputType.phone,
-      messageErreur: (e) {
-        final bas = e.toLowerCase();
-        if (bas.contains('telephone') && (bas.contains('duplicate') || bas.contains('unique'))) {
-          return 'Ce numéro de téléphone est déjà associé à un autre compte.';
-        }
-        return 'Impossible de mettre à jour le téléphone pour le moment.';
-      },
-      enregistrer: ProfilRepository.modifierTelephone,
-    );
-    if (valeur == null || !mounted) return;
-    setState(() => AppStore.moi.telephone = valeur.trim());
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Numéro de téléphone mis à jour.')),
     );
   }
 

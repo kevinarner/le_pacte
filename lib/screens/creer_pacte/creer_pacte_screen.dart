@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,7 +10,9 @@ import '../../services/app_store.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/telephone.dart';
 import '../../widgets/dates_form.dart';
+import '../../widgets/envoi_invitation.dart';
 import '../../widgets/remplacants_form.dart';
 import '../contact/suggestion_restaurant_screen.dart';
 
@@ -43,13 +43,6 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   bool enCours = false;
   String? erreur;
   String? erreurChargement;
-
-  /// Id du compte Swend du destinataire s'il en a déjà un avec ce
-  /// numéro — null tant que la vérification n'a rien trouvé (ou n'a pas
-  /// encore eu lieu). Revérifié à chaque changement du numéro, avec un
-  /// léger délai pour ne pas interroger le serveur à chaque frappe.
-  String? _destinataireProfilId;
-  Timer? _debounceDestinataire;
 
   @override
   void initState() {
@@ -227,8 +220,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       TextField(
         controller: telephoneDestinataireController,
         keyboardType: TextInputType.phone,
-        decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-        onChanged: _onTelephoneDestinataireChanged,
+        decoration: InputDecoration(
+          labelText: 'Numéro de mobile',
+          errorText: _erreurTelephoneDestinataire,
+          errorMaxLines: 2,
+        ),
+        onChanged: (_) => setState(() {}),
       ),
       if (ContactPickerService.disponible) ...[
         const SizedBox(height: 8),
@@ -239,55 +236,38 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         ),
       ],
       const SizedBox(height: 8),
-      if (_destinataireProfilId != null)
-        const Row(
-          children: [
-            Icon(Icons.check_circle_outline, size: 16, color: AppColors.accentFonce),
-            SizedBox(width: 6),
-            Text(
-              'Déjà sur Swend',
-              style: TextStyle(
-                fontSize: 12.5,
-                color: AppColors.accentFonce,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ],
-        )
-      else ...[
-        const Text(
-          "Cette personne n'a pas encore Swend ?",
-          style: TextStyle(fontSize: 12, color: Colors.black54),
-        ),
-        const SizedBox(height: 8),
-        OutlinedButton.icon(
-          onPressed: _inviterParSms,
-          icon: const Icon(Icons.sms_outlined, size: 18),
-          label: const Text('Inviter par SMS'),
-        ),
-      ],
+      const Text(
+        "Cette personne n'a pas encore Swend ?",
+        style: TextStyle(fontSize: 12, color: Colors.black54),
+      ),
+      const SizedBox(height: 8),
+      OutlinedButton.icon(
+        onPressed: _envoyerInvitation,
+        icon: const Icon(Icons.send_outlined, size: 18),
+        label: const Text("Envoyer l'invitation"),
+      ),
     ];
   }
 
-  /// Vérifie si ce numéro correspond à un compte Swend existant, avec un
-  /// léger délai pour laisser l'utilisateur finir de taper.
-  void _onTelephoneDestinataireChanged(String valeur) {
-    setState(() => _destinataireProfilId = null);
-    _debounceDestinataire?.cancel();
-    final numero = valeur.trim();
-    if (numero.length < 6) return;
-    _debounceDestinataire = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final id = await PacteRepository.trouverProfilParTelephone(numero);
-        if (!mounted || telephoneDestinataireController.text.trim() != numero) {
-          return;
-        }
-        setState(() => _destinataireProfilId = id);
-      } catch (_) {
-        // Pas grave : le bouton "Inviter par SMS" reste simplement affiché.
-      }
-    });
+  String? get _e164Destinataire =>
+      normaliserTelephone(telephoneDestinataireController.text);
+  String? get _monE164 => normaliserTelephone(AppStore.moi.telephone);
+
+  String? get _erreurTelephoneDestinataire {
+    if (telephoneDestinataireController.text.trim().isEmpty) return null;
+    final e164 = _e164Destinataire;
+    if (e164 == null) return messageTelephoneInvalide;
+    if (e164 == _monE164) return "C'est ton propre numéro.";
+    return null;
   }
+
+  /// Ni soi-même, ni la personne avec qui on fait ce Swend, ne peuvent
+  /// être "personne de confiance" (la base le refuse aussi).
+  Map<String, String> get _telephonesInterdits => {
+    ?_monE164: "C'est ton propre numéro.",
+    ?_e164Destinataire:
+        "C'est le numéro de $_prenomDestinataire, avec qui tu fais ce Swend.",
+  };
 
   Future<void> _choisirDansLesContacts() async {
     final contact = await ContactPickerService.choisirContact();
@@ -464,6 +444,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         nomAutrePartie: _prenomDestinataire,
         type: type,
         dates: datesProposees,
+        telephonesInterdits: _telephonesInterdits,
         onChanged: () => setState(() {}),
       ),
     ];
@@ -474,12 +455,14 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       case 0:
         return prenomDestinataireController.text.trim().isNotEmpty &&
             nomDestinataireController.text.trim().isNotEmpty &&
-            telephoneDestinataireController.text.trim().isNotEmpty;
+            _e164Destinataire != null &&
+            _erreurTelephoneDestinataire == null;
       case 1:
         return datesProposees.isNotEmpty;
       case 2:
         return remplacants.where((r) => r.estRempli).length >=
-            _minimumRemplacants;
+                _minimumRemplacants &&
+            RemplacantsForm.listeValide(remplacants, _telephonesInterdits);
       default:
         return false;
     }
@@ -503,14 +486,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     return [prenom, nom].where((s) => s.isNotEmpty).join(' ');
   }
 
-  Future<void> _inviterParSms() async {
-    final numero = telephoneDestinataireController.text.trim();
-    if (numero.isEmpty) {
+  Future<void> _envoyerInvitation() async {
+    if (telephoneDestinataireController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Renseigne le numéro de téléphone pour inviter par SMS.',
-          ),
+          content: Text("Renseigne le numéro pour envoyer l'invitation."),
         ),
       );
       return;
@@ -524,9 +504,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         "sa place. On se lance ?\n"
         "Je te laisse en découvrir plus sur Swend :)\n"
         "$lienTelechargementApp";
-    final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
-    await launchUrl(
-      Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
+    await envoyerInvitation(
+      context,
+      telephone: telephoneDestinataireController.text,
+      message: message,
     );
   }
 
@@ -551,7 +532,17 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       if (!mounted) return;
       setState(() {
         enCours = false;
-        erreur = "Impossible d'envoyer le Swend pour le moment.\n$e";
+        erreur = switch (PacteRepository.codeErreurMetier(e)) {
+          'telephone_invalide' =>
+            "Un des numéros n'est pas un mobile valide. Vérifie-les avant d'envoyer.",
+          'destinataire_est_initiateur' =>
+            'Tu ne peux pas créer un Swend avec ton propre numéro.',
+          'personne_est_participant' =>
+            "$_prenomDestinataire ne peut pas être une de tes personnes de confiance.",
+          'personne_deja_prevue' =>
+            'Une même personne apparaît deux fois dans ta liste.',
+          _ => "Impossible d'envoyer le Swend pour le moment.\n$e",
+        };
       });
     }
   }

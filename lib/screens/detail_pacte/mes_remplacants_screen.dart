@@ -4,8 +4,10 @@ import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
 import '../../models/remplacant.dart';
 import '../../models/type_repas.dart';
+import '../../services/app_store.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/telephone.dart';
 import '../../widgets/remplacants_form.dart';
 import 'chat_screen.dart';
 
@@ -75,9 +77,22 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     }
   }
 
+  /// Son propre numéro et les personnes déjà enregistrées ne peuvent pas
+  /// être ajoutés (la base refuse aussi l'autre participant).
+  Map<String, String> get _telephonesInterdits {
+    final moi = normaliserTelephone(AppStore.moi.telephone);
+    return {
+      for (final r in _enregistrees)
+        ?normaliserTelephone(r.telephone): 'Cette personne est déjà prévue.',
+      ?moi: "C'est ton propre numéro.",
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final aEnregistrer = _brouillons.where((r) => r.estRempli).isNotEmpty;
+    final enregistrable =
+        RemplacantsForm.listeValide(_brouillons, _telephonesInterdits);
 
     return PopScope(
       canPop: false,
@@ -112,6 +127,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
               nomAutrePartie: widget.nomAutrePartie,
               type: widget.type,
               dates: widget.dates,
+              telephonesInterdits: _telephonesInterdits,
               onChanged: () => setState(() {}),
             ),
             if (_erreur != null) ...[
@@ -124,7 +140,9 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
             if (aEnregistrer) ...[
               const SizedBox(height: 12),
               FilledButton(
-                onPressed: _enregistrementEnCours ? null : _enregistrer,
+                onPressed: _enregistrementEnCours || !enregistrable
+                    ? null
+                    : _enregistrer,
                 child: _enregistrementEnCours
                     ? const SizedBox(
                         height: 16,
@@ -202,13 +220,13 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                 if (!aUnCompte && !r.selectionne)
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(minimumSize: petitBouton),
-                    onPressed: () => inviterPersonneDeConfianceParSms(
+                    onPressed: () => inviterPersonneDeConfiance(
                       context,
                       r,
                       widget.nomAutrePartie,
                     ),
-                    icon: const Icon(Icons.sms_outlined, size: 16),
-                    label: const Text('Inviter par SMS'),
+                    icon: const Icon(Icons.send_outlined, size: 16),
+                    label: const Text("Envoyer l'invitation"),
                   ),
                 if (r.demandeStatut == DemandeStatut.envoyee)
                   TextButton(
@@ -265,11 +283,20 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
         _enregistrementEnCours = false;
         _quelqueChoseAChange = true;
       });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
+        final enregistres = _brouillons.where((r) => r.id != null).toList();
+        _enregistrees.addAll(enregistres);
+        _brouillons.removeWhere((r) => r.id != null);
         _enregistrementEnCours = false;
-        _erreur = "Impossible d'enregistrer pour le moment. Réessaie.";
+        _erreur = switch (PacteRepository.codeErreurMetier(e)) {
+          'personne_est_participant' =>
+            "Une des personnes participe déjà à ce Swend : elle ne peut pas être personne de confiance.",
+          'personne_deja_prevue' => 'Une des personnes est déjà prévue.',
+          'telephone_invalide' => messageTelephoneInvalide,
+          _ => "Impossible d'enregistrer pour le moment. Réessaie.",
+        };
       });
     }
   }

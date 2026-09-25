@@ -1,15 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../constants.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
 import '../services/contact_picker_service.dart';
-import '../services/pacte_repository.dart';
-import '../theme/app_theme.dart';
 import '../utils/noms.dart';
+import '../utils/telephone.dart';
+import 'envoi_invitation.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
 /// Mute directement [remplacants] (ajout/suppression/édition).
@@ -21,10 +18,16 @@ class RemplacantsForm extends StatefulWidget {
   /// Nombre maximum de remplaçants par côté du pacte.
   static const int maximum = 5;
 
-  /// Contexte du pacte, utilisé pour rédiger le message d'invitation SMS.
+  /// Contexte du pacte, utilisé pour rédiger le message d'invitation.
   final String nomAutrePartie;
   final TypeRepas type;
   final List<DateTime> dates;
+
+  /// Numéros (forme E.164) qui ne peuvent pas être ajoutés ici, avec le
+  /// message à afficher : le sien, celui de l'autre participant, ou une
+  /// personne déjà enregistrée. La base refuse de toute façon ces cas ;
+  /// ceci ne sert qu'à le dire tout de suite.
+  final Map<String, String> telephonesInterdits;
 
   const RemplacantsForm({
     super.key,
@@ -34,7 +37,36 @@ class RemplacantsForm extends StatefulWidget {
     required this.type,
     required this.dates,
     this.minimum = 2,
+    this.telephonesInterdits = const {},
   });
+
+  /// Le problème du numéro de [r] dans [liste], ou null s'il est
+  /// utilisable (ou pas encore saisi).
+  static String? erreurTelephone(
+    Remplacant r,
+    List<Remplacant> liste,
+    Map<String, String> interdits,
+  ) {
+    if (r.telephone.trim().isEmpty) return null;
+    final e164 = normaliserTelephone(r.telephone);
+    if (e164 == null) return messageTelephoneInvalide;
+    final interdit = interdits[e164];
+    if (interdit != null) return interdit;
+    final premier = liste.firstWhere(
+      (x) => normaliserTelephone(x.telephone) == e164,
+    );
+    if (!identical(premier, r)) return 'Cette personne est déjà dans la liste.';
+    return null;
+  }
+
+  /// Vrai si toutes les personnes complètes de [liste] ont un numéro
+  /// utilisable.
+  static bool listeValide(
+    List<Remplacant> liste,
+    Map<String, String> interdits,
+  ) => liste
+      .where((r) => r.estRempli)
+      .every((r) => erreurTelephone(r, liste, interdits) == null);
 
   @override
   State<RemplacantsForm> createState() => _RemplacantsFormState();
@@ -45,25 +77,12 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
   final Map<Remplacant, TextEditingController> _nomControllers = {};
   final Map<Remplacant, TextEditingController> _telControllers = {};
 
-  /// Id du compte Swend de chaque personne, si un numéro déjà tapé y
-  /// correspond — absent tant que la vérification n'a rien trouvé.
-  final Map<Remplacant, String?> _profilIds = {};
-  final Map<Remplacant, Timer> _debounces = {};
-
   @override
   void initState() {
     super.initState();
     while (widget.remplacants.length < widget.minimum) {
       widget.remplacants.add(Remplacant());
     }
-  }
-
-  @override
-  void dispose() {
-    for (final t in _debounces.values) {
-      t.cancel();
-    }
-    super.dispose();
   }
 
   TextEditingController _prenomCtrl(Remplacant r) => _prenomControllers
@@ -164,11 +183,18 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
           TextField(
             controller: _telCtrl(r),
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
+            decoration: InputDecoration(
+              labelText: 'Numéro de mobile',
+              errorText: RemplacantsForm.erreurTelephone(
+                r,
+                widget.remplacants,
+                widget.telephonesInterdits,
+              ),
+              errorMaxLines: 2,
+            ),
             onChanged: (v) {
-              r.telephone = v;
+              setState(() => r.telephone = v);
               widget.onChanged();
-              _onTelephoneChange(r, v);
             },
           ),
           if (ContactPickerService.disponible) ...[
@@ -180,54 +206,20 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
             ),
           ],
           const SizedBox(height: 8),
-          if (_profilIds[r] != null)
-            const Row(
-              children: [
-                Icon(Icons.check_circle_outline, size: 16, color: AppColors.accentFonce),
-                SizedBox(width: 6),
-                Text(
-                  'Déjà sur Swend',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.accentFonce,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            )
-          else ...[
-            const Text(
-              "Cette personne n'a pas encore Swend ?",
-              style: TextStyle(fontSize: 12, color: Colors.black54),
-            ),
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () => _inviterParSms(r),
-              icon: const Icon(Icons.sms_outlined, size: 18),
-              label: const Text('Inviter par SMS'),
-            ),
-          ],
+          const Text(
+            "Cette personne n'a pas encore Swend ?",
+            style: TextStyle(fontSize: 12, color: Colors.black54),
+          ),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () =>
+                inviterPersonneDeConfiance(context, r, widget.nomAutrePartie),
+            icon: const Icon(Icons.send_outlined, size: 18),
+            label: const Text("Envoyer l'invitation"),
+          ),
         ],
       ),
     );
-  }
-
-  /// Vérifie si ce numéro correspond à un compte Swend existant, avec un
-  /// léger délai pour laisser l'utilisateur finir de taper.
-  void _onTelephoneChange(Remplacant r, String valeur) {
-    setState(() => _profilIds[r] = null);
-    _debounces[r]?.cancel();
-    final numero = valeur.trim();
-    if (numero.length < 6) return;
-    _debounces[r] = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final id = await PacteRepository.trouverProfilParTelephone(numero);
-        if (!mounted || _telCtrl(r).text.trim() != numero) return;
-        setState(() => _profilIds[r] = id);
-      } catch (_) {
-        // Pas grave : le bouton "Inviter par SMS" reste simplement affiché.
-      }
-    });
   }
 
   Future<void> _choisirDansLesContacts(Remplacant r) async {
@@ -259,22 +251,19 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
     });
   }
 
-  Future<void> _inviterParSms(Remplacant r) =>
-      inviterPersonneDeConfianceParSms(context, r, widget.nomAutrePartie);
 }
 
-/// SMS d'invitation générique d'une personne de confiance (pas encore
-/// sur Swend) — préparation, sans demande de remplacement réelle.
-Future<void> inviterPersonneDeConfianceParSms(
+/// Invitation générique d'une personne de confiance (préparation, sans
+/// demande de remplacement réelle), par Messages ou WhatsApp.
+Future<void> inviterPersonneDeConfiance(
   BuildContext context,
   Remplacant r,
   String nomAutrePartie,
 ) async {
-  final numero = r.telephone.trim();
-  if (numero.isEmpty) {
+  if (r.telephone.trim().isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Renseigne le numéro de téléphone pour inviter par SMS.'),
+        content: Text("Renseigne le numéro pour envoyer l'invitation."),
       ),
     );
     return;
@@ -290,8 +279,5 @@ Future<void> inviterPersonneDeConfianceParSms(
       "Ça te dit ?\n"
       "Je te laisse en découvrir plus sur Swend :)\n"
       "$lienTelechargementApp";
-  final numeroPropre = numero.replaceAll(RegExp(r'\s+'), '');
-  await launchUrl(
-    Uri.parse('sms:$numeroPropre?body=${Uri.encodeComponent(message)}'),
-  );
+  await envoyerInvitation(context, telephone: r.telephone, message: message);
 }

@@ -13,6 +13,7 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
+import '../../utils/telephone.dart';
 import 'detail_pacte_screen.dart';
 
 /// Fil de discussion privé entre le titulaire et l'un de ses
@@ -103,7 +104,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _appeler() async {
     final tel = _telephone?.trim();
     if (tel == null || tel.isEmpty) return;
-    await launchUrl(Uri.parse('tel:${tel.replaceAll(RegExp(r'\s+'), '')}'));
+    final numero = normaliserTelephone(tel) ?? tel.replaceAll(RegExp(r'\s+'), '');
+    await launchUrl(Uri.parse('tel:$numero'));
   }
 
   @override

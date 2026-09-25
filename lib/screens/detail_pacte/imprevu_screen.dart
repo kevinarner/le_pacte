@@ -1,7 +1,4 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants.dart';
 import '../../models/cote_pacte.dart';
@@ -15,6 +12,8 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
+import '../../utils/telephone.dart';
+import '../../widgets/envoi_invitation.dart';
 import 'chat_screen.dart';
 
 /// Parcours "Un imprévu ?", côté titulaire uniquement : demander à une
@@ -239,8 +238,8 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                           else
                             TextButton(
                               style: styleLien,
-                              onPressed: () => _envoyerSmsUrgence(r),
-                              child: const Text('Envoyer le SMS', style: lien),
+                              onPressed: () => _envoyerMessageUrgence(r),
+                              child: const Text('Envoyer le message', style: lien),
                             ),
                           TextButton(
                             style: styleLien.copyWith(
@@ -339,7 +338,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       await PacteRepository.envoyerDemandeRemplacement(r.id!);
       r.demandeStatut = DemandeStatut.envoyee;
     });
-    if (ok && r.profilId == null) await _proposerSmsUrgence(r);
+    if (ok && r.profilId == null) await _proposerMessageUrgence(r);
   }
 
   Future<void> _annulerDemande(Remplacant r) async {
@@ -382,6 +381,10 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     'demande_non_active' => "Cette demande n'est plus en attente.",
     'swend_inactif' => "Ce Swend n'est plus actif.",
     'champs_manquants' => 'Renseignez le prénom, le nom et le téléphone.',
+    'telephone_invalide' => messageTelephoneInvalide,
+    'personne_est_participant' =>
+      'Cette personne participe déjà à ce Swend : elle ne peut pas prendre votre place.',
+    'personne_deja_prevue' => 'Cette personne est déjà dans votre liste.',
     _ => 'Impossible pour le moment. Réessayez.',
   };
 
@@ -408,19 +411,19 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     await _charger();
     final ajoutee = _remplacants?.where((r) => r.id == nouvelId).firstOrNull;
     if (ajoutee != null && ajoutee.profilId == null) {
-      await _proposerSmsUrgence(ajoutee);
+      await _proposerMessageUrgence(ajoutee);
     }
   }
 
   /// La personne n'a pas encore Swend : elle ne recevra aucune
-  /// notification, on propose donc le SMS d'urgence explicite.
-  Future<void> _proposerSmsUrgence(Remplacant r) async {
+  /// notification, on propose donc le message d'urgence explicite.
+  Future<void> _proposerMessageUrgence(Remplacant r) async {
     final envoyer = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Demande envoyée'),
         content: Text(
-          "${r.prenom} n'a pas encore Swend : envoyez-lui un SMS pour lui expliquer "
+          "${r.prenom} n'a pas encore Swend : envoyez-lui un message pour lui expliquer "
           'et lui permettre de répondre depuis l\'app.',
         ),
         actions: [
@@ -430,22 +433,20 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Envoyer le SMS'),
+            child: const Text('Envoyer le message'),
           ),
         ],
       ),
     );
-    if (envoyer == true) await _envoyerSmsUrgence(r);
+    if (envoyer == true && mounted) await _envoyerMessageUrgence(r);
   }
 
-  Future<void> _envoyerSmsUrgence(Remplacant r) async {
-    final numero = r.telephone.replaceAll(RegExp(r'\s+'), '');
-    await launchUrl(
-      Uri.parse(
-        'sms:$numero?body=${Uri.encodeComponent(messageUrgence(widget.pacte, r, _autreCote))}',
-      ),
-    );
-  }
+  Future<void> _envoyerMessageUrgence(Remplacant r) => envoyerInvitation(
+    context,
+    telephone: r.telephone,
+    message: messageUrgence(widget.pacte, r, _autreCote),
+    titre: 'Envoyer la demande',
+  );
 
   Future<void> _confirmerAnnulation() async {
     final confirme = await showDialog<bool>(
@@ -528,37 +529,23 @@ class _FormulaireAjoutState extends State<_FormulaireAjout> {
   final _prenom = TextEditingController();
   final _nom = TextEditingController();
   final _telephone = TextEditingController();
-  String? _profilTrouve;
-  Timer? _debounce;
 
   bool get _complet =>
       _prenom.text.trim().isNotEmpty &&
       _nom.text.trim().isNotEmpty &&
-      _telephone.text.trim().isNotEmpty;
+      telephoneValide(_telephone.text);
+
+  String? get _erreurTelephone =>
+      _telephone.text.trim().isEmpty || telephoneValide(_telephone.text)
+      ? null
+      : messageTelephoneInvalide;
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _prenom.dispose();
     _nom.dispose();
     _telephone.dispose();
     super.dispose();
-  }
-
-  void _telephoneChange(String valeur) {
-    setState(() => _profilTrouve = null);
-    _debounce?.cancel();
-    final numero = valeur.trim();
-    if (numero.length < 6) return;
-    _debounce = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final id = await PacteRepository.trouverProfilParTelephone(numero);
-        if (!mounted || _telephone.text.trim() != numero) return;
-        setState(() => _profilTrouve = id);
-      } catch (_) {
-        // Purement indicatif.
-      }
-    });
   }
 
   Future<void> _choisirContact() async {
@@ -573,7 +560,6 @@ class _FormulaireAjoutState extends State<_FormulaireAjout> {
       final tel = contact['telephone'] ?? '';
       if (tel.isNotEmpty) _telephone.text = tel;
     });
-    _telephoneChange(_telephone.text);
   }
 
   @override
@@ -622,8 +608,12 @@ class _FormulaireAjoutState extends State<_FormulaireAjout> {
           TextField(
             controller: _telephone,
             keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Numéro de téléphone'),
-            onChanged: _telephoneChange,
+            decoration: InputDecoration(
+              labelText: 'Numéro de mobile',
+              errorText: _erreurTelephone,
+              errorMaxLines: 2,
+            ),
+            onChanged: (_) => setState(() {}),
           ),
           if (ContactPickerService.disponible) ...[
             const SizedBox(height: 8),
@@ -631,27 +621,6 @@ class _FormulaireAjoutState extends State<_FormulaireAjout> {
               onPressed: _choisirContact,
               icon: const Icon(Icons.contacts_outlined, size: 18),
               label: const Text('Choisir dans mes contacts'),
-            ),
-          ],
-          if (_profilTrouve != null) ...[
-            const SizedBox(height: 8),
-            const Row(
-              children: [
-                Icon(
-                  Icons.check_circle_outline,
-                  size: 16,
-                  color: AppColors.accentFonce,
-                ),
-                SizedBox(width: 6),
-                Text(
-                  'Déjà sur Swend',
-                  style: TextStyle(
-                    fontSize: 12.5,
-                    color: AppColors.accentFonce,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
             ),
           ],
           const SizedBox(height: 16),
