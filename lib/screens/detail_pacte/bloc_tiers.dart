@@ -170,6 +170,8 @@ class _BlocTiersState extends State<BlocTiers> {
         case null:
           contenu = [
             _texte("$_titulaire peut faire appel à toi en cas d'imprévu."),
+            const SizedBox(height: 4),
+            _texte("Tu n'as rien à faire pour le moment."),
             const SizedBox(height: 14),
             _boutonEcrire(principal: false),
           ];

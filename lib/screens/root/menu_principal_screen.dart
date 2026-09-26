@@ -122,6 +122,48 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   int get _nombreActionsRequises =>
       mesPactes?.where(_actionRequise).length ?? 0;
 
+  /// Mes rôles de personne de confiance encore d'actualité (Swend ni
+  /// passé ni annulé, et pas "indisponible" : refusé, clôturé, désisté),
+  /// du plus proche au plus lointain. Un rôle n'est pas un Swend "à
+  /// venir" tant que je n'ai pas accepté de prendre la place.
+  List<(Pacte, PerspectivePacte)> get _rolesTiers {
+    final liste = mesPactes;
+    if (liste == null) return [];
+    final maintenant = DateTime.now();
+    final roles = [
+      for (final p in liste)
+        if (_perspective(p) case final v? when !v.estTitulaire)
+          if (p.statut != StatutPacte.maintenu &&
+              p.statut != StatutPacte.annule &&
+              p.statut != StatutPacte.annuleDoubleAbsence &&
+              (p.dateRetenue == null || p.dateRetenue!.isAfter(maintenant)) &&
+              !v.maFiche!.demandeStatut.estIndisponible)
+            (p, v),
+    ];
+    roles.sort((a, b) {
+      final da = a.$1.dateRetenue;
+      final db = b.$1.dateRetenue;
+      if (da == null || db == null) return da == null ? 1 : -1;
+      return da.compareTo(db);
+    });
+    return roles;
+  }
+
+  /// Demandes "Un imprévu ?" qui attendent ma réponse : en tête d'accueil.
+  List<(Pacte, PerspectivePacte)> get _demandesTiers => [
+    for (final (p, v) in _rolesTiers)
+      if (_actionRequise(p)) (p, v),
+  ];
+
+  /// Rôles sans action à faire : prévu (pas encore sollicité) ou ayant
+  /// accepté de prendre la place.
+  List<(Pacte, PerspectivePacte)> get _onCompteSurMoi => [
+    for (final (p, v) in _rolesTiers)
+      if (!_actionRequise(p) &&
+          (v.maFiche!.selectionne || v.maFiche!.demandeStatut == null))
+        (p, v),
+  ];
+
   /// Le message le plus récent qui ne vient pas de moi, tous fils
   /// confondus — pas un vrai suivi lu/non-lu (aucun état n'est
   /// persisté), juste "le dernier mot n'est pas de moi".
@@ -150,6 +192,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   Widget build(BuildContext context) {
     final prochain = _prochainPacte;
     final message = _messageAmeSignaler;
+    final demandes = _demandesTiers;
+    final onCompteSurMoi = _onCompteSurMoi;
 
     return Scaffold(
       body: SafeArea(
@@ -167,6 +211,10 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 style: const TextStyle(color: AppColors.texteAttenue),
               ),
               const SizedBox(height: 20),
+              for (final (p, v) in demandes) ...[
+                _carteDemande(p, v),
+                const SizedBox(height: 12),
+              ],
               if (prochain != null) ...[
                 _cartePlusProche(prochain),
                 const SizedBox(height: 12),
@@ -193,6 +241,15 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 onTap: () =>
                     _ouvrir(AccueilScreen(onChanged: widget.onChanged)),
               ),
+              if (onCompteSurMoi.isNotEmpty) ...[
+                const SizedBox(height: 22),
+                _etiquette('ON COMPTE SUR TOI'),
+                const SizedBox(height: 8),
+                for (final (p, v) in onCompteSurMoi) ...[
+                  _carteOnCompteSurMoi(p, v),
+                  const SizedBox(height: 10),
+                ],
+              ],
               const SizedBox(height: 18),
               _lignProfil(),
             ],
@@ -250,6 +307,143 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _etiquette(String texte) => Align(
+    alignment: Alignment.centerLeft,
+    child: Text(
+      texte,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppColors.texteAttenue,
+        letterSpacing: 0.06,
+      ),
+    ),
+  );
+
+  /// "Swend avec David · Mercredi 25 novembre · 19h30"
+  String _contexteTiers(Pacte p, PerspectivePacte v) {
+    final autre = prenomDe(v.coteAutreParticipant!.nomTitulaire);
+    final date = p.dateRetenue;
+    return 'Swend avec $autre · '
+        '${date != null ? formaterJourEtHeureCourt(date) : 'date à confirmer'}';
+  }
+
+  /// Une demande "Un imprévu ?" en attente de ma réponse : l'élément le
+  /// plus visible de l'accueil. Ouvre la fiche du Swend (vue tiers), d'où
+  /// l'on répond.
+  Widget _carteDemande(Pacte p, PerspectivePacte v) {
+    final titulaire = prenomDe(v.coteTitulaire!.nomTitulaire);
+    final autre = prenomDe(v.coteAutreParticipant!.nomTitulaire);
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        color: AppColors.pecheClair,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(radiusLg),
+          side: const BorderSide(color: AppColors.peche, width: 1.5),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                "UNE DEMANDE T'ATTEND",
+                style: TextStyle(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.texteAttenue,
+                  letterSpacing: 0.06,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                '$titulaire a un imprévu',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '$titulaire te demande de prendre sa place pour son Swend avec $autre.',
+                style: const TextStyle(fontSize: 13.5),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _contexteTiers(p, v),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.texteAttenue,
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => _ouvrir(DetailPacteScreen(pacte: p)),
+                  child: const Text('Répondre à la demande'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Rôle sans action à faire : "X compte sur toi" (prévu) ou "Tu prends
+  /// la place de X" (accepté). Ouvre la fiche du Swend (vue tiers).
+  Widget _carteOnCompteSurMoi(Pacte p, PerspectivePacte v) {
+    final titulaire = prenomDe(v.coteTitulaire!.nomTitulaire);
+    final autre = prenomDe(v.coteAutreParticipant!.nomTitulaire);
+    final accepte = v.maFiche!.selectionne;
+    return SizedBox(
+      width: double.infinity,
+      child: Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 14, 8, 6),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                accepte
+                    ? 'Tu prends la place ${deNom(titulaire)}'
+                    : '$titulaire compte sur toi pour un Swend',
+                style: const TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                _contexteTiers(p, v),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.texteAttenue,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                accepte
+                    ? "$autre ne saura pas que c'est toi."
+                    : "Tu pourrais prendre sa place en cas d'imprévu.",
+                style: const TextStyle(fontSize: 13),
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => _ouvrir(DetailPacteScreen(pacte: p)),
+                  child: const Text('Voir le Swend'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
