@@ -9,10 +9,11 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/telephone.dart';
 import '../../widgets/remplacants_form.dart';
-import 'chat_screen.dart';
+import '../../widgets/statut_swend.dart';
 
-/// Gestion des personnes prévues "en cas d'imprévu" pour ce Swend :
-/// les voir, en ajouter, en retirer, discuter avec elles. C'est de la
+/// "Modifier ma liste" : gestion des personnes prévues "en cas d'imprévu"
+/// pour ce Swend — les voir avec leur statut Swend, les inviter, en
+/// ajouter, en retirer. Discuter se fait depuis la fiche du Swend. C'est de la
 /// préparation — aucune demande de remplacement ne part d'ici (seul le
 /// parcours "Un imprévu ?" en envoie). Propre à ce pacte, jamais visible
 /// par l'autre partie.
@@ -100,7 +101,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
         if (!didPop) Navigator.pop(context, _quelqueChoseAChange);
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Personnes de confiance')),
+        appBar: AppBar(title: const Text('Modifier ma liste')),
         body: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -199,24 +200,12 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
               ],
             ),
             const SizedBox(height: 4),
-            Text(
-              aUnCompte
-                  ? 'A rejoint Swend'
-                  : "N'a pas encore rejoint Swend",
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
-            ),
+            LigneStatutSwend(prenom: r.prenom, aUnCompte: aUnCompte),
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
-                if (aUnCompte)
-                  OutlinedButton.icon(
-                    style: OutlinedButton.styleFrom(minimumSize: petitBouton),
-                    onPressed: () => _ouvrirChat(r),
-                    icon: const Icon(Icons.chat_bubble_outline, size: 16),
-                    label: const Text('Discuter'),
-                  ),
                 if (!aUnCompte && !r.selectionne)
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(minimumSize: petitBouton),
@@ -246,19 +235,6 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  void _ouvrirChat(Remplacant r) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatScreen(
-          remplacantId: r.id!,
-          nomInterlocuteur: r.nomComplet,
-          telephoneInterlocuteur: r.telephone,
         ),
       ),
     );

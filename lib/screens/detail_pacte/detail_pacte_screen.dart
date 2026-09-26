@@ -223,17 +223,14 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               onChanged: () => setState(() {}),
             ),
             const SizedBox(height: 12),
-            Center(
-              child: TextButton(
-                onPressed: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.texteAttenue,
-                ),
-                child: const Text(
-                  'Un imprévu ?',
-                  style: TextStyle(fontSize: 13),
-                ),
+            OutlinedButton.icon(
+              onPressed: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.accentFonce,
+                side: const BorderSide(color: AppColors.accent),
               ),
+              icon: const Icon(Icons.event_busy_outlined, size: 18),
+              label: const Text('Un imprévu ?'),
             ),
           ],
 

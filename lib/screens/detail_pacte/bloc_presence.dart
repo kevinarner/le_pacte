@@ -11,8 +11,9 @@ import 'mes_remplacants_screen.dart';
 
 /// "En cas d'imprévu" (titulaire) : résume, sur la page du Swend, la
 /// personne qui a accepté de prendre ma place (s'il y en a une) ou les
-/// personnes prévues, et donne accès à `MesRemplacantsScreen` pour gérer
-/// la liste (préparation uniquement).
+/// personnes prévues, avec deux actions distinctes : "Modifier ma liste"
+/// (`MesRemplacantsScreen`, préparation uniquement) et "Discuter" (choix
+/// d'une conversation avec une personne de la liste déjà sur Swend).
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
@@ -99,7 +100,10 @@ class BlocPresence extends StatelessWidget {
               Text(
                 remplacants.isEmpty
                     ? 'Aucune personne prévue'
-                    : remplacants.map((r) => r.prenom).join(', '),
+                    : remplacants
+                          .map((r) => r.prenom.trim())
+                          .where((p) => p.isNotEmpty)
+                          .join(', '),
                 style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
               ),
               const SizedBox(height: 4),
@@ -115,20 +119,101 @@ class BlocPresence extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: () => _ouvrirMesRemplacants(context),
-                icon: const Icon(Icons.group_outlined, size: 16),
-                label: Text(
-                  remplacants.isEmpty
-                      ? 'Ajouter des personnes'
-                      : 'Gérer les personnes prévues',
+              if (remplacants.isEmpty)
+                OutlinedButton.icon(
+                  onPressed: () => _ouvrirMesRemplacants(context),
+                  icon: const Icon(Icons.group_outlined, size: 16),
+                  label: const Text('Ajouter des personnes'),
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: _styleActionCompacte,
+                        onPressed: () => _ouvrirMesRemplacants(context),
+                        icon: const Icon(Icons.edit_outlined, size: 16),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Modifier ma liste'),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        style: _styleActionCompacte,
+                        onPressed: () =>
+                            _choisirConversation(context, remplacants),
+                        icon: const Icon(Icons.chat_bubble_outline, size: 16),
+                        label: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text('Discuter'),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
             ],
           ],
         ),
       ),
     );
+  }
+
+  /// Deux actions côte à côte : marges réduites pour tenir sur une ligne.
+  static final _styleActionCompacte = OutlinedButton.styleFrom(
+    padding: const EdgeInsets.symmetric(horizontal: 10),
+  );
+
+  /// "Discuter" : choisir une conversation parmi les personnes de cette
+  /// liste qui ont déjà un compte (les autres ne peuvent pas discuter
+  /// dans l'app). Accès contextuel à ce Swend, pas une messagerie.
+  Future<void> _choisirConversation(
+    BuildContext context,
+    List<Remplacant> remplacants,
+  ) async {
+    final surSwend = remplacants
+        .where((r) => r.profilId != null && r.id != null)
+        .toList();
+    final choisi = await showModalBottomSheet<Remplacant>(
+      context: context,
+      backgroundColor: AppColors.background,
+      builder: (feuille) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Discuter avec…',
+                style: Theme.of(feuille).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              if (surSwend.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    "Aucune personne de votre liste n'est encore sur Swend. "
+                    'Vous pouvez les inviter depuis « Modifier ma liste ».',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                )
+              else
+                for (final r in surSwend)
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.chat_bubble_outline, size: 20),
+                    title: Text(r.nomComplet),
+                    onTap: () => Navigator.pop(feuille, r),
+                  ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choisi != null && context.mounted) _ouvrirChat(context, choisi);
   }
 
   void _ouvrirChat(BuildContext context, Remplacant r) {

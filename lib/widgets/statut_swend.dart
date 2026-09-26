@@ -93,28 +93,10 @@ class _StatutSwendState extends State<StatutSwend> {
       return const SizedBox.shrink();
     }
     final reponse = _reponses[e164];
-    final prenom = widget.prenom.trim();
-    final qui = prenom.isEmpty ? 'Cette personne' : prenom;
-
     if (reponse == true) {
       return Padding(
         padding: const EdgeInsets.only(top: 8),
-        child: Row(
-          children: [
-            const Icon(
-              Icons.check_circle_outline,
-              size: 18,
-              color: AppColors.accent,
-            ),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Text(
-                '$qui est déjà sur Swend',
-                style: const TextStyle(fontSize: 13),
-              ),
-            ),
-          ],
-        ),
+        child: LigneStatutSwend(prenom: widget.prenom, aUnCompte: true),
       );
     }
 
@@ -126,10 +108,7 @@ class _StatutSwendState extends State<StatutSwend> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (reponse == false)
-            Text(
-              "$qui n'a pas encore Swend",
-              style: const TextStyle(fontSize: 12, color: Colors.black54),
-            ),
+            LigneStatutSwend(prenom: widget.prenom, aUnCompte: false),
           if (onInviter != null) ...[
             if (reponse == false) const SizedBox(height: 8),
             OutlinedButton.icon(
@@ -140,6 +119,50 @@ class _StatutSwendState extends State<StatutSwend> {
           ],
         ],
       ),
+    );
+  }
+}
+
+/// La phrase de statut elle-même, identique partout : "[Prénom] est déjà
+/// sur Swend" / "[Prénom] n'a pas encore Swend" ("Cette personne" tant
+/// que le prénom est vide). Utilisée par [StatutSwend] pendant la saisie,
+/// et directement par les fiches déjà enregistrées (où la base a déjà
+/// fait le rapprochement : `profil_id`).
+class LigneStatutSwend extends StatelessWidget {
+  final String prenom;
+  final bool aUnCompte;
+
+  const LigneStatutSwend({
+    super.key,
+    required this.prenom,
+    required this.aUnCompte,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final p = prenom.trim();
+    final qui = p.isEmpty ? 'Cette personne' : p;
+    if (!aUnCompte) {
+      return Text(
+        "$qui n'a pas encore Swend",
+        style: const TextStyle(fontSize: 12, color: Colors.black54),
+      );
+    }
+    return Row(
+      children: [
+        const Icon(
+          Icons.check_circle_outline,
+          size: 18,
+          color: AppColors.accent,
+        ),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            '$qui est déjà sur Swend',
+            style: const TextStyle(fontSize: 13),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -40,6 +40,8 @@ class Remplacant {
       nom.trim().isNotEmpty &&
       telephone.trim().isNotEmpty;
 
-  String get nomComplet =>
-      [prenom, nom].where((s) => s.trim().isNotEmpty).join(' ');
+  String get nomComplet => [
+    prenom,
+    nom,
+  ].map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
 }

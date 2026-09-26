@@ -264,14 +264,22 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                     minimumSize: const Size(0, 36),
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                   ),
-                  onPressed: enCours ? null : () => _confirmerDemande(r),
+                  onPressed: enCours
+                      ? null
+                      : () => r.profilId == null
+                            ? _inviterEtDemander(r)
+                            : _confirmerDemande(r),
                   child: enCours
                       ? const SizedBox(
                           height: 14,
                           width: 14,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('Lui demander'),
+                      : Text(
+                          r.profilId == null
+                              ? 'Inviter et demander'
+                              : 'Lui demander',
+                        ),
                 )
               else if (enAttente)
                 _badge('En attente', AppColors.neutre, AppColors.texte)
@@ -340,6 +348,40 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       r.demandeStatut = DemandeStatut.envoyee;
     });
     if (ok && r.profilId == null) await _proposerMessageUrgence(r);
+  }
+
+  /// La personne n'a pas encore Swend : une seule action — la demande
+  /// part, puis le choix Messages / WhatsApp s'ouvre aussitôt avec le
+  /// message d'urgence (invitation à rejoindre Swend + demande).
+  Future<void> _inviterEtDemander(Remplacant r) async {
+    final confirme = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Inviter ${r.prenom} et lui demander de prendre votre place ?'),
+        content: Text(
+          "${r.prenom} n'a pas encore Swend : vous allez lui envoyer un message "
+          "qui l'invite à rejoindre Swend et lui explique votre demande. "
+          "${r.prenom} pourra accepter ou refuser depuis l'app.",
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Retour'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Inviter et demander'),
+          ),
+        ],
+      ),
+    );
+    if (confirme != true) return;
+
+    final ok = await _action(r.id, () async {
+      await PacteRepository.envoyerDemandeRemplacement(r.id!);
+      r.demandeStatut = DemandeStatut.envoyee;
+    });
+    if (ok && mounted) await _envoyerMessageUrgence(r);
   }
 
   Future<void> _annulerDemande(Remplacant r) async {
