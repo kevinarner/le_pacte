@@ -14,6 +14,7 @@ import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../utils/telephone.dart';
 import '../../widgets/envoi_invitation.dart';
+import '../../widgets/statut_swend.dart';
 import 'chat_screen.dart';
 
 /// Parcours "Un imprévu ?", côté titulaire uniquement : demander à une
@@ -615,6 +616,7 @@ class _FormulaireAjoutState extends State<_FormulaireAjout> {
             ),
             onChanged: (_) => setState(() {}),
           ),
+          StatutSwend(prenom: _prenom.text, telephone: _telephone.text),
           if (ContactPickerService.disponible) ...[
             const SizedBox(height: 8),
             OutlinedButton.icon(

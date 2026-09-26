@@ -7,6 +7,7 @@ import '../services/contact_picker_service.dart';
 import '../utils/noms.dart';
 import '../utils/telephone.dart';
 import 'envoi_invitation.dart';
+import 'statut_swend.dart';
 
 /// Formulaire de saisie d'une liste de remplaçants, propre à un pacte.
 /// Mute directement [remplacants] (ajout/suppression/édition).
@@ -205,17 +206,18 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
               label: const Text('Choisir dans mes contacts'),
             ),
           ],
-          const SizedBox(height: 8),
-          const Text(
-            "Cette personne n'a pas encore Swend ?",
-            style: TextStyle(fontSize: 12, color: Colors.black54),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: () =>
+          StatutSwend(
+            prenom: r.prenom,
+            telephone: r.telephone,
+            masquer:
+                RemplacantsForm.erreurTelephone(
+                  r,
+                  widget.remplacants,
+                  widget.telephonesInterdits,
+                ) !=
+                null,
+            onInviter: () =>
                 inviterPersonneDeConfiance(context, r, widget.nomAutrePartie),
-            icon: const Icon(Icons.send_outlined, size: 18),
-            label: const Text("Envoyer l'invitation"),
           ),
         ],
       ),
@@ -250,7 +252,6 @@ class _RemplacantsFormState extends State<RemplacantsForm> {
       widget.onChanged();
     });
   }
-
 }
 
 /// Invitation générique d'une personne de confiance (préparation, sans

@@ -55,9 +55,11 @@ class PacteRepository {
     }).toList();
   }
 
-  /// Étape 1 "Avec qui ?" : le numéro saisi pour le destinataire a-t-il
-  /// déjà un compte ? Oui / non seulement ; null = pas de réponse (numéro
-  /// invalide, le sien, ou quota de vérifications atteint côté serveur).
+  /// Le numéro que l'utilisateur vient de saisir pour une personne qu'il
+  /// ajoute (destinataire, personne de confiance) a-t-il déjà un compte ?
+  /// Oui / non seulement ; null = pas de réponse (numéro invalide, le
+  /// sien, ou quota de vérifications atteint côté serveur). N'est appelé
+  /// que par le widget StatutSwend.
   static Future<bool?> destinataireAUnCompte(String telephone) =>
       _client.rpc<bool?>(
         'destinataire_a_un_compte',
