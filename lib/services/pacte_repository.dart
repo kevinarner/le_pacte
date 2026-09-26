@@ -55,6 +55,15 @@ class PacteRepository {
     }).toList();
   }
 
+  /// Étape 1 "Avec qui ?" : le numéro saisi pour le destinataire a-t-il
+  /// déjà un compte ? Oui / non seulement ; null = pas de réponse (numéro
+  /// invalide, le sien, ou quota de vérifications atteint côté serveur).
+  static Future<bool?> destinataireAUnCompte(String telephone) =>
+      _client.rpc<bool?>(
+        'destinataire_a_un_compte',
+        params: {'p_telephone': telephone},
+      );
+
   /// Le téléphone du titulaire d'un pacte, du point de vue de son
   /// remplaçant (pour pouvoir l'appeler) — ne renvoie quelque chose que
   /// si l'appelant est bien ce remplaçant, jamais pour un tiers.

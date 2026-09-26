@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,6 +42,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   final List<Remplacant> remplacants = [];
 
   Restaurant? restaurant;
+
+  /// Réponse du serveur par numéro (E.164) : a déjà un compte ou non ;
+  /// null = pas de réponse, on propose alors l'invitation.
+  final Map<String, bool?> _comptes = {};
+  Timer? _minuteurCompte;
+
   bool enCours = false;
   String? erreur;
   String? erreurChargement;
@@ -48,6 +56,12 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   void initState() {
     super.initState();
     _chargerRestaurant();
+  }
+
+  @override
+  void dispose() {
+    _minuteurCompte?.cancel();
+    super.dispose();
   }
 
   Future<void> _chargerRestaurant() async {
@@ -225,7 +239,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           errorText: _erreurTelephoneDestinataire,
           errorMaxLines: 2,
         ),
-        onChanged: (_) => setState(() {}),
+        onChanged: (_) {
+          setState(() {});
+          _verifierCompte();
+        },
       ),
       if (ContactPickerService.disponible) ...[
         const SizedBox(height: 8),
@@ -236,17 +253,58 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         ),
       ],
       const SizedBox(height: 8),
-      const Text(
-        "Cette personne n'a pas encore Swend ?",
-        style: TextStyle(fontSize: 12, color: Colors.black54),
-      ),
-      const SizedBox(height: 8),
-      OutlinedButton.icon(
-        onPressed: _envoyerInvitation,
-        icon: const Icon(Icons.send_outlined, size: 18),
-        label: const Text("Envoyer l'invitation"),
-      ),
+      if (_destinataireADejaUnCompte)
+        Row(
+          children: [
+            const Icon(
+              Icons.check_circle_outline,
+              size: 18,
+              color: AppColors.accent,
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                '${_prenomDestinataire.isEmpty ? 'Cette personne' : _prenomDestinataire} est déjà sur Swend',
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+          ],
+        )
+      else ...[
+        const Text(
+          "Cette personne n'a pas encore Swend ?",
+          style: TextStyle(fontSize: 12, color: Colors.black54),
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: _envoyerInvitation,
+          icon: const Icon(Icons.send_outlined, size: 18),
+          label: const Text("Envoyer l'invitation"),
+        ),
+      ],
     ];
+  }
+
+  bool get _destinataireADejaUnCompte {
+    final e164 = _e164Destinataire;
+    return e164 != null && e164 != _monE164 && _comptes[e164] == true;
+  }
+
+  /// Interroge le serveur une fois la saisie posée, une seule fois par
+  /// numéro valide (le serveur limite aussi le nombre de vérifications).
+  void _verifierCompte() {
+    _minuteurCompte?.cancel();
+    final e164 = _e164Destinataire;
+    if (e164 == null || e164 == _monE164 || _comptes.containsKey(e164)) return;
+    _minuteurCompte = Timer(const Duration(milliseconds: 600), () async {
+      try {
+        final reponse = await PacteRepository.destinataireAUnCompte(e164);
+        if (!mounted) return;
+        setState(() => _comptes[e164] = reponse);
+      } catch (_) {
+        // Pas de réponse (réseau…) : l'invitation reste proposée.
+      }
+    });
   }
 
   String? get _e164Destinataire =>
@@ -283,6 +341,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
         telephoneDestinataireController.text = contact['telephone']!;
       }
     });
+    _verifierCompte();
   }
 
   List<Widget> _etapeOuEtQuand(Restaurant restau) {
