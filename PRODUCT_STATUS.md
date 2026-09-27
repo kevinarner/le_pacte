@@ -15,7 +15,8 @@
 | OTP téléphone | Validé pour plus tard (D-014) | Non implémenté | Non applicable | Non applicable | En attendant : numéro déclaratif et figé (implémenté). |
 | Copier le message | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Canaux V1 : Messages, WhatsApp. |
 | Rappels automatiques | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | J-7 / J-3 / J-1 / Jour J ; fréquence et contenu à définir. |
-| Réservation | À décider (D-016) | Non implémenté | Non applicable | Non applicable | Un seul restaurant en dur ; modèle volontairement ouvert. |
+| Réservation V1 (manuelle) | Validé (D-020) | Non applicable | Non applicable | Non applicable | Gérée manuellement par l'équipe Swend après scellage ; aucun état visible ; pas de condition au scellage. |
+| Réservation automatisée (partenaires / API) | Validé pour plus tard (D-016, D-020) | Non implémenté | Non applicable | Non applicable | Fonctionnement cible à définir. |
 | Historique / Refaire un Swend | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | — |
 | Harmonisation tu/vous | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Aujourd'hui : vous côté titulaire, tu côté personne de confiance. |
 | Staging | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Seul environnement de test : le banc QA local. |

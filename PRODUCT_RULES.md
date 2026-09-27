@@ -106,6 +106,8 @@ Une fois l’accord des deux titulaires obtenu, le Swend devient **Scellé**.
 
 À partir de là, le rendez-vous n’est plus normalement rediscuté entre eux avant le jour J.
 
+En V1, la réservation du restaurant n’est pas une condition préalable au scellage : le Swend est scellé dès que les deux participants se sont mis d’accord et que le destinataire confirme (voir 11.3).
+
 ### 3.4 Refus
 
 Le destinataire peut refuser le Swend. Le Swend est alors annulé.
@@ -698,9 +700,29 @@ Le fonctionnement futur de la réservation devra préserver la confidentialité 
 
 L’autre titulaire ne doit pas découvrir un remplacement à cause d’un changement de nom, d’une modification visible de réservation ou d’un autre effet secondaire.
 
-### 11.3 À décider plus tard
+### 11.3 Fonctionnement V1 : réservation manuelle
 
-Sont encore ouverts :
+En V1, le Swend est scellé dès que les deux participants se sont mis d’accord et que le destinataire confirme. La réservation du restaurant n’est pas une condition préalable au scellage.
+
+Après le scellage :
+
+- la réservation est gérée manuellement par l’équipe Swend ;
+- cette opération est interne et n’ajoute pas de nouvel état visible par l’utilisateur ;
+- il n’y a pas de statut « Réservation en cours » en V1.
+
+Si la réservation ne peut exceptionnellement pas être obtenue :
+
+- l’équipe Swend contacte les participants ;
+- elle leur demande d’annuler le Swend ;
+- aucun mécanisme automatisé supplémentaire n’est nécessaire en V1.
+
+Ce fonctionnement est acceptable en V1 car les premiers utilisateurs seront principalement des amis et connaissances.
+
+### 11.4 Cible : réservation automatisée, à définir
+
+À terme, Swend doit pouvoir gérer automatiquement la réservation via les restaurants partenaires et/ou leurs plateformes de réservation. Ce fonctionnement futur n’est pas encore défini.
+
+Sont encore ouverts pour ce fonctionnement cible :
 
 - qui réserve ;
 - à quel moment ;
@@ -725,6 +747,7 @@ Le cœur de Swend comprend notamment :
 - invitation de l’autre titulaire ;
 - négociation de date limitée à 2 contre-propositions au total ;
 - personnes de confiance activées seulement au scellage ;
+- réservation du restaurant gérée manuellement par l’équipe Swend après le scellage ;
 - acceptation / refus ;
 - scellement ;
 - personnes de confiance ;
@@ -768,6 +791,7 @@ Le cœur de Swend comprend notamment :
 
 #### Réservation
 
+- réservation automatisée via les restaurants partenaires et/ou leurs plateformes de réservation (fonctionnement à définir) ;
 - modèle complet ;
 - intégrations externes ;
 - modification / annulation ;

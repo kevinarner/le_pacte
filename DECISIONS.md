@@ -376,6 +376,35 @@ Tant que l’autre titulaire n’a pas accepté, il n’y a pas de rendez-vous :
 
 ---
 
+## D-020 — Réservation manuelle en V1
+
+**Statut : Validée**  
+**Décidée : 27/09/2026**
+
+### Décision
+En V1, le Swend est scellé dès que les deux participants se sont mis d’accord et que le destinataire confirme. La réservation du restaurant n’est pas une condition préalable au scellage.
+
+Après le scellage :
+- la réservation est gérée manuellement par l’équipe Swend ;
+- cette opération est interne et n’ajoute pas de nouvel état visible par l’utilisateur ;
+- il n’y a pas de statut « Réservation en cours » en V1.
+
+Si la réservation ne peut exceptionnellement pas être obtenue :
+- l’équipe Swend contacte les participants ;
+- elle leur demande d’annuler le Swend ;
+- aucun mécanisme automatisé supplémentaire n’est nécessaire en V1.
+
+### Contexte
+Les premiers utilisateurs seront principalement des amis et connaissances, ce qui rend ce fonctionnement acceptable pour la V1.
+
+### Vision cible
+À terme, Swend doit pouvoir gérer automatiquement la réservation via les restaurants partenaires et/ou leurs plateformes de réservation. Ce fonctionnement futur n’est pas encore défini.
+
+### Précise
+D-016 (pour la V1 ; le modèle cible reste ouvert).
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :
