@@ -1,18 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../../constants.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
 import '../../models/statut_pacte.dart';
-import '../../models/type_repas.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/date_fr.dart';
-import '../../utils/noms.dart';
 import '../../utils/telephone.dart';
+import '../../utils/textes_invitation.dart';
 import '../../widgets/envoi_invitation.dart';
 import '../../widgets/statut_swend.dart';
 import 'chat_screen.dart';
@@ -534,25 +531,6 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       });
     }
   }
-}
-
-/// Le SMS envoyé à quelqu'un qui n'a pas encore Swend, quand on lui
-/// demande réellement de prendre sa place.
-String messageUrgence(Pacte pacte, Remplacant r, CotePacte autreCote) {
-  final repas = pacte.type == TypeRepas.dejeuner ? 'un déjeuner' : 'un dîner';
-  final date = pacte.dateRetenue;
-  final quand = date == null
-      ? ''
-      : ' le ${date.day} ${moisAnnee[date.month - 1]} à ${formaterHeure(heureDe(date))}';
-  final autre = prenomDe(autreCote.nomTitulaire);
-  final restaurant = pacte.restaurantRetenu?.nom;
-  final ou = restaurant == null ? '' : ', au restaurant $restaurant';
-  return "Hello ${r.prenom}, j'ai $repas prévu$quand avec $autre$ou, mais j'ai un imprévu. "
-      "Est-ce que tu pourrais prendre ma place ?\n"
-      "C'est le principe de Swend : $autre ne saura pas que c'est toi qui me remplaces. "
-      "Tu peux accepter ou refuser directement sur l'app.\n"
-      "Pour retrouver cette demande dans Swend, crée ton compte avec ce numéro de téléphone.\n"
-      "$lienTelechargementApp";
 }
 
 class _NouvellePersonne {

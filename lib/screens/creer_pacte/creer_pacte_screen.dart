@@ -2,7 +2,6 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../constants.dart';
 import '../../models/remplacant.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
@@ -11,6 +10,7 @@ import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/telephone.dart';
+import '../../utils/textes_invitation.dart';
 import '../../widgets/dates_form.dart';
 import '../../widgets/envoi_invitation.dart';
 import '../../widgets/remplacants_form.dart';
@@ -492,19 +492,10 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       );
       return;
     }
-    final prenom = prenomDestinataireController.text.trim();
-    final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-    final message =
-        "$salutation, je t'invite à faire un Swend avec moi !\n"
-        "Le principe : on choisit une date pour dîner ensemble, puis on n'en reparle plus "
-        "jusqu'au jour J. Et si l'un de nous a un imprévu, quelqu'un de confiance peut prendre "
-        "sa place. On se lance ?\n"
-        "Je te laisse en découvrir plus sur Swend :)\n"
-        "$lienTelechargementApp";
     await envoyerInvitation(
       context,
       telephone: telephoneDestinataireController.text,
-      message: message,
+      message: texteInvitationSwend(prenomDestinataireController.text),
     );
   }
 

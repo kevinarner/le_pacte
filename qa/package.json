@@ -1,0 +1,10 @@
+{
+  "name": "swend-qa",
+  "private": true,
+  "type": "module",
+  "description": "Banc QA local de Swend (voir qa/README.md)",
+  "dependencies": {
+    "playwright-core": "1.56.1",
+    "ws": "8.18.3"
+  }
+}

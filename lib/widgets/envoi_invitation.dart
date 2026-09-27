@@ -39,15 +39,23 @@ Future<void> envoyerInvitation(
   );
 }
 
+/// Lien "Messages" (SMS) vers un numéro E.164, texte prérempli.
+Uri lienMessages(String e164, String message) =>
+    Uri.parse('sms:$e164?body=${Uri.encodeComponent(message)}');
+
+/// Lien WhatsApp vers un numéro E.164 (sans le "+"), texte prérempli.
+Uri lienWhatsApp(String e164, String message) => Uri.parse(
+  'https://wa.me/${e164.substring(1)}?text=${Uri.encodeComponent(message)}',
+);
+
 Future<void> _ouvrir(
   CanalEnvoi canal,
   String e164,
   String message,
   ScaffoldMessengerState messenger,
 ) async {
-  final texte = Uri.encodeComponent(message);
   if (canal == CanalEnvoi.messages) {
-    final ok = await _essayer(Uri.parse('sms:$e164?body=$texte'));
+    final ok = await _essayer(lienMessages(e164, message));
     if (!ok) {
       messenger.showSnackBar(
         const SnackBar(
@@ -57,10 +65,7 @@ Future<void> _ouvrir(
     }
     return;
   }
-  final ok = await _essayer(
-    Uri.parse('https://wa.me/${e164.substring(1)}?text=$texte'),
-    externe: true,
-  );
+  final ok = await _essayer(lienWhatsApp(e164, message), externe: true);
   if (!ok) {
     messenger.showSnackBar(
       SnackBar(
@@ -79,7 +84,9 @@ Future<bool> _essayer(Uri uri, {bool externe = false}) async {
   try {
     return await launchUrl(
       uri,
-      mode: externe ? LaunchMode.externalApplication : LaunchMode.platformDefault,
+      mode: externe
+          ? LaunchMode.externalApplication
+          : LaunchMode.platformDefault,
       webOnlyWindowName: externe ? '_blank' : null,
     );
   } catch (_) {

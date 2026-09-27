@@ -370,3 +370,40 @@ Décisions produit structurantes :
 - Rappels J-1 / jour J adaptés (titulaire remplacé : "Camille prendra votre place demain à 20h" ; personne qui prend la place : "Rendez-vous avec David demain à 20h · Au Père Lapin" ; autre participant : rappel normal sans indice) — dépend du système de relances pas encore construit.
 - Harmonisation tu/vous : les écrans destinés aux personnes prévues/sollicitées sont en tutoiement, les écrans titulaire ("Un imprévu ?", fiche, "En cas d'imprévu") restent en vouvoiement, "Personnes de confiance" en tutoiement — passe de polish globale à faire plus tard.
 - Scénario où deux personnes de remplacement pourraient finalement dîner ensemble (double substitution) — explicitement hors V1 pour "Un imprévu ?".
+
+## 10. Banc QA (27/09)
+
+Objectif : ne plus rejouer à la main les scénarios Eliot / David / Kevin /
+Sylvain. Tout est dans `qa/` (mode d'emploi complet : `qa/README.md`).
+
+- **Trois niveaux** : `qa/run_metier.sh` (SQL + Dart, ~10 s),
+  `qa/run_smoke.sh` (parcours principal en navigateur, ~1 min),
+  `qa/run_full.sh` (métier + 16 scénarios E2E, ~15 min) ;
+  `qa/run_scenario.sh <nom>` pour un seul scénario.
+- **Pile 100 % locale** (`qa/stack.sh`) : Postgres 16 + PostgREST 12.2.3 +
+  un faux Supabase Node (`qa/stack/faux_supabase.mjs` : auth par mot de
+  passe des 4 comptes de test, relais REST sous RLS réelle, Realtime simulé
+  qui relit les données avec le jeton de l'abonné) + serveur de la build QA.
+- **Base** : réplique reconstruite du schéma d'avant migrations
+  (`qa/db/replica/`), puis toutes les migrations de
+  `supabase/migrations/` (copies versionnées des scripts exécutés en
+  production, dans l'ordre), rejouées une seconde fois pour vérifier leur
+  idempotence ; états de départ déterministes via `qa.charger('<état>')`.
+- **App QA** : copie de l'app dans `qa/.work/app` dont `constants.dart` est
+  réécrit vers la pile locale ; la build est rejetée si elle contient le
+  ref, le domaine ou la clé anon de production. Rien du banc n'entre dans
+  la build de production.
+- **Garde-fou production** (`qa/lib/garde_fou.sh`) : refus de démarrer si
+  l'URL, un project ref, une variable d'environnement ou une clé
+  `service_role` évoque la production ; en E2E, le navigateur bloque en plus
+  toute requête hors `127.0.0.1`.
+- **Invariant transversal** : chaque scénario de remplacement vérifie que
+  David ne voit rien (écran d'accueil et fiche, lecture API sous son compte,
+  notifications) — `qa/e2e/lib/confidentialite.mjs`.
+- **Échec** : rapport PASS/FAIL (scénario, étape, attendu, obtenu) et
+  artefacts dans `qa/artifacts/<date>-<suite>/<scénario>/` (captures de
+  chaque utilisateur, texte de l'écran, liens ouverts, console, état métier).
+- **Refactor sans changement de comportement** fait pour tester : textes
+  des messages dans `lib/utils/textes_invitation.dart`, construction des
+  liens Messages / WhatsApp exposée (`lienMessages`, `lienWhatsApp` dans
+  `lib/widgets/envoi_invitation.dart`).

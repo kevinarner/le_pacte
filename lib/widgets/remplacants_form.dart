@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../constants.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
 import '../services/contact_picker_service.dart';
-import '../utils/noms.dart';
 import '../utils/telephone.dart';
+import '../utils/textes_invitation.dart';
 import 'envoi_invitation.dart';
 import 'statut_swend.dart';
 
@@ -269,16 +268,6 @@ Future<void> inviterPersonneDeConfiance(
     );
     return;
   }
-  final prenom = r.prenom.trim();
-  final salutation = prenom.isNotEmpty ? 'Hello $prenom' : 'Hello';
-  final autreComplet = nomAutrePartie.trim();
-  final autre = autreComplet.isNotEmpty ? prenomDe(autreComplet) : 'mon ami';
-  final message =
-      "$salutation, j'ai proposé un Swend à $autre et j'aimerais pouvoir compter sur toi "
-      "en cas d'imprévu.\n"
-      "Si finalement je ne peux pas être là et que tu es dispo, tu pourrais prendre ma place. "
-      "Ça te dit ?\n"
-      "Je te laisse en découvrir plus sur Swend :)\n"
-      "$lienTelechargementApp";
+  final message = texteInvitationPersonneDeConfiance(r.prenom, nomAutrePartie);
   await envoyerInvitation(context, telephone: r.telephone, message: message);
 }
