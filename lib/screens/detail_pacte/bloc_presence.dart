@@ -86,6 +86,14 @@ class BlocPresence extends StatelessWidget {
                   icon: const Icon(Icons.chat_bubble_outline, size: 16),
                   label: Text('Écrire à ${designe.prenom}'),
                 ),
+              // Une place acceptée ne coupe jamais l'accès aux autres
+              // conversations de la liste.
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => _choisirConversation(context, remplacants),
+                icon: const Icon(Icons.forum_outlined, size: 16),
+                label: const Text('Discuter'),
+              ),
               const SizedBox(height: 6),
               Align(
                 alignment: Alignment.centerLeft,
