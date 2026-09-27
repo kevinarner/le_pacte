@@ -6,9 +6,15 @@ import '../../services/pacte_repository.dart';
 import '../../utils/date_fr.dart';
 import '../../widgets/dates_form.dart';
 
-/// Nombre maximum d'allers-retours de négociation avant annulation
-/// automatique du pacte (aucune date trouvée).
+/// D-011 : après la proposition initiale, au plus 2 contre-propositions AU
+/// TOTAL (les deux titulaires confondus). Ensuite, il ne reste qu'à
+/// accepter une des dates proposées ou à annuler le Swend. Garanti aussi
+/// par la base (`negociation_terminee`).
 const int maxEchangesDate = 2;
+
+/// Vrai tant qu'une contre-proposition est encore possible.
+bool peutEncoreContreProposer(int nombreEchangesDate) =>
+    nombreEchangesDate < maxEchangesDate;
 
 /// Bloc affiché au participant dont c'est le tour de choisir une date
 /// parmi celles proposées par l'autre — ou d'en proposer d'autres,
@@ -45,7 +51,9 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     }
 
     final pacte = widget.pacte;
-    final peutContreProposer = pacte.nombreEchangesDate < maxEchangesDate;
+    final peutContreProposer = peutEncoreContreProposer(
+      pacte.nombreEchangesDate,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

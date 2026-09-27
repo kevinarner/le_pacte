@@ -7,6 +7,7 @@ import 'package:le_pacte/models/perspective_pacte.dart';
 import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
+import 'package:le_pacte/screens/detail_pacte/bloc_choix_date.dart';
 import 'package:le_pacte/utils/date_fr.dart';
 import 'package:le_pacte/widgets/action_disponibilite.dart';
 
@@ -189,6 +190,19 @@ void main() {
     });
     test('le drapeau ne touche pas le cycle d\'une demande', () {
       expect(fiche(indispo: true).demandeStatut.estIndisponible, isFalse);
+    });
+  });
+
+  group('Négociation de date (D-011) : 2 contre-propositions au total', () {
+    test('proposition initiale : contre-proposition n°1 possible', () {
+      expect(peutEncoreContreProposer(0), isTrue);
+    });
+    test('après la n°1 (quel que soit son auteur) : n°2 possible', () {
+      expect(peutEncoreContreProposer(1), isTrue);
+    });
+    test('après la n°2 : plus aucune contre-proposition', () {
+      expect(peutEncoreContreProposer(2), isFalse);
+      expect(peutEncoreContreProposer(3), isFalse);
     });
   });
 

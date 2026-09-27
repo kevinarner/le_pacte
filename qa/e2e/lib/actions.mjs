@@ -76,6 +76,15 @@ export async function accepterSwend(a, { avec = /Swend avec/, personnes }) {
   await a.attendreTexte('Scellé');
 }
 
+// Contre-proposition d'une nouvelle date (négociation, D-011).
+export async function contreProposer(a, motif) {
+  await ouvrirSwend(a, motif);
+  await a.cliquer("Proposer d'autres dates");
+  await a.cliquer('Ajouter une date');
+  await a.cliquer('OK');
+  await a.cliquer('Envoyer ces dates');
+}
+
 // --- Personnes de confiance -------------------------------------------------
 export async function ajouterPersonnes(a, personnes, motif = /Swend avec/) {
   await ouvrirModifierMaListe(a, motif);

@@ -63,7 +63,9 @@ La ligne partagée entre les deux parties. Deux catégories de colonnes bien dis
 Ce cloisonnement colonne-par-colonne (`GRANT SELECT (col1, col2, ...) ON pactes TO authenticated`, tout le reste implicitement refusé) est le mécanisme qui rend ces 20 colonnes invisibles à l'app, en complément de la RLS classique (qui, elle, filtre les *lignes*, pas les colonnes).
 
 `statut` (enum, valeurs exactes utilisées dans le code et en base) :
-`enAttenteChoixDateDestinataire` → `enAttenteChoixDateInitiateur` (allers-retours de négociation de date, plafonnés à 2) → `enAttenteReponse` → `confirme` → `maintenu`, `annule`, ou `annuleDoubleAbsence` (les deux parties ont délégué leur présence — voir section 5 et 7.4).
+`enAttenteChoixDateDestinataire` → `enAttenteChoixDateInitiateur` (négociation de date : au plus 2 contre-propositions au total, D-011) → `enAttenteReponse` → `confirme` → `maintenu`, `annule`, ou `annuleDoubleAbsence` (les deux parties ont délégué leur présence — voir section 5 et 7.4).
+
+**`scelle_le`** (27/09, migration `scellage_et_negociation.sql`, D-019) — date à laquelle le Swend est passé `confirme`, posée **uniquement** par le trigger `marquer_scellement()` (jamais modifiable par l'app, conservée si le Swend est annulé ensuite). C'est elle qui active les personnes de confiance : avant, elles ne voient rien (voir 5, politiques restrictives). Non accordée à `authenticated` : seules les fonctions et politiques serveur la lisent. Rattrapage des Swends existants par `rattraper_scellement()` (confirmés, maintenus, double absence, et annulés après acceptation du destinataire).
 
 Important : **aucun champ de statut de présence n'existe sur `pactes`**. Ni l'initiateur ni le destinataire ne peuvent lire, même indirectement, si l'autre partie a délégué sa présence — cette information vit exclusivement dans `remplacants`, cloisonnée par côté (voir ci-dessous). C'est une correction volontaire par rapport à une première version du schéma qui stockait un statut de présence par côté directement sur `pactes`.
 
@@ -110,6 +112,8 @@ Ces fonctions tournent avec les droits du propriétaire de la base, pas ceux de 
 - **`notifier_reponse_pacte()`** — trigger `after update of statut` sur `pactes`. Couvre toute la négociation de date (contre-propositions, choix, confirmation, annulation) en déduisant qui notifier uniquement à partir de `old.statut`/`new.statut` (le déroulé est déterministe, voir `bloc_choix_date.dart`/`bloc_reponse.dart`) — pas besoin de `auth.uid()`. Distingue notamment un refus explicite (`old.statut = enAttenteReponse`) d'un abandon faute de date trouvée (`old.statut = enAttenteChoixDateXxx`), avec des textes différents. Exclut explicitement `annuleDoubleAbsence`, qui a sa propre notification. La notification "Pacte confirmé" inclut le nom du restaurant (`restaurants.nom`, via `restaurant_id`).
 - **`notifier_nouveau_message()`** — trigger `after insert` sur `messages`. Détermine le destinataire (titulaire ou remplaçant, celui qui n'a pas écrit) en comparant `expediteur_id` à l'id du titulaire du pacte. Inclut le téléphone du remplaçant dans les données de la notification (pour le bouton d'appel au clic) uniquement dans le sens titulaire←remplaçant : dans l'autre sens, `ChatScreen` le récupère déjà via `telephone_titulaire_du_pacte()`.
 - **`formater_date_heure_fr(p_date)`** — formatage français ("vendredi 16 octobre à 19h00") écrit à la main (tableaux de jours/mois), Postgres/Supabase n'ayant pas de locale française par défaut.
+- **D-019 — personnes de confiance actives après scellage** (27/09, migration `scellage_et_negociation.sql`). Avant, une personne de confiance rattachée à son compte dès l'ajout de sa fiche (`profil_id`, calculé à l'insertion) voyait immédiatement le Swend en négociation : `pactes` via `est_remplacant_du_pacte()`, sa fiche, donc « On compte sur toi », la fiche et la conversation (avec, si elle écrivait, un push au titulaire). Désormais trois politiques **restrictives** (combinées en ET avec les politiques existantes, sans dépendre de leur nom) : `pactes_tiers_apres_scellage` (un Swend non scellé n'est lisible que par ses titulaires), `remplacants_tiers_apres_scellage` (sa propre fiche seulement si `pacte_est_scelle()`), `messages_apres_scellage` (aucun message lu ou écrit, par personne, avant scellage — donc aucune notification de message). `marquer_fil_lu()`, `signaler_indisponibilite()` / `signaler_disponibilite()` exigent aussi un Swend scellé. Aucune notification n'est envoyée au moment de l'activation (rien de décidé).
+- **D-011 — `verifier_negociation_date()`** (même migration) — trigger `before update of dates_proposees, nombre_echanges_date` sur `pactes` : une nouvelle liste de dates n'est acceptée que pendant la négociation, avec `nombre_echanges_date` = ancien + 1 et ≤ 2 ; sinon `negociation_terminee`. L'app applique la même règle (`peutEncoreContreProposer()` dans `bloc_choix_date.dart`).
 - **`est_remplacant_du_pacte(p_pacte_id uuid) returns boolean`** — utilisée par la policy SELECT de `pactes` qui laisse un remplaçant voir le pacte concerné (section 7.5). Ne peut pas être un simple `exists (select 1 from remplacants ...)` inline dans la policy : les policies de `remplacants` interrogent `pactes` en retour, ce qui crée une récursion infinie (`infinite recursion detected in policy for relation "pactes"`, code `42P17` — bug rencontré le 27/08, voir section 8). Passer par une fonction `SECURITY DEFINER` casse la boucle, puisqu'elle contourne la RLS de `remplacants` pour cette vérification précise.
 - **`telephone_titulaire_du_pacte(p_remplacant_id uuid) returns text`** — permet au bouton d'appel du chat de fonctionner côté remplaçant : renvoie le téléphone du titulaire, uniquement si l'appelant est bien le remplaçant lié à cette ligne (`profil_id = auth.uid()`). Dans l'autre sens (titulaire appelant son remplaçant), aucune fonction n'est nécessaire : le titulaire a déjà ce numéro dans son propre formulaire.
 - **Fonctions "Un imprévu ?"** (24/09, refondues le 25/09 — migration `un_imprevu_v2.sql`, à exécuter après `un_imprevu.sql` et `garde_fou_double_remplacement.sql`). Toutes `SECURITY DEFINER`, toutes vérifient elles-mêmes qui appelle, et toutes verrouillent **d'abord la ligne `pactes` puis toutes les fiches `remplacants` du pacte (les deux côtés)**, toujours dans cet ordre : deux actions concurrentes sur un même Swend sont sérialisées sans risque d'interblocage, et chaque fonction relit la fiche **après** verrouillage (le perdant d'une course voit donc toujours l'état final du gagnant). Codes d'erreur métier renvoyés à l'app (`PacteRepository.codeErreurMetier`) : `place_deja_prise`, `personne_indisponible`, `deja_remplacant_autre_cote`, `demande_non_active`, `deja_acceptee`, `retrait_impossible`, `swend_inactif`, `champs_manquants`.
@@ -159,7 +163,7 @@ flowchart TD
     C -->|Refuse| U3["UPDATE pactes\nstatut = annule"]
 ```
 
-La négociation de date (contre-proposition) est plafonnée à 2 allers-retours (`nombreEchangesDate` / `maxEchangesDate` dans `bloc_choix_date.dart`) ; au-delà, la seule option restante est d'accepter une des dates proposées ou d'annuler.
+La négociation de date est limitée à **2 contre-propositions au total** après la proposition initiale, les deux titulaires confondus (D-011, précisée le 27/09 : `nombreEchangesDate` / `maxEchangesDate` / `peutEncoreContreProposer()` dans `bloc_choix_date.dart`, garanti aussi par la base via `verifier_negociation_date()`) ; au-delà, la seule option restante est d'accepter une des dates proposées ou d'annuler le Swend.
 
 ### 7.3 Accepté, puis délégué à un remplaçant
 
@@ -281,7 +285,7 @@ Décisions produit structurantes :
 
 **Fait et déployé :**
 - Authentification réelle (Supabase Auth), création de profil automatique, rattachement automatique par téléphone.
-- Cycle de vie complet d'un pacte : création, négociation de date (max 2 allers-retours), acceptation/refus, délégation à un remplaçant, statuts `confirme`/`maintenu`/`annule`/`annuleDoubleAbsence`.
+- Cycle de vie complet d'un pacte : création, négociation de date (max 2 contre-propositions au total), acceptation/refus, délégation à un remplaçant, statuts `confirme`/`maintenu`/`annule`/`annuleDoubleAbsence`.
 - Annulation automatique si les deux parties délèguent leur présence (V1 — pas de mise en contact entre remplaçants).
 - Chat privé en temps réel entre un titulaire et chacun de ses remplaçants, dès que ceux-ci ont un compte — ouverture automatique par rattachement téléphone, écran permanent pour gérer sa liste et déléguer.
 - Confidentialité par côté appliquée à la fois par RLS (lignes) et par grants de colonnes (historique permanent invisible à l'app).
@@ -380,7 +384,7 @@ Sylvain. Tout est dans `qa/` (mode d'emploi complet : `qa/README.md`).
 
 - **Trois niveaux** : `qa/run_metier.sh` (SQL + Dart, ~10 s),
   `qa/run_smoke.sh` (parcours principal en navigateur, ~1 min),
-  `qa/run_full.sh` (métier + 18 scénarios E2E, ~18 min) ;
+  `qa/run_full.sh` (métier + 19 scénarios E2E, ~21 min) ;
   `qa/run_scenario.sh <nom>` pour un seul scénario.
 - **Pile 100 % locale** (`qa/stack.sh`) : Postgres 16 + PostgREST 12.2.3 +
   un faux Supabase Node (`qa/stack/faux_supabase.mjs` : auth par mot de

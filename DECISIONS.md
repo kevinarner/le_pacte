@@ -189,13 +189,18 @@ La limite historique venait de l’implémentation, pas d’un besoin produit.
 
 ---
 
-## D-011 — Négociation de date limitée à 2 allers-retours
+## D-011 — Négociation de date limitée à 2 contre-propositions au total
 
 **Statut : Validée**  
-**Reconfirmée : 27/09/2026**
+**Reconfirmée : 27/09/2026**  
+**Précisée : 27/09/2026** (formulation initiale : « 2 allers-retours de contre-proposition maximum », jugée ambiguë)
 
 ### Décision
-La négociation de date entre les deux titulaires est limitée à **2 allers-retours de contre-proposition maximum**.
+Après la proposition initiale, la négociation de date entre les deux titulaires est limitée à **2 contre-propositions au total**, les deux titulaires confondus — et non 2 par personne.
+
+Exemple : Eliot propose A ; David propose B (n°1) ; Eliot propose C (n°2) ; David ne peut plus proposer D. Il peut accepter C, sinon le Swend est annulé.
+
+Sans accord après les 2 contre-propositions autorisées, le Swend est annulé ; il faut créer un nouveau Swend pour recommencer une négociation.
 
 ### Raison
 Éviter qu’un Swend devienne une conversation de planification interminable. Le produit repose sur un engagement simple et rapide à sceller.
@@ -349,6 +354,25 @@ En cas d’écart entre comportement attendu et implémentation, `PRODUCT_RULES.
 
 ### Raison
 Éviter qu’un comportement existant dans le code soit interprété comme une décision produit simplement parce qu’il existe déjà.
+
+---
+
+## D-019 — Personnes de confiance activées seulement après scellage
+
+**Statut : Validée**  
+**Décidée : 27/09/2026**
+
+### Décision
+Une personne de confiance peut être choisie pendant la création du Swend, mais elle n’est activée qu’une fois le Swend scellé.
+
+Avant le scellage : aucune notification automatique, rien dans « On compte sur toi », aucun accès au Swend, aucune conversation de son côté.
+
+Si le Swend est refusé, annulé avant scellage ou si la négociation n’aboutit jamais, elle n’est jamais informée automatiquement et ne voit jamais ce Swend.
+
+Un partage manuel (Messages / WhatsApp) choisi volontairement par l’utilisateur n’est pas concerné.
+
+### Raison
+Tant que l’autre titulaire n’a pas accepté, il n’y a pas de rendez-vous : solliciter l’attention d’une personne de confiance pour un Swend qui n’existera peut-être jamais est prématuré.
 
 ---
 

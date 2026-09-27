@@ -78,11 +78,27 @@ Le créateur choisit :
 
 Au moins 2 personnes de confiance sont requises au moment où le parcours concerné l’exige.
 
+Les personnes de confiance choisies à la création ne sont activées qu’au scellage (voir 5.8).
+
 ### 3.2 Négociation de date
 
 Le destinataire peut accepter une date proposée ou faire une contre-proposition.
 
-La négociation est limitée à **2 allers-retours de contre-proposition maximum**.
+Après la proposition initiale, il peut y avoir **au maximum 2 contre-propositions au total**, les deux titulaires confondus. Ce n’est pas 2 contre-propositions par personne.
+
+Exemple :
+
+1. Eliot propose A.
+2. David propose B → contre-proposition n°1.
+3. Eliot propose C → contre-proposition n°2.
+4. David ne peut plus faire de nouvelle contre-proposition D.
+
+À ce stade, David peut accepter C ; sinon le Swend est annulé.
+
+Si aucun accord n’est trouvé après les 2 contre-propositions autorisées :
+
+- le Swend est annulé ;
+- il faut créer un nouveau Swend pour recommencer une négociation.
 
 ### 3.3 Scellement
 
@@ -112,7 +128,7 @@ Chaque titulaire possède son propre côté du Swend et sa propre liste de perso
 Une personne simplement prévue :
 
 - est rattachée à un seul côté du Swend ;
-- peut voir son rôle sur son propre compte ;
+- peut voir son rôle sur son propre compte, une fois le Swend scellé (voir 5.8) ;
 - n’est pas encore engagée à venir ;
 - ne compte pas comme participante à un Swend à venir ;
 - peut discuter avec le titulaire si elle possède un compte Swend.
@@ -233,6 +249,32 @@ Un titulaire ne peut pas ajouter :
 
 - lui-même ;
 - l’autre titulaire du Swend.
+
+Cette règle doit être garantie côté serveur.
+
+### 5.8 Activation après scellage
+
+Une personne de confiance peut être choisie et configurée pendant la création du Swend, mais elle n’est activée qu’une fois le Swend scellé.
+
+Tant que le Swend n’est pas scellé :
+
+- aucune notification automatique à la personne de confiance ;
+- rien dans `On compte sur toi` ;
+- aucun accès au Swend en tant que personne de confiance ;
+- aucune conversation contextuelle accessible de son côté.
+
+Au moment où le Swend devient scellé :
+
+- la personne de confiance devient active ;
+- elle apparaît dans `On compte sur toi` ;
+- les notifications prévues peuvent alors être envoyées.
+
+Si le Swend est refusé, annulé ou si la négociation n’aboutit jamais :
+
+- la personne de confiance ne doit jamais être informée automatiquement ;
+- elle ne doit jamais voir ce Swend.
+
+Un partage manuel (Messages / WhatsApp) que l’utilisateur choisit volontairement d’envoyer n’est pas une information automatique.
 
 Cette règle doit être garantie côté serveur.
 
@@ -681,7 +723,8 @@ Le cœur de Swend comprend notamment :
 
 - création d’un Swend ;
 - invitation de l’autre titulaire ;
-- négociation de date limitée à 2 allers-retours ;
+- négociation de date limitée à 2 contre-propositions au total ;
+- personnes de confiance activées seulement au scellage ;
 - acceptation / refus ;
 - scellement ;
 - personnes de confiance ;

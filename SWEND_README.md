@@ -10,6 +10,11 @@
 > Lot D-008 / D-015 (indisponibilité spontanée, notifications des actions
 > directes) : en production depuis le 27/09 (migration
 > `20260927010000_disponibilite_spontanee_et_notifications.sql` exécutée).
+>
+> Lot D-019 / D-011 (personnes de confiance actives après scellage, limite
+> de négociation garantie par la base) : implémenté et testé dans le dépôt ;
+> en ligne une fois la migration `20260927020000_scellage_et_negociation.sql`
+> exécutée en production et l'app redéployée.
 
 ---
 
@@ -104,10 +109,23 @@ Puis « Envoyer le Swend ». Si David a déjà un compte, il le reçoit
 automatiquement dès qu'il créera son compte avec ce numéro, quel que soit le
 format saisi.
 
+Les personnes de confiance choisies à l'étape 3 ne sont **pas encore
+actives** : tant que le Swend n'est pas scellé, Kevin n'en sait rien. Il n'a
+ni carte « On compte sur toi », ni accès au Swend, ni conversation, ni
+notification. La base le garantit. Il devient actif au scellage (voir 5.6).
+Si David refuse ou si la négociation échoue, Kevin ne voit jamais ce Swend.
+Seule exception : un message Messages / WhatsApp qu'Eliot choisit lui-même
+d'envoyer (« Envoyer l'invitation »).
+
 ### 5.2 Réponse (David)
 
-- David choisit une des dates proposées, ou fait une contre-proposition. Il y a
-  au plus 2 allers-retours de négociation.
+- David choisit une des dates proposées, ou fait une contre-proposition.
+  Après la proposition initiale, il y a **au plus 2 contre-propositions au
+  total**, les deux confondus (A par Eliot, B par David = n°1, C par Eliot =
+  n°2). Ensuite il ne reste qu'à accepter une date proposée ou à annuler le
+  Swend (« Dernière proposition : si aucune de ces dates ne convient, le Swend
+  sera annulé. »). La base refuse toute contre-proposition de plus. Pour
+  renégocier, il faut créer un nouveau Swend.
 - Pour **accepter**, il renseigne à son tour ses propres personnes de
   confiance (au moins 2), puis « Accepter le Swend ». Le Swend est alors
   **Scellé**.
@@ -176,6 +194,8 @@ Règles :
   scellé. » Le titulaire garde « Écrire à Kevin » et « Discuter ».
 
 ### 5.6 Côté personne de confiance (Kevin)
+
+Tout ce qui suit n'existe qu'à partir du scellage du Swend.
 
 Sur son accueil :
 
