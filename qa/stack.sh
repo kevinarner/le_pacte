@@ -62,9 +62,17 @@ cmd_start() {
     qa_pg_cmd "'$PG_BIN/pg_ctl' -D '$QA_PG_DATA' -l '$QA_LOGS/postgres.log' -w start \
       -o \"-p $QA_PG_PORT -k $QA_PG_SOCKET -c listen_addresses=127.0.0.1\"" >/dev/null || exit 1
   fi
-  if [ "$(qa_psql postgres -tAc "select count(*) from pg_database where datname = '$QA_DB'")" != "1" ]; then
-    qa_titre "Construction de la base $QA_DB"
+  # (Re)construit la base E2E si elle manque ou si le schéma a changé
+  # (migrations, réplique, fixtures, script de construction).
+  local empreinte fichier_empreinte="$QA_DATA_DIR/base_e2e.empreinte"
+  empreinte="$(cat "$REPO_ROOT"/supabase/migrations/*.sql "$QA_ROOT"/db/replica/*.sql \
+    "$QA_ROOT/db/fixtures.sql" "$QA_ROOT/db/construire_base.sh" | sha256sum | cut -c1-16)"
+  if [ "$(qa_psql postgres -tAc "select count(*) from pg_database where datname = '$QA_DB'")" != "1" ] \
+     || [ "$(cat "$fichier_empreinte" 2>/dev/null)" != "$empreinte" ]; then
+    qa_titre "Construction de la base $QA_DB (schéma modifié ou absent)"
     "$QA_ROOT/db/construire_base.sh" "$QA_DB" || exit 1
+    echo "$empreinte" > "$fichier_empreinte"
+    arreter postgrest; sleep 0.5
   fi
   if ! port_ouvert "$QA_PGRST_PORT"; then
     cat > "$QA_DATA_DIR/postgrest.conf" <<CONF
@@ -102,8 +110,8 @@ cmd_status() {
 
 cmd_reset() {
   qa_titre "Reconstruction de la base $QA_DB"
-  "$QA_ROOT/db/construire_base.sh" "$QA_DB" || exit 1
-  arreter postgrest; sleep 0.5; cmd_start >/dev/null && echo "Base $QA_DB reconstruite."
+  rm -f "$QA_DATA_DIR/base_e2e.empreinte"
+  cmd_start >/dev/null && echo "Base $QA_DB reconstruite."
 }
 
 case "$1" in

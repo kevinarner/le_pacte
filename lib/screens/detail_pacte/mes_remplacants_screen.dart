@@ -170,7 +170,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
       etat = 'Prend ta place ✓';
     } else if (r.demandeStatut == DemandeStatut.envoyee) {
       etat = 'En attente';
-    } else if (r.demandeStatut.estIndisponible) {
+    } else if (r.estIndisponible) {
       etat = 'Indisponible';
     } else {
       etat = null;

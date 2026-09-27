@@ -11,6 +11,7 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
+import '../../widgets/action_disponibilite.dart';
 import 'chat_screen.dart';
 
 /// Corps de la fiche d'un Swend pour une personne tierce "en cas
@@ -129,10 +130,13 @@ class _BlocTiersState extends State<BlocTiers> {
     } else if (statut != StatutPacte.confirme) {
       contenu = [
         _texte(
-          "$_titulaire pourra faire appel à toi en cas d'imprévu, une fois la date fixée.",
+          _fiche.indisponibleSpontanement
+              ? _texteIndisponible
+              : "$_titulaire pourra faire appel à toi en cas d'imprévu, une fois la date fixée.",
         ),
         const SizedBox(height: 14),
         _boutonEcrire(principal: false),
+        _actionDisponibilite(),
       ];
     } else if (_fiche.selectionne) {
       contenu = [
@@ -167,6 +171,13 @@ class _BlocTiersState extends State<BlocTiers> {
               child: const Text('Voir la demande et répondre'),
             ),
           ];
+        case null when _fiche.indisponibleSpontanement:
+          contenu = [
+            _texte(_texteIndisponible),
+            const SizedBox(height: 14),
+            _boutonEcrire(principal: false),
+            _actionDisponibilite(),
+          ];
         case null:
           contenu = [
             _texte("$_titulaire peut faire appel à toi en cas d'imprévu."),
@@ -174,6 +185,7 @@ class _BlocTiersState extends State<BlocTiers> {
             _texte("Tu n'as rien à faire pour le moment."),
             const SizedBox(height: 14),
             _boutonEcrire(principal: false),
+            _actionDisponibilite(),
           ];
         case DemandeStatut.refusee:
           contenu = [
@@ -209,6 +221,13 @@ class _BlocTiersState extends State<BlocTiers> {
       ),
     );
   }
+
+  String get _texteIndisponible =>
+      "Tu as indiqué que tu ne seras pas disponible pour ce Swend. $_titulaire le sait.";
+
+  Widget _actionDisponibilite() => Center(
+    child: ActionDisponibilite(fiche: _fiche, onChange: widget.onRecharger),
+  );
 
   Widget _titre(String texte) => Text(
     texte,

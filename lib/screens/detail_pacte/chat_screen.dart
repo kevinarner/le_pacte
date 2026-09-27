@@ -426,6 +426,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         );
+      case null when fiche.indisponibleSpontanement:
+        return _bandeauLeger('Tu as indiqué que tu ne seras pas disponible.');
       case null:
         return _bandeauLeger("$titulaire peut faire appel à toi en cas d'imprévu.");
       case DemandeStatut.refusee:

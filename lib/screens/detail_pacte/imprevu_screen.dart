@@ -100,7 +100,8 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
 
     final encoreSollicitables = valides.where(
       (r) =>
-          r.demandeStatut == null || r.demandeStatut == DemandeStatut.envoyee,
+          (r.demandeStatut == null && !r.indisponibleSpontanement) ||
+          r.demandeStatut == DemandeStatut.envoyee,
     );
     final personneDisponible = encoreSollicitables.isEmpty;
 
@@ -257,7 +258,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              if (r.demandeStatut == null)
+              if (r.demandeStatut == null && !r.indisponibleSpontanement)
                 OutlinedButton(
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 36),

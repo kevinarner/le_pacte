@@ -10,6 +10,7 @@ import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
+import '../../widgets/action_disponibilite.dart';
 import '../accueil/accueil_screen.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
 import '../detail_pacte/chat_screen.dart';
@@ -171,10 +172,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   List<FilDeDiscussion> get _filsNonLus {
     final fils = mesFils;
     if (fils == null) return [];
-    return fils
-        .where((f) => f.nonLu && f.dateDernierMessage != null)
-        .toList()
-      ..sort((a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!));
+    return fils.where((f) => f.nonLu && f.dateNonLu != null).toList()
+      ..sort((a, b) => b.dateNonLu!.compareTo(a.dateNonLu!));
   }
 
   Future<void> _ouvrir(Widget ecran) async {
@@ -399,6 +398,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final titulaire = prenomDe(v.coteTitulaire!.nomTitulaire);
     final autre = prenomDe(v.coteAutreParticipant!.nomTitulaire);
     final accepte = v.maFiche!.selectionne;
+    final indisponible = v.maFiche!.indisponibleSpontanement;
     return SizedBox(
       width: double.infinity,
       child: Card(
@@ -428,15 +428,20 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
               Text(
                 accepte
                     ? "$autre ne saura pas que c'est toi."
+                    : indisponible
+                    ? "Tu as indiqué que tu ne seras pas disponible. $titulaire le sait."
                     : "Tu pourrais prendre sa place en cas d'imprévu.",
                 style: const TextStyle(fontSize: 13),
               ),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () => _ouvrir(DetailPacteScreen(pacte: p)),
-                  child: const Text('Voir le Swend'),
-                ),
+              Row(
+                children: [
+                  ActionDisponibilite(fiche: v.maFiche!, onChange: _charger),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: () => _ouvrir(DetailPacteScreen(pacte: p)),
+                    child: const Text('Voir le Swend'),
+                  ),
+                ],
               ),
             ],
           ),
@@ -475,7 +480,11 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '${fil.nomInterlocuteur} vous a écrit',
+                      fil.evenementNonLu?.texte(
+                            vuParTiers: fil.jeSuisLeTiers,
+                            autre: prenomDe(fil.nomInterlocuteur),
+                          ) ??
+                          '${fil.nomInterlocuteur} vous a écrit',
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 14,

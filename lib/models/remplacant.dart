@@ -24,6 +24,11 @@ class Remplacant {
   /// tentative en cours.
   DemandeStatut? demandeStatut;
 
+  /// La personne, simplement prévue, a indiqué d'elle-même "Je ne serai
+  /// pas disponible" (réversible : "Je suis finalement disponible").
+  /// Distinct de [demandeStatut] : aucune demande n'existe dans ce cas.
+  bool indisponibleSpontanement;
+
   Remplacant({
     this.id,
     this.prenom = '',
@@ -33,7 +38,18 @@ class Remplacant {
     this.selectionne = false,
     this.profilId,
     this.demandeStatut,
+    this.indisponibleSpontanement = false,
   });
+
+  /// Ne peut pas être sollicitée pour l'instant : refus, clôture ou
+  /// désistement (définitifs pour la tentative en cours), ou
+  /// indisponibilité spontanée (réversible par la personne elle-même).
+  bool get estIndisponible =>
+      demandeStatut.estIndisponible || indisponibleSpontanement;
+
+  /// Simplement prévue, sans demande : peut dire "Je ne serai pas disponible".
+  bool get peutSeDeclarerIndisponible =>
+      !selectionne && demandeStatut == null && !indisponibleSpontanement;
 
   bool get estRempli =>
       prenom.trim().isNotEmpty &&

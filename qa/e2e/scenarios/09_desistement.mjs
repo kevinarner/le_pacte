@@ -42,6 +42,8 @@ export default {
       await ex.verifierTexte(kevin, /Mes Swends\s+0 à venir/, 'Kevin : 0 Swend à venir');
       await ex.verifierAbsent(kevin, "Tu prends la place d'Eliot", 'Kevin : plus "Tu prends la place d\'Eliot"');
       await ex.verifierAbsent(kevin, 'TON PROCHAIN SWEND', 'Kevin : plus de "Ton prochain Swend"');
+      await ex.verifierAbsent(kevin, 'ON COMPTE SUR TOI', 'Kevin : plus dans "On compte sur toi"');
+      await ex.verifierAbsent(kevin, 'Eliot compte sur toi pour un Swend', 'Kevin : plus de carte "Eliot compte sur toi"');
       await A.ouvrirMesSwends(kevin);
       await ex.verifierAbsent(kevin, "Swend d'Eliot avec David", 'Kevin : le Swend a disparu de "Mes Swends"');
     });

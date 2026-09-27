@@ -188,6 +188,8 @@ class PacteRepository {
     demandeStatut: row['demande_statut'] != null
         ? DemandeStatut.values.byName(row['demande_statut'] as String)
         : null,
+    indisponibleSpontanement:
+        row['indisponible_spontanement'] as bool? ?? false,
   );
 
   /// Crée un nouveau pacte avec les remplaçants de l'initiateur.
@@ -297,6 +299,23 @@ class PacteRepository {
   static Future<void> seDesister(String remplacantId) async {
     await _client.rpc(
       'se_desister_du_remplacement',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Appelé par une personne de confiance simplement prévue : "Je ne
+  /// serai pas disponible" (son titulaire est prévenu). Réversible.
+  static Future<void> signalerIndisponibilite(String remplacantId) async {
+    await _client.rpc(
+      'signaler_indisponibilite',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// "Je suis finalement disponible" : annule l'indisponibilité spontanée.
+  static Future<void> signalerDisponibilite(String remplacantId) async {
+    await _client.rpc(
+      'signaler_disponibilite',
       params: {'p_remplacant_id': remplacantId},
     );
   }
@@ -563,6 +582,26 @@ class PacteRepository {
     } catch (_) {
       lectures = {};
     }
+    // Tous les événements que la RLS me laisse lire, en une requête.
+    final evenementsParFil = <String, List<EvenementFil>>{};
+    try {
+      final evts = await _client
+          .from('evenements_fil')
+          .select()
+          .order('created_at', ascending: true);
+      for (final e in evts as List) {
+        final row = e as Map<String, dynamic>;
+        final evt = EvenementFil(
+          id: row['id'] as String,
+          remplacantId: row['remplacant_id'] as String,
+          code: row['code'] as String,
+          createdAt: DateTime.parse(row['created_at'] as String),
+        );
+        evenementsParFil.putIfAbsent(evt.remplacantId, () => []).add(evt);
+      }
+    } catch (_) {
+      // Sans événements : les boxes ne reposent que sur les messages.
+    }
 
     final fils = <FilDeDiscussion>[];
     for (final row in rows as List) {
@@ -591,11 +630,30 @@ class PacteRepository {
       final messages = await messagesDe(remplacantId);
       final dernier = messages.isNotEmpty ? messages.last : null;
       final luLe = lectures[remplacantId];
-      final nonLu = messages.any(
-        (m) =>
-            m.expediteurId != userId &&
-            (luLe == null || m.createdAt.isAfter(luLe)),
+      bool apresLecture(DateTime d) => luLe == null || d.isAfter(luLe);
+      final messagesNonLus = messages.where(
+        (m) => m.expediteurId != userId && apresLecture(m.createdAt),
       );
+      final evenementsNonLus = (evenementsParFil[remplacantId] ?? const [])
+          .where(
+            (e) =>
+                e.concerneLecteur(vuParTiers: estMoiLeRemplacant) &&
+                apresLecture(e.createdAt),
+          );
+      final dernierMessageNonLu = messagesNonLus.isEmpty
+          ? null
+          : messagesNonLus.last.createdAt;
+      final dernierEvenementNonLu = evenementsNonLus.isEmpty
+          ? null
+          : evenementsNonLus.last;
+      final evenementEnTete =
+          dernierEvenementNonLu != null &&
+              (dernierMessageNonLu == null ||
+                  dernierEvenementNonLu.createdAt.isAfter(dernierMessageNonLu))
+          ? dernierEvenementNonLu
+          : null;
+      final nonLu =
+          dernierMessageNonLu != null || dernierEvenementNonLu != null;
       final autrePartieNom = r['cote'] == 'initiateur'
           ? pacteRow['destinataire_nom'] as String?
           : pacteRow['initiateur_nom'] as String?;
@@ -609,6 +667,9 @@ class PacteRepository {
           dernierMessageDeMoi:
               dernier == null || dernier.expediteurId == userId,
           nonLu: nonLu,
+          evenementNonLu: evenementEnTete,
+          dateNonLu: evenementEnTete?.createdAt ?? dernierMessageNonLu,
+          jeSuisLeTiers: estMoiLeRemplacant,
           dateConcernee: dateRetenue != null
               ? DateTime.parse(dateRetenue)
               : null,

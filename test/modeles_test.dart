@@ -8,6 +8,7 @@ import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
 import 'package:le_pacte/utils/date_fr.dart';
+import 'package:le_pacte/widgets/action_disponibilite.dart';
 
 EvenementFil _ev(String code) => EvenementFil(
   id: 'x',
@@ -43,6 +44,14 @@ void main() {
         "La demande n'est plus d'actualité.",
         "La demande à Kevin n'est plus d'actualité.",
       ],
+      'indisponibilite_signalee': [
+        'Tu as indiqué à Eliot que tu ne seras pas disponible.',
+        "Kevin ne sera pas disponible en cas d'imprévu.",
+      ],
+      'disponibilite_retablie': [
+        'Tu as indiqué à Eliot que tu es finalement disponible.',
+        "Kevin est de nouveau disponible en cas d'imprévu.",
+      ],
     };
     attendus.forEach((code, textes) {
       test(code, () {
@@ -61,6 +70,125 @@ void main() {
         formaterHorodatage(DateTime(2026, 11, 10, 9, 42)),
         '10 nov. · 09:42',
       );
+    });
+  });
+
+  group('Événements qui rendent une conversation non lue (D-015)', () {
+    test('titulaire : les actions de la personne de confiance', () {
+      for (final code in [
+        'demande_refusee',
+        'demande_acceptee',
+        'desistement',
+        'indisponibilite_signalee',
+        'disponibilite_retablie',
+      ]) {
+        expect(
+          _ev(code).concerneLecteur(vuParTiers: false),
+          isTrue,
+          reason: code,
+        );
+      }
+    });
+    test('titulaire : pas ses propres actions ni la clôture automatique', () {
+      for (final code in [
+        'demande_envoyee',
+        'demande_annulee',
+        'demande_cloturee',
+      ]) {
+        expect(
+          _ev(code).concerneLecteur(vuParTiers: false),
+          isFalse,
+          reason: code,
+        );
+      }
+    });
+    test(
+      'personne de confiance : seulement l\'annulation par le titulaire',
+      () {
+        expect(
+          _ev('demande_annulee').concerneLecteur(vuParTiers: true),
+          isTrue,
+        );
+        for (final code in [
+          'demande_envoyee', // a déjà sa carte "Une demande t'attend"
+          'demande_cloturee', // déjà notifiée, pas une action du titulaire
+          'demande_refusee',
+          'demande_acceptee',
+          'desistement',
+          'indisponibilite_signalee',
+          'disponibilite_retablie',
+        ]) {
+          expect(
+            _ev(code).concerneLecteur(vuParTiers: true),
+            isFalse,
+            reason: code,
+          );
+        }
+      },
+    );
+  });
+
+  group('Indisponibilité spontanée (D-008)', () {
+    Remplacant fiche({
+      DemandeStatut? statut,
+      bool sel = false,
+      bool indispo = false,
+    }) => Remplacant(
+      id: 'r',
+      prenom: 'Kevin',
+      nom: 'A',
+      telephone: '0600000003',
+      profilId: 'k',
+      demandeStatut: statut,
+      selectionne: sel,
+      indisponibleSpontanement: indispo,
+    );
+    test(
+      'simplement prévue : peut se déclarer indisponible, reste disponible',
+      () {
+        final r = fiche();
+        expect(r.peutSeDeclarerIndisponible, isTrue);
+        expect(r.estIndisponible, isFalse);
+        expect(ActionDisponibilite.concerne(r), isTrue);
+      },
+    );
+    test(
+      'indisponible spontanément : indisponible côté titulaire, réversible',
+      () {
+        final r = fiche(indispo: true);
+        expect(r.estIndisponible, isTrue);
+        expect(r.demandeStatut, isNull);
+        expect(r.peutSeDeclarerIndisponible, isFalse);
+        expect(
+          ActionDisponibilite.concerne(r),
+          isTrue,
+        ); // "Je suis finalement disponible"
+      },
+    );
+    test(
+      'demande en cours, place prise, refus, désistement : action absente',
+      () {
+        for (final r in [
+          fiche(statut: DemandeStatut.envoyee),
+          fiche(statut: DemandeStatut.acceptee, sel: true),
+          fiche(statut: DemandeStatut.refusee),
+          fiche(statut: DemandeStatut.desistee),
+          fiche(statut: DemandeStatut.cloturee),
+        ]) {
+          expect(
+            ActionDisponibilite.concerne(r),
+            isFalse,
+            reason: '${r.demandeStatut}',
+          );
+        }
+      },
+    );
+    test('refus et désistement restent indisponibles sans drapeau', () {
+      expect(fiche(statut: DemandeStatut.refusee).estIndisponible, isTrue);
+      expect(fiche(statut: DemandeStatut.desistee).estIndisponible, isTrue);
+    });
+    test('le drapeau ne touche pas le cycle d\'une demande', () {
+      expect(fiche(indispo: true).demandeStatut.estIndisponible, isFalse);
     });
   });
 

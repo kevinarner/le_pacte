@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
-import '../../models/demande_statut.dart';
 import '../../models/remplacant.dart';
 import '../../models/statut_presence.dart';
 import '../../services/pacte_repository.dart';
@@ -38,9 +37,10 @@ class BlocPresence extends StatelessWidget {
       _monCote.listeRemplacants.where((r) => r.estRempli),
     );
     // Ceux qui peuvent encore être sollicités : ni refus, ni désistement,
-    // ni demande clôturée (la liste complète reste dans "Modifier ma liste").
+    // ni demande clôturée, ni indisponibilité signalée par la personne
+    // (la liste complète reste dans "Modifier ma liste").
     final disponibles = remplacants
-        .where((r) => !r.demandeStatut.estIndisponible)
+        .where((r) => !r.estIndisponible)
         .toList();
     Remplacant? designe;
     for (final r in remplacants) {

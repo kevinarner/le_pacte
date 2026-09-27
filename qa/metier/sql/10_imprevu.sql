@@ -153,7 +153,9 @@ select count(*) as n0 from notifications_log \gset
 select verifier('C', 'Eliot annule la demande',
   en_tant_que(:'E', format('select annuler_demande_remplacement(%L)', :'k')) = 'OK');
 select verifier('C', 'Kevin revient à disponible (null)', statut_fiche(:'k') = 'null');
-select verifier('C', 'aucune notification à l''annulation', (select count(*) from notifications_log where id > :n0) = 0);
+select verifier('C', 'annulation : Kevin seul notifié, une fois (D-015)',
+  (select count(*) from notifications_log where id > :n0) = 1
+  and (select corps from notifications_log where id > :n0 and profile_id = :'K') = 'Eliot a annulé sa demande.');
 select verifier('C', 'Kevin ne peut plus accepter la demande annulée',
   en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) like '%demande_non_active%');
 select verifier('C', 'Kevin peut être sollicité à nouveau',
@@ -213,7 +215,9 @@ select verifier('E', 'Camille désistée, plus sélectionnée', statut_fiche(:'c
 select verifier('E', 'Kevin redevient disponible', statut_fiche(:'k') = 'null');
 select verifier('E', 'Thomas reste indisponible', statut_fiche(:'t') = 'refusee');
 select verifier('E', 'pas d''annulation double absence', (select statut from pactes where id = :'p') = 'confirme');
-select verifier('E', 'aucune notification automatique', (select count(*) from notifications_log where id > :n0) = 0);
+select verifier('E', 'désistement : seul Eliot est notifié (D-015), aucune notification automatique aux autres',
+  (select count(*) from notifications_log where id > :n0) = 1
+  and (select corps from notifications_log where id > :n0 and profile_id = :'E') = 'Camille ne peut finalement plus prendre votre place.');
 select verifier('E', 'Camille ne peut pas ré-accepter',
   en_tant_que(:'C', format('select repondre_demande_remplacement(%L, true)', :'c')) like '%demande_non_active%');
 select verifier('E', 'Camille ne peut pas être re-sollicitée',

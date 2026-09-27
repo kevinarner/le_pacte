@@ -25,10 +25,16 @@ class EvenementFil {
       return switch (code) {
         'demande_envoyee' => '$autre t\'a demandé de prendre sa place.',
         'demande_annulee' => '$autre a annulé sa demande.',
-        'demande_refusee' => 'Tu as refusé de prendre la place ${deNom(autre)}.',
-        'demande_acceptee' => 'Tu as accepté de prendre la place ${deNom(autre)}.',
+        'demande_refusee' =>
+          'Tu as refusé de prendre la place ${deNom(autre)}.',
+        'demande_acceptee' =>
+          'Tu as accepté de prendre la place ${deNom(autre)}.',
         'desistement' => 'Tu ne prends plus la place ${deNom(autre)}.',
         'demande_cloturee' => "La demande n'est plus d'actualité.",
+        'indisponibilite_signalee' =>
+          "Tu as indiqué à $autre que tu ne seras pas disponible.",
+        'disponibilite_retablie' =>
+          "Tu as indiqué à $autre que tu es finalement disponible.",
         _ => '',
       };
     }
@@ -39,7 +45,26 @@ class EvenementFil {
       'demande_acceptee' => '$autre a accepté de prendre ta place.',
       'desistement' => '$autre ne peut finalement plus prendre ta place.',
       'demande_cloturee' => "La demande à $autre n'est plus d'actualité.",
+      'indisponibilite_signalee' =>
+        '$autre ne sera pas disponible en cas d\'imprévu.',
+      'disponibilite_retablie' =>
+        '$autre est de nouveau disponible en cas d\'imprévu.',
       _ => '',
     };
   }
+
+  /// Vrai si l'événement vient de l'interlocuteur et me concerne
+  /// directement : il rend la conversation "non lue" et s'affiche en box
+  /// sur l'accueil (D-015). La demande reçue a déjà sa propre carte ("Une
+  /// demande t'attend") et la clôture automatique n'est pas une action de
+  /// l'interlocuteur : ni l'une ni l'autre ne compte ici.
+  bool concerneLecteur({required bool vuParTiers}) => vuParTiers
+      ? code == 'demande_annulee'
+      : const {
+          'demande_refusee',
+          'demande_acceptee',
+          'desistement',
+          'indisponibilite_signalee',
+          'disponibilite_retablie',
+        }.contains(code);
 }

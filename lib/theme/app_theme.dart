@@ -149,6 +149,12 @@ StatutAffichage statutAffichageTiers(StatutPacte statut, Remplacant fiche) {
       StatutTag(fond: AppColors.accent, texte: Colors.white),
     );
   }
+  if (fiche.indisponibleSpontanement) {
+    return const StatutAffichage(
+      'Indisponible',
+      StatutTag(fond: AppColors.neutre, texte: AppColors.texteAttenue),
+    );
+  }
   if (fiche.demandeStatut.estIndisponible) {
     return const StatutAffichage(
       'Terminé',

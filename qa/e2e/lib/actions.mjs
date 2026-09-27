@@ -129,6 +129,17 @@ export async function repondreDepuisSwend(a, titulaire, autre, accepte) {
   await a.attendreTexte('Accepter');
   await validerReponse(a, accepte);
 }
+// Indisponibilité spontanée (D-008), depuis la carte "On compte sur toi".
+export async function seDeclarerIndisponible(a) {
+  await a.accueil();
+  await a.cliquer('Je ne serai pas disponible');
+  await a.attendreTexte('Je suis finalement disponible');
+}
+export async function seDeclarerDisponible(a) {
+  await a.accueil();
+  await a.cliquer('Je suis finalement disponible');
+  await a.attendreTexte('Je ne serai pas disponible');
+}
 export async function seDesister(a, titulaire = 'Eliot', autre = 'David') {
   await ouvrirSwend(a, new RegExp(`Swend ${deNom(titulaire)} avec ${autre}`));
   await a.cliquer('Je ne peux finalement plus venir');
@@ -159,7 +170,12 @@ export async function ouvrirConversationTiers(a, titulaire = 'Eliot', autre = 'D
 }
 // Depuis la box "X vous a écrit" de l'accueil.
 export async function ouvrirConversationDepuisBox(a, nomComplet) {
+  await ouvrirBox(a, `${nomComplet} vous a écrit`);
+}
+// Depuis une box de l'accueil dont le titre est [texte] (message ou
+// événement non lu : "Kevin a accepté de prendre ta place."...).
+export async function ouvrirBox(a, texte) {
   await a.accueil();
-  await a.cliquerTexte(`${nomComplet} vous a écrit`);
+  await a.cliquerTexte(texte);
   await a.attendreTexte('Écrire un message…');
 }

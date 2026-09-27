@@ -4,6 +4,13 @@
 > nouveau collaborateur. Il décrit ce que fait Swend, ses règles et son
 > vocabulaire, tel que c'est implémenté aujourd'hui (27/09/2026).
 > Détails techniques complets : `ARCHITECTURE.md`. Banc de tests : `qa/README.md`.
+> Règles produit attendues (source de vérité) : `PRODUCT_RULES.md` ; historique
+> des arbitrages : `DECISIONS.md`.
+>
+> Lot D-008 / D-015 (indisponibilité spontanée, notifications des actions
+> directes) : implémenté et testé dans le dépôt ; en ligne une fois la
+> migration `20260927010000_disponibilite_spontanee_et_notifications.sql`
+> exécutée en production et l'app redéployée.
 
 ---
 
@@ -128,7 +135,9 @@ Il y a trois intentions bien séparées : **préparer**, **discuter**,
 
 - Voir chaque personne avec son statut Swend (« est déjà sur Swend » /
   « n'a pas encore Swend » + « Envoyer l'invitation »).
-- Voir son état : « En attente », « Indisponible », « Prend ta place ✓ ».
+- Voir son état : « En attente », « Indisponible » (refus, désistement,
+  demande close, ou indisponibilité signalée par la personne elle-même),
+  « Prend ta place ✓ ».
 - Ajouter des personnes (« Enregistrer »).
 - Retirer une personne. Ce n'est pas possible si une demande est en cours ou
   si la personne a accepté.
@@ -147,8 +156,9 @@ Il y a trois intentions bien séparées : **préparer**, **discuter**,
   s'ouvre pas, l'app propose « Utiliser Messages ».
 - **« En attente »** une fois demandé, avec « Annuler la demande » et « Écrire
   à … » (ou « Envoyer le message » pour une personne sans compte).
-- **« Indisponible »** si la personne a refusé, s'est désistée, ou si la
-  demande a été close.
+- **« Indisponible »** si la personne a refusé, s'est désistée, si la
+  demande a été close, ou si elle a indiqué d'elle-même qu'elle ne serait pas
+  disponible (voir 5.6). Elle ne peut alors pas être sollicitée.
 
 Règles :
 
@@ -177,12 +187,30 @@ Sur son accueil :
 - Après acceptation : « Tu prends la place d'Eliot ». Le Swend devient alors
   **son** Swend à venir (« Ton prochain Swend », compteur « 1 à venir »).
 
+**Indisponibilité spontanée** (tant qu'il est simplement prévu, sans demande
+en cours) : sur la carte « Eliot compte sur toi » et sur la fiche du Swend,
+une action secondaire **« Je ne serai pas disponible »**, sans formulaire ni
+justification.
+
+- Kevin devient « Indisponible » pour ce Swend. Il reste dans « On compte sur
+  toi » (« Tu as indiqué que tu ne seras pas disponible. Eliot le sait. »).
+- L'action devient **« Je suis finalement disponible »**, qui annule tout.
+- Eliot est prévenu (box sur l'accueil + push). Kevin reste listé dans
+  « Modifier ma liste » (« Indisponible »), mais n'est plus proposé dans « En
+  cas d'imprévu » ni sollicitable dans « Un imprévu ? ».
+- C'est réversible, contrairement au refus d'une vraie demande et au
+  désistement après acceptation, qui restent définitifs pour ce Swend.
+  L'action n'existe pas pendant une demande en cours (il faut y répondre),
+  ni après avoir accepté (c'est alors le désistement).
+
 Sur la fiche du Swend (vue « tiers », minimale) :
 
 - toujours la date, l'heure, le restaurant et **avec qui** ;
 - selon l'état :
   - « Eliot peut faire appel à toi en cas d'imprévu. Tu n'as rien à faire pour
-    le moment. » ;
+    le moment. » + « Je ne serai pas disponible » ;
+  - « Tu as indiqué que tu ne seras pas disponible pour ce Swend. Eliot le
+    sait. » + « Je suis finalement disponible » ;
   - « Eliot a un imprévu » + « Voir la demande et répondre » ;
   - « Tu as indiqué ne pas être disponible… » ;
   - « C'est bon, quelqu'un a pu prendre la place d'Eliot. » (on ne dit jamais
@@ -240,12 +268,21 @@ Kevin peut être prévu à la fois par Eliot et par David :
   - titulaire : « Tu as demandé à Kevin de prendre ta place. » ;
   - Kevin : « Eliot t'a demandé de prendre sa place. ».
 
-  Il y en a six : demande envoyée, annulée, refusée, acceptée, désistement,
-  demande close (« La demande n'est plus d'actualité. »). Ils sont enregistrés
-  en base et persistent.
+  Il y en a huit : demande envoyée, annulée, refusée, acceptée, désistement,
+  demande close (« La demande n'est plus d'actualité. »), indisponibilité
+  signalée, retour disponible. Ils sont enregistrés en base et persistent.
 - **Lu / non lu** enregistré en base : sur l'accueil, une box par conversation
-  non lue (« Kevin Arner vous a écrit »), dans les deux sens. Ouvrir la
-  conversation la marque comme lue.
+  non lue, dans les deux sens. Ouvrir la conversation la marque comme lue.
+  - Un message de l'autre : « Kevin Arner vous a écrit ».
+  - Une action de l'autre qui me concerne : la box affiche l'événement.
+    - Pour le titulaire : « Kevin a accepté de prendre ta place. », « … a
+      refusé… », « … ne peut finalement plus… », « … ne sera pas disponible
+      en cas d'imprévu. », « … est de nouveau disponible… ».
+    - Pour la personne de confiance : « Eliot a annulé sa demande. ».
+
+    La demande reçue a déjà sa carte « Une demande t'attend », et la clôture
+    automatique n'est pas une action de l'interlocuteur : elles n'ouvrent pas
+    de box.
 - Bouton « Appeler » dans la conversation.
 
 ---
@@ -262,7 +299,7 @@ De haut en bout d'écran :
    prend la place.
 5. « ON COMPTE SUR TOI ».
 6. « TON PROCHAIN SWEND ».
-7. Les boxes de messages non lus.
+7. Les boxes non lues (messages, ou actions qui me concernent).
 8. « Profil ».
 
 Le profil contient aussi « Aide / Nous contacter » (suggestion de restaurant,
@@ -306,11 +343,18 @@ Elles sont envoyées :
 - à un nouveau message ;
 - à une demande reçue (« On a besoin de toi ») ;
 - à une demande close (« C'est bon, quelqu'un a pu prendre la place. ») ;
+- à la personne sollicitée quand le titulaire annule sa demande ;
+- au titulaire quand sa personne de confiance :
+  - accepte ;
+  - refuse ;
+  - se désiste ;
+  - se déclare indisponible ;
+  - redevient disponible ;
 - à l'annulation pour double remplacement.
 
-Il n'y a **jamais** de notification à l'autre participant sur un remplacement.
-Le titulaire n'est pas encore notifié d'une acceptation ou d'un désistement
-(il le voit en rouvrant la fiche).
+Chaque notification ouvre la conversation concernée. Les effets de bord
+(clôtures, réouvertures) ne notifient jamais le titulaire. Il n'y a
+**jamais** de notification à l'autre participant sur un remplacement.
 
 ---
 
@@ -325,7 +369,9 @@ Le titulaire n'est pas encore notifié d'une acceptation ou d'un désistement
   - `repondre_demande_remplacement` ;
   - `se_desister_du_remplacement` ;
   - `retirer_remplacant` ;
-  - `ajouter_et_demander_remplacement`.
+  - `ajouter_et_demander_remplacement` ;
+  - `signaler_indisponibilite` / `signaler_disponibilite` (la personne
+    elle-même, seulement si elle est simplement prévue).
 - Consentement obligatoire : personne ne « prend la place » sans avoir accepté.
 - Une seule personne par côté, même en cas de clics simultanés. Les actions
   concurrentes sont sérialisées par verrou.
