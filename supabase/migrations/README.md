@@ -9,8 +9,8 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   exécutée le 27/09 — lot D-008 / D-015).
   `20260927020000_scellage_et_negociation.sql` : exécutée le 27/09 (lot
   D-019 / D-011).
-  `20260927030000_reservations_suivi.sql` : **pas encore exécutée en
-  production** (suivi interne des réservations, D-020).
+  `20260927030000_reservations_suivi.sql` : exécutée le 27/09 (suivi
+  interne des réservations, D-020).
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de
