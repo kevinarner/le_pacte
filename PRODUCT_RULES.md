@@ -685,13 +685,16 @@ La destination est déterminée selon l’état actuel du Swend au moment du cli
 - remplaçant accepté → sa fiche de remplaçant ;
 - titulaire remplacé → fiche du Swend ;
 - titulaire qui cherche encore quelqu’un → « Un imprévu ? ».
+- personne qui n’a plus accès au Swend (ex. désistée) → accueil.
+
+Même comportement sur le web et sur mobile. Sur le web, l’app s’ouvre sur la page de connexion si besoin, puis sur la destination.
 
 ### 9.8 Double remplacement : push immédiate
 
 Ce n’est pas un rappel programmé. Quand le Swend est automatiquement annulé parce que les deux titulaires ont chacun un remplaçant accepté, une push immédiate part :
 
 - à chaque titulaire — titre « Ton Swend est annulé », message « Toi et [prénom] avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du lundi 13 octobre à 20h00 · Au Père Lapin est annulé. » ([prénom] = l’autre titulaire) ;
-- à chaque remplaçant sélectionné — titre « Le Swend est annulé », message « Tu n’as finalement plus besoin de prendre la place de [titulaire] lundi 13 octobre à 20h00 · Au Père Lapin : [autre titulaire] a lui aussi fait appel à quelqu’un pour le remplacer. »
+- à chaque remplaçant sélectionné — titre « Le Swend est annulé », message « Tu n’as finalement plus besoin de prendre la place d’Eliot lundi 13 octobre à 20h00 · Au Père Lapin : [autre titulaire] a lui aussi fait appel à quelqu’un pour le remplacer. » (« d’Eliot », « de Kevin » : élision devant une voyelle, un y ou un h, comme dans l’app)
 
 Le prénom du remplaçant de l’autre côté n’est jamais révélé. Aucun rappel n’est envoyé ensuite. L’acceptation qui déclenche cette annulation ne donne pas lieu, en plus, à la push « … a accepté de prendre votre place ».
 

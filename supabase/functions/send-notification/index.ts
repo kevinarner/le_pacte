@@ -20,6 +20,17 @@ const FCM_SCOPE = 'https://www.googleapis.com/auth/firebase.messaging';
 const TOKEN_URL = 'https://oauth2.googleapis.com/token';
 const LIEN_APP = 'https://kevinarner.github.io/le_pacte/';
 
+/// Lien ouvert au clic sur une notification web. Rappel J-7 / J-3 / J-1 /
+/// Jour J (D-021) : l'app lit ?rappel=<pacte_id> au démarrage et demande à
+/// la base la destination selon l'état actuel du Swend
+/// (destination_rappel). Toute autre notification : l'accueil.
+function lienWeb(data?: Record<string, string>): string {
+  if (data?.type === 'rappel' && data.pacte_id) {
+    return `${LIEN_APP}?rappel=${encodeURIComponent(data.pacte_id)}`;
+  }
+  return LIEN_APP;
+}
+
 interface CompteDeService {
   project_id: string;
   client_email: string;
@@ -142,7 +153,7 @@ Deno.serve(async (req) => {
                 token,
                 notification: { title, body },
                 data: data ?? {},
-                webpush: { fcm_options: { link: LIEN_APP } },
+                webpush: { fcm_options: { link: lienWeb(data) } },
               },
             }),
           },

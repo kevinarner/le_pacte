@@ -250,7 +250,7 @@ select verifier('X', 'David : « Ton Swend est annulé », avec Eliot — et pas
   push_depuis(:n0, :'D') = 'Ton Swend est annulé|Toi et Eliot avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du lundi 12 octobre à 20h00 · Au Père Lapin est annulé.',
   push_depuis(:n0, :'D'));
 select verifier('X', 'Kevin (remplaçant d''Eliot) : « Le Swend est annulé », sans le nom de Camille',
-  push_depuis(:n0, :'K') = 'Le Swend est annulé|Tu n’as finalement plus besoin de prendre la place de Eliot lundi 12 octobre à 20h00 · Au Père Lapin : David a lui aussi fait appel à quelqu’un pour le remplacer.',
+  push_depuis(:n0, :'K') = 'Le Swend est annulé|Tu n’as finalement plus besoin de prendre la place d’Eliot lundi 12 octobre à 20h00 · Au Père Lapin : David a lui aussi fait appel à quelqu’un pour le remplacer.',
   push_depuis(:n0, :'K'));
 select verifier('X', 'Camille (remplaçante de David) : « Le Swend est annulé », sans le nom de Kevin',
   push_depuis(:n0, :'C') = 'Le Swend est annulé|Tu n’as finalement plus besoin de prendre la place de David lundi 12 octobre à 20h00 · Au Père Lapin : Eliot a lui aussi fait appel à quelqu’un pour le remplacer.',
@@ -262,6 +262,16 @@ select verifier('X', 'plus aucun rappel ensuite', rappels_a(:'p', :'J3') = 0 and
 select verifier('X', 'une acceptation simple (sans double remplacement) reste notifiée au titulaire (D-015)',
   (select count(*) from notifications_log where profile_id = :'E' and corps = 'Kevin a accepté de prendre votre place.'
      and data->>'remplacant_id' = :'k') = 1);
+
+-- ===================================================================
+-- L. Élision du prénom (« d’Eliot », « de David »), même règle que l'app
+-- ===================================================================
+select verifier('L', 'voyelle, voyelle accentuée, h, y : élision',
+  de_prenom('Eliot') = 'd’Eliot' and de_prenom('Émile') = 'd’Émile' and de_prenom('hugo') = 'd’hugo'
+  and de_prenom('Hélène') = 'd’Hélène' and de_prenom('Yves') = 'd’Yves' and de_prenom('Anna') = 'd’Anna');
+select verifier('L', 'consonne : « de »', de_prenom('David') = 'de David' and de_prenom('Kevin') = 'de Kevin'
+  and de_prenom('Camille') = 'de Camille');
+select verifier('L', 'espaces ignorés, prénom vide sans erreur', de_prenom('  Eliot ') = 'd’Eliot' and de_prenom('') = 'de ' and de_prenom(null) = 'de ');
 
 -- ===================================================================
 -- S. Sécurité

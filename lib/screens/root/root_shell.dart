@@ -46,6 +46,7 @@ class _RootShellState extends State<RootShell> {
     });
 
     NotificationService.initialiser();
+    NotificationService.ouvrirRappelDuLien();
   }
 
   @override

@@ -224,6 +224,22 @@ void main() {
       expect(destinationRappelDepuis(null), isNull);
       expect(destinationRappelDepuis('autre'), isNull);
     });
+    test('web : le lien ?rappel=<pacte_id> désigne le Swend', () {
+      final lien = Uri.parse('https://kevinarner.github.io/le_pacte/?rappel=abc-123#/');
+      expect(pacteDuLienRappel(lien), 'abc-123');
+      expect(pacteDuLienRappel(Uri.parse('https://kevinarner.github.io/le_pacte/')), isNull);
+      expect(pacteDuLienRappel(Uri.parse('https://kevinarner.github.io/le_pacte/?rappel=')), isNull);
+    });
+    test('web : l\'adresse est nettoyée du rappel, le reste est conservé', () {
+      expect(
+        adresseSansRappel(Uri.parse('https://kevinarner.github.io/le_pacte/?rappel=abc-123#/')),
+        '/le_pacte/#/',
+      );
+      expect(
+        adresseSansRappel(Uri.parse('http://127.0.0.1:8080/?x=1&rappel=abc')),
+        '/?x=1',
+      );
+    });
   });
 
   group('Personnes de confiance', () {

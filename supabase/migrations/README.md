@@ -17,6 +17,9 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
 - La planification des rappels (pg_cron) n'est pas une migration :
   `supabase/planification/rappels_pg_cron.sql`, à exécuter après
   validation, une fois la migration des rappels exécutée.
+- L'Edge Function `supabase/functions/send-notification` (hors migration)
+  doit être redéployée pour le clic web sur les rappels (lien
+  `?rappel=<pacte_id>`) ; sans elle, le clic web ouvre l'accueil.
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de

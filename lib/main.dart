@@ -5,9 +5,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'app.dart';
 import 'constants.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  NotificationService.lireLienRappel();
   try {
     await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
     // ignore: avoid_print

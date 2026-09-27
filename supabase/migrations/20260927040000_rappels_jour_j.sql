@@ -56,6 +56,19 @@ as $$
   select upper(left(p_texte, 1)) || substr(p_texte, 2)
 $$;
 
+-- « de David » / « d’Eliot » : élision devant une voyelle, un y ou un h,
+-- même règle que l'app (deNom, lib/utils/noms.dart).
+create or replace function public.de_prenom(p_prenom text)
+returns text
+language sql
+immutable
+as $$
+  select case when trim(coalesce(p_prenom, '')) ~ '^[aeiouyhàâäéèêëîïôöùûüAEIOUYHÀÂÄÉÈÊËÎÏÔÖÙÛÜ]'
+    then 'd’' || trim(p_prenom)
+    else 'de ' || trim(coalesce(p_prenom, ''))
+  end
+$$;
+
 -- 2. Échéances ---------------------------------------------------------------
 
 create or replace function public.echeance_rappel(p_date_retenue timestamptz, p_type text)
@@ -373,7 +386,7 @@ begin
       v_titulaire := p.prenom_destinataire; v_autre := p.prenom_initiateur;
     end if;
     perform notifier(v_fiche.profil_id, 'Le Swend est annulé',
-      'Tu n’as finalement plus besoin de prendre la place de ' || v_titulaire || ' ' || v_quand
+      'Tu n’as finalement plus besoin de prendre la place ' || de_prenom(v_titulaire) || ' ' || v_quand
         || ' : ' || v_autre || ' a lui aussi fait appel à quelqu’un pour le remplacer.',
       jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
   end loop;

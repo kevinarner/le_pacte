@@ -384,11 +384,13 @@ Trois familles selon l'état de chaque côté au moment de l'envoi :
   attente, refusée ou désistée.
 
 L'autre titulaire voit toujours le titulaire officiel. Pas de rattrapage,
-jamais deux fois la même échéance. Au clic sur mobile, l'écran est choisi
-selon l'état actuel (fiche du Swend, ou « Un imprévu ? » pour qui cherche
-encore) ; sur le web, l'app s'ouvre sur l'accueil. Textes :
+jamais deux fois la même échéance. Au clic (web et mobile), l'écran est
+choisi selon l'état actuel : fiche du Swend, « Un imprévu ? » pour qui
+cherche encore, accueil sans accès. Sur le web, la notification ouvre
+l'app avec `?rappel=<pacte_id>` (après connexion si besoin). Textes :
 `PRODUCT_RULES.md` §9.7 et §9.8. **En ligne une fois la migration
-`20260927040000_rappels_jour_j.sql` exécutée, la planification
+`20260927040000_rappels_jour_j.sql` exécutée, l'Edge Function
+`send-notification` redéployée, la planification
 (`supabase/planification/rappels_pg_cron.sql`) activée et l'app redéployée.**
 
 Chaque notification d'action ouvre la conversation concernée. Les effets de bord

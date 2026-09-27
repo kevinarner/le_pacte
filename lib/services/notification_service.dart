@@ -1,3 +1,6 @@
+import 'dart:js_interop';
+import 'dart:js_interop_unsafe';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -73,26 +76,9 @@ class NotificationService {
         navigatorKey.currentState
             ?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
       case 'rappel':
-        // Rappel J-7 / J-3 / J-1 / Jour J : aucune destination figée dans la
-        // push, elle est recalculée maintenant (le rôle a pu changer).
         final pacteId = data['pacte_id'] as String?;
         if (pacteId == null) return;
-        final destination = destinationRappelDepuis(
-            await PacteRepository.destinationRappel(pacteId));
-        if (destination == null) return;
-        final pacte = await PacteRepository.pacteParId(pacteId);
-        if (pacte == null) return;
-        final navigateur = navigatorKey.currentState;
-        navigateur?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
-        if (destination == DestinationRappel.imprevu) {
-          navigateur?.push(MaterialPageRoute(
-            builder: (_) => ImprevuScreen(
-              pacte: pacte,
-              jeSuisInitiateur: pacte.initiateur.idTitulaire == AppStore.moi.id,
-              onChanged: () {},
-            ),
-          ));
-        }
+        await _ouvrirRappel(pacteId);
       case 'chat':
         final remplacantId = data['remplacant_id'] as String?;
         if (remplacantId == null) return;
@@ -104,6 +90,57 @@ class NotificationService {
           ),
         ));
     }
+  }
+
+  /// Rappel J-7 / J-3 / J-1 / Jour J (D-021) : aucune destination figée
+  /// dans la push, elle est recalculée maintenant par la base (le rôle a pu
+  /// changer). Plus d'accès : rien ne s'ouvre, on reste sur l'accueil.
+  static Future<void> _ouvrirRappel(String pacteId) async {
+    final destination = destinationRappelDepuis(
+        await PacteRepository.destinationRappel(pacteId));
+    if (destination == null) return;
+    final pacte = await PacteRepository.pacteParId(pacteId);
+    if (pacte == null) return;
+    final navigateur = navigatorKey.currentState;
+    navigateur?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
+    if (destination == DestinationRappel.imprevu) {
+      navigateur?.push(MaterialPageRoute(
+        builder: (_) => ImprevuScreen(
+          pacte: pacte,
+          jeSuisInitiateur: pacte.initiateur.idTitulaire == AppStore.moi.id,
+          onChanged: () {},
+        ),
+      ));
+    }
+  }
+
+  static String? _rappelDuLien;
+
+  /// Web : le clic sur un rappel ouvre l'app avec `?rappel=<pacte_id>` (le
+  /// service worker Firebase ne transmet pas le clic à l'app). À appeler
+  /// dans main(), avant runApp : mémorise le Swend et retire le paramètre de
+  /// l'adresse avant que Flutter ne manipule l'historique du navigateur (un
+  /// rechargement ne rouvre pas le rappel). callMethodVarArgs : callMethod
+  /// traite un premier argument null comme « aucun argument ».
+  static void lireLienRappel() {
+    if (!kIsWeb) return;
+    _rappelDuLien = pacteDuLienRappel(Uri.base);
+    if (_rappelDuLien == null) return;
+    try {
+      (globalContext['history'] as JSObject).callMethodVarArgs(
+          'replaceState'.toJS, [null, ''.toJS, adresseSansRappel(Uri.base).toJS]);
+    } catch (_) {
+      // Adresse non nettoyée : un rechargement rouvrirait le rappel, sans gravité.
+    }
+  }
+
+  /// À l'arrivée sur RootShell, une fois connecté : ouvre le rappel mémorisé
+  /// par [lireLienRappel] (une seule fois), même destination que sur mobile.
+  static void ouvrirRappelDuLien() {
+    final pacteId = _rappelDuLien;
+    _rappelDuLien = null;
+    if (pacteId == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ouvrirRappel(pacteId));
   }
 
   static Future<void> _enregistrerToken({bool reessaieDeja = false}) async {

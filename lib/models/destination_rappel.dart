@@ -11,3 +11,19 @@ DestinationRappel? destinationRappelDepuis(String? code) => switch (code) {
   'fiche' => DestinationRappel.fiche,
   _ => null,
 };
+
+/// Web : le clic sur un rappel ouvre l'app avec `?rappel=<pacte_id>` (lien
+/// posé par l'Edge Function send-notification). Renvoie ce Swend, ou null.
+String? pacteDuLienRappel(Uri adresse) {
+  final pacteId = adresse.queryParameters['rappel']?.trim();
+  return (pacteId == null || pacteId.isEmpty) ? null : pacteId;
+}
+
+/// La même adresse sans `?rappel` : un rechargement de la page ne rouvre
+/// pas le rappel.
+String adresseSansRappel(Uri adresse) {
+  final autres = Map.of(adresse.queryParameters)..remove('rappel');
+  final requete = autres.isEmpty ? '' : '?${Uri(queryParameters: autres).query}';
+  final ancre = adresse.hasFragment ? '#${adresse.fragment}' : '';
+  return '${adresse.path}$requete$ancre';
+}
