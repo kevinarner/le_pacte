@@ -5,9 +5,8 @@ l'ordre des noms de fichiers. Ils sont versionnés ici pour l'historique et
 pour le banc QA (`qa/`), qui les rejoue sur une base locale.
 
 - Ne pas les pousser avec la CLI Supabase : ils ont déjà été appliqués en
-  production (jusqu'à `20260927000000_fil_evenements_et_lectures.sql`).
-  `20260927010000_disponibilite_spontanee_et_notifications.sql` : **pas
-  encore exécutée en production** (lot D-008 / D-015).
+  production (jusqu'à `20260927010000_disponibilite_spontanee_et_notifications.sql`,
+  exécutée le 27/09 — lot D-008 / D-015).
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de

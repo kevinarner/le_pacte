@@ -8,9 +8,8 @@
 > des arbitrages : `DECISIONS.md`.
 >
 > Lot D-008 / D-015 (indisponibilité spontanée, notifications des actions
-> directes) : implémenté et testé dans le dépôt ; en ligne une fois la
-> migration `20260927010000_disponibilite_spontanee_et_notifications.sql`
-> exécutée en production et l'app redéployée.
+> directes) : en production depuis le 27/09 (migration
+> `20260927010000_disponibilite_spontanee_et_notifications.sql` exécutée).
 
 ---
 
