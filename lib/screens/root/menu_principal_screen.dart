@@ -164,22 +164,17 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
         (p, v),
   ];
 
-  /// Le message le plus récent qui ne vient pas de moi, tous fils
-  /// confondus — pas un vrai suivi lu/non-lu (aucun état n'est
-  /// persisté), juste "le dernier mot n'est pas de moi".
-  FilDeDiscussion? get _messageAmeSignaler {
+  /// Les conversations où l'interlocuteur a écrit depuis ma dernière
+  /// lecture (suivi enregistré en base), de la plus récente à la plus
+  /// ancienne — une box chacune, dans les deux sens (titulaire ↔ personne
+  /// de confiance). Ouvrir la conversation la marque comme lue.
+  List<FilDeDiscussion> get _filsNonLus {
     final fils = mesFils;
-    if (fils == null) return null;
-    final candidats =
-        fils
-            .where(
-              (f) => !f.dernierMessageDeMoi && f.dateDernierMessage != null,
-            )
-            .toList()
-          ..sort(
-            (a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!),
-          );
-    return candidats.isEmpty ? null : candidats.first;
+    if (fils == null) return [];
+    return fils
+        .where((f) => f.nonLu && f.dateDernierMessage != null)
+        .toList()
+      ..sort((a, b) => b.dateDernierMessage!.compareTo(a.dateDernierMessage!));
   }
 
   Future<void> _ouvrir(Widget ecran) async {
@@ -191,7 +186,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   @override
   Widget build(BuildContext context) {
     final prochain = _prochainPacte;
-    final message = _messageAmeSignaler;
+    final nonLus = _filsNonLus;
     final demandes = _demandesTiers;
     final onCompteSurMoi = _onCompteSurMoi;
 
@@ -219,8 +214,8 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 _cartePlusProche(prochain),
                 const SizedBox(height: 12),
               ],
-              if (message != null) ...[
-                _carteMessage(message),
+              for (final fil in nonLus) ...[
+                _carteMessage(fil),
                 const SizedBox(height: 12),
               ],
               FilledButton.icon(

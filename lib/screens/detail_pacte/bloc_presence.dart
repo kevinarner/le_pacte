@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/pacte.dart';
+import '../../models/demande_statut.dart';
 import '../../models/remplacant.dart';
 import '../../models/statut_presence.dart';
 import '../../services/pacte_repository.dart';
@@ -33,8 +34,13 @@ class BlocPresence extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final remplacants = _monCote.listeRemplacants
-        .where((r) => r.estRempli)
+    final remplacants = Remplacant.comptesDAbord(
+      _monCote.listeRemplacants.where((r) => r.estRempli),
+    );
+    // Ceux qui peuvent encore être sollicités : ni refus, ni désistement,
+    // ni demande clôturée (la liste complète reste dans "Modifier ma liste").
+    final disponibles = remplacants
+        .where((r) => !r.demandeStatut.estIndisponible)
         .toList();
     Remplacant? designe;
     for (final r in remplacants) {
@@ -100,7 +106,9 @@ class BlocPresence extends StatelessWidget {
               Text(
                 remplacants.isEmpty
                     ? 'Aucune personne prévue'
-                    : remplacants
+                    : disponibles.isEmpty
+                    ? 'Aucune personne disponible pour le moment.'
+                    : disponibles
                           .map((r) => r.prenom.trim())
                           .where((p) => p.isNotEmpty)
                           .join(', '),
@@ -108,9 +116,11 @@ class BlocPresence extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                remplacants.length > 1
+                remplacants.isNotEmpty && disponibles.isEmpty
+                    ? "Vous pouvez ajouter quelqu'un depuis « Modifier ma liste »."
+                    : disponibles.length > 1
                     ? 'Ces personnes pourront prendre votre place si vous ne pouvez finalement pas venir.'
-                    : remplacants.length == 1
+                    : disponibles.length == 1
                     ? 'Cette personne pourra prendre votre place si vous ne pouvez finalement pas venir.'
                     : 'Une personne de confiance pourra prendre votre place si vous ne pouvez finalement pas venir.',
                 style: const TextStyle(

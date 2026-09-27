@@ -19,6 +19,10 @@ class FilDeDiscussion {
   /// pas de moi").
   final bool dernierMessageDeMoi;
 
+  /// Un message de l'interlocuteur est arrivé depuis ma dernière lecture
+  /// de cette conversation (suivi enregistré en base, `lectures_fil`).
+  final bool nonLu;
+
   /// La date retenue du pacte concerné par ce fil, et le nom du
   /// restaurant — affichés sous le nom de l'interlocuteur pour situer la
   /// conversation. Nulle si aucune date n'est encore retenue.
@@ -38,6 +42,7 @@ class FilDeDiscussion {
     this.dernierMessage,
     this.dateDernierMessage,
     this.dernierMessageDeMoi = true,
+    this.nonLu = false,
     this.dateConcernee,
     this.restaurantNom,
     this.autrePartieNom,

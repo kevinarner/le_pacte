@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cote_pacte.dart';
 import '../models/demande_statut.dart';
+import '../models/evenement_fil.dart';
 import '../models/fil_de_discussion.dart';
 import '../models/message.dart';
 import '../models/pacte.dart';
@@ -464,12 +465,14 @@ class PacteRepository {
     createdAt: DateTime.parse(row['created_at'] as String),
   );
 
+  /// Du plus ancien au plus récent (attention : `order()` trie par défaut
+  /// du plus récent au plus ancien).
   static Future<List<Message>> messagesDe(String remplacantId) async {
     final rows = await _client
         .from('messages')
         .select()
         .eq('remplacant_id', remplacantId)
-        .order('created_at');
+        .order('created_at', ascending: true);
     return (rows as List)
         .map((r) => _messageDe(r as Map<String, dynamic>))
         .toList();
@@ -486,6 +489,44 @@ class PacteRepository {
       'expediteur_id': _client.auth.currentUser!.id,
       'contenu': texte,
     });
+  }
+
+  /// Les événements d'un fil (demande envoyée, acceptée...), du plus
+  /// ancien au plus récent — lisibles seulement par le titulaire de ce
+  /// côté et la personne de confiance elle-même.
+  static Future<List<EvenementFil>> evenementsDe(String remplacantId) async {
+    final rows = await _client
+        .from('evenements_fil')
+        .select()
+        .eq('remplacant_id', remplacantId)
+        .order('created_at', ascending: true);
+    return (rows as List).map((r) {
+      final row = r as Map<String, dynamic>;
+      return EvenementFil(
+        id: row['id'] as String,
+        remplacantId: row['remplacant_id'] as String,
+        code: row['code'] as String,
+        createdAt: DateTime.parse(row['created_at'] as String),
+      );
+    }).toList();
+  }
+
+  /// Marque une conversation comme lue par moi (jusqu'à maintenant).
+  static Future<void> marquerFilLu(String remplacantId) async {
+    await _client.rpc(
+      'marquer_fil_lu',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Jusqu'à quand j'ai lu chaque conversation (remplacant_id → date).
+  static Future<Map<String, DateTime>> mesLectures() async {
+    final rows = await _client.from('lectures_fil').select('remplacant_id, lu_le');
+    return {
+      for (final r in rows as List)
+        (r as Map<String, dynamic>)['remplacant_id'] as String:
+            DateTime.parse(r['lu_le'] as String),
+    };
   }
 
   /// Flux en direct des messages d'un fil — se met à jour tout seul
@@ -516,6 +557,12 @@ class PacteRepository {
         )
         .not('profil_id', 'is', null);
     final restau = await restaurant();
+    Map<String, DateTime> lectures;
+    try {
+      lectures = await mesLectures();
+    } catch (_) {
+      lectures = {};
+    }
 
     final fils = <FilDeDiscussion>[];
     for (final row in rows as List) {
@@ -543,6 +590,12 @@ class PacteRepository {
 
       final messages = await messagesDe(remplacantId);
       final dernier = messages.isNotEmpty ? messages.last : null;
+      final luLe = lectures[remplacantId];
+      final nonLu = messages.any(
+        (m) =>
+            m.expediteurId != userId &&
+            (luLe == null || m.createdAt.isAfter(luLe)),
+      );
       final autrePartieNom = r['cote'] == 'initiateur'
           ? pacteRow['destinataire_nom'] as String?
           : pacteRow['initiateur_nom'] as String?;
@@ -555,6 +608,7 @@ class PacteRepository {
           dateDernierMessage: dernier?.createdAt,
           dernierMessageDeMoi:
               dernier == null || dernier.expediteurId == userId,
+          nonLu: nonLu,
           dateConcernee: dateRetenue != null
               ? DateTime.parse(dateRetenue)
               : null,

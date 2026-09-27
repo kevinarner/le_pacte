@@ -40,8 +40,13 @@ class Remplacant {
       nom.trim().isNotEmpty &&
       telephone.trim().isNotEmpty;
 
-  String get nomComplet => [
-    prenom,
-    nom,
-  ].map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
+  /// Les personnes qui ont déjà un compte Swend d'abord, puis les autres,
+  /// en gardant l'ordre existant dans chaque groupe.
+  static List<Remplacant> comptesDAbord(Iterable<Remplacant> liste) => [
+    ...liste.where((r) => r.profilId != null),
+    ...liste.where((r) => r.profilId == null),
+  ];
+
+  String get nomComplet =>
+      [prenom, nom].map((s) => s.trim()).where((s) => s.isNotEmpty).join(' ');
 }

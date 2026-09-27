@@ -37,7 +37,9 @@ class _AccueilScreenState extends State<AccueilScreen> {
       pactes = null;
     });
     try {
-      final resultat = await PacteRepository.mesPactes();
+      final resultat = (await PacteRepository.mesPactes())
+          .where((p) => !_desisteDe(p))
+          .toList();
       _trierParPriorite(resultat);
       if (!mounted) return;
       setState(() => pactes = resultat);
@@ -107,6 +109,16 @@ class _AccueilScreenState extends State<AccueilScreen> {
               children: [for (final p in liste) _cardPacte(p)],
             ),
     );
+  }
+
+  /// J'avais accepté de prendre une place puis je me suis désisté : je ne
+  /// suis plus affilié à ce Swend (les données restent, pour la
+  /// conversation et l'historique).
+  bool _desisteDe(Pacte p) {
+    final v = PerspectivePacte.de(p, AppStore.moi.id);
+    return v != null &&
+        !v.estTitulaire &&
+        v.maFiche!.demandeStatut == DemandeStatut.desistee;
   }
 
   /// Priorité d'affichage : mon tour à moi (0) < scellé, trié

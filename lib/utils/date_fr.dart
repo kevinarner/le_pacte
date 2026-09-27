@@ -69,3 +69,16 @@ String formaterJourEtHeureCourt(DateTime d) {
   return '${jour[0].toUpperCase()}${jour.substring(1)} ${d.day} '
       '${moisAnnee[d.month - 1]} · ${formaterHeure(heureDe(d))}';
 }
+
+const _moisCourts = [
+  'janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin',
+  'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
+];
+
+/// "10 nov. · 09:42", en heure locale — horodatage des événements d'une
+/// conversation.
+String formaterHorodatage(DateTime d) {
+  final l = d.toLocal();
+  return '${l.day} ${_moisCourts[l.month - 1]} · '
+      '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
+}

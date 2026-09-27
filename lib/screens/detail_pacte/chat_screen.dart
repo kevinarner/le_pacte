@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
+import '../../models/evenement_fil.dart';
 import '../../models/message.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
@@ -56,6 +57,17 @@ class _ChatScreenState extends State<ChatScreen> {
   /// contexte d'une éventuelle demande "Un imprévu ?" et y répondre.
   Remplacant? _maFiche;
   Pacte? _pacte;
+
+  /// La fiche de ce fil, quel que soit mon rôle — pour savoir si je le
+  /// lis comme titulaire ou comme personne de confiance.
+  Remplacant? _fiche;
+
+  /// Les événements enregistrés par la base dans ce fil (demande envoyée,
+  /// acceptée...), affichés à leur place parmi les messages.
+  List<EvenementFil> _evenements = [];
+
+  /// Date (serveur) du dernier message reçu déjà marqué comme lu.
+  DateTime? _luJusqua;
   CotePacte? _coteTitulaire;
   CotePacte? _coteAutre;
   bool _enCoursReponse = false;
@@ -71,6 +83,35 @@ class _ChatScreenState extends State<ChatScreen> {
       _chargerTelephone();
     }
     _chargerDemande();
+    _chargerEvenements();
+    PacteRepository.marquerFilLu(widget.remplacantId).catchError((_) {});
+  }
+
+  Future<void> _chargerEvenements() async {
+    try {
+      final evenements = await PacteRepository.evenementsDe(widget.remplacantId);
+      if (!mounted) return;
+      setState(() => _evenements = evenements);
+    } catch (_) {
+      // Sans événements, la conversation reste utilisable.
+    }
+  }
+
+  /// Un nouveau message reçu pendant que la conversation est ouverte :
+  /// elle reste "lue".
+  void _marquerLuSiNouveau(List<Message> messages) {
+    DateTime? dernierRecu;
+    for (final m in messages) {
+      if (m.expediteurId == _monId) continue;
+      if (dernierRecu == null || m.createdAt.isAfter(dernierRecu)) {
+        dernierRecu = m.createdAt;
+      }
+    }
+    if (dernierRecu == null) return;
+    final lu = _luJusqua;
+    if (lu != null && !dernierRecu.isAfter(lu)) return;
+    _luJusqua = dernierRecu;
+    PacteRepository.marquerFilLu(widget.remplacantId).catchError((_) {});
   }
 
   Future<void> _chargerTelephone() async {
@@ -84,6 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _chargerDemande() async {
     try {
       final fiche = await PacteRepository.remplacantParId(widget.remplacantId);
+      if (fiche != null && mounted) setState(() => _fiche = fiche);
       if (fiche == null || fiche.profilId != _monId) return;
       final pacte = await PacteRepository.pacteDuRemplacant(widget.remplacantId);
       if (!mounted || pacte == null) return;
@@ -151,9 +193,14 @@ class _ChatScreenState extends State<ChatScreen> {
                 if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
                 }
-                final messages = List<Message>.of(snapshot.data!)
-                  ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
-                if (messages.isEmpty) {
+                final messages = snapshot.data!;
+                _marquerLuSiNouveau(messages);
+                final fiche = _fiche;
+                final elements = <Object>[
+                  ...messages,
+                  if (fiche != null) ..._evenements,
+                ]..sort((a, b) => _dateDe(a).compareTo(_dateDe(b)));
+                if (elements.isEmpty) {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
@@ -169,8 +216,13 @@ class _ChatScreenState extends State<ChatScreen> {
                 return ListView.builder(
                   controller: _scrollController,
                   padding: const EdgeInsets.all(12),
-                  itemCount: messages.length,
-                  itemBuilder: (context, i) => _bulle(messages[i]),
+                  itemCount: elements.length,
+                  itemBuilder: (context, i) {
+                    final e = elements[i];
+                    return e is Message
+                        ? _bulle(e)
+                        : _evenement(e as EvenementFil, fiche!);
+                  },
                 );
               },
             ),
@@ -204,6 +256,50 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static DateTime _dateDe(Object e) =>
+      e is Message ? e.createdAt : (e as EvenementFil).createdAt;
+
+  /// Un événement de la demande : centré, sans bulle, horodaté — distinct
+  /// d'un message écrit par quelqu'un.
+  Widget _evenement(EvenementFil e, Remplacant fiche) {
+    final texte = e.texte(
+      vuParTiers: fiche.profilId == _monId,
+      autre: prenomDe(widget.nomInterlocuteur),
+    );
+    if (texte.isEmpty) return const SizedBox.shrink();
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.outline),
+        ),
+        child: Column(
+          children: [
+            Text(
+              formaterHorodatage(e.createdAt),
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.texteAttenue,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              texte,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12.5,
+                fontStyle: FontStyle.italic,
+                color: AppColors.texte,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -441,6 +537,7 @@ class _ChatScreenState extends State<ChatScreen> {
       };
     }
     await _chargerDemande();
+    await _chargerEvenements();
     if (!mounted) return;
     setState(() => _enCoursReponse = false);
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));

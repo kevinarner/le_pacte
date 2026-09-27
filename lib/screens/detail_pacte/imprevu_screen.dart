@@ -95,7 +95,9 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
   }
 
   List<Widget> _corps(List<Remplacant> liste) {
-    final valides = liste.where((r) => r.estRempli && r.id != null).toList();
+    final valides = Remplacant.comptesDAbord(
+      liste.where((r) => r.estRempli && r.id != null),
+    );
     final accepte = valides.where((r) => r.selectionne).toList();
     if (accepte.isNotEmpty) return _vueAcceptee(accepte.first);
 
@@ -549,6 +551,7 @@ String messageUrgence(Pacte pacte, Remplacant r, CotePacte autreCote) {
       "Est-ce que tu pourrais prendre ma place ?\n"
       "C'est le principe de Swend : $autre ne saura pas que c'est toi qui me remplaces. "
       "Tu peux accepter ou refuser directement sur l'app.\n"
+      "Pour retrouver cette demande dans Swend, crée ton compte avec ce numéro de téléphone.\n"
       "$lienTelechargementApp";
 }
 
