@@ -9,7 +9,7 @@
 | Discuter après acceptation | Validé (D-007) | Implémenté | QA OK | Test réel à faire | « Écrire à [Prénom] » + « Discuter » conservés après acceptation. |
 | Indisponibilité spontanée | Validé (D-008) | Implémenté | QA OK | Test réel à faire | En production depuis le 27/09 (migration exécutée, app déployée). |
 | Notifications des actions directes | Validé (D-015) | Implémenté | QA OK | Test réel à faire | Push vérifiés dans le journal local, pas via Firebase ; textes à affiner. |
-| Personnes de confiance actives après scellage | Validé (D-019) | Implémenté | QA OK | Test réel à faire | Garanti par la base ; en production depuis le 27/09 (migration exécutée). |
+| Personnes de confiance actives après scellage | Validé (D-019) | Implémenté | QA OK | Test réel OK | Garanti par la base ; en production depuis le 27/09 (migration exécutée). |
 | Maximum 2 contre-propositions de date | Validé (D-011) | Implémenté | QA OK | Test réel à faire | 2 au total (précisé le 27/09) ; garanti aussi par la base. |
 | Double remplacement | Validé (D-005) | Implémenté | QA OK | Test réel à faire | Annulation automatique ; libellé affiché ≠ libellé de `PRODUCT_RULES.md` §8.5. |
 | OTP téléphone | Validé pour plus tard (D-014) | Non implémenté | Non applicable | Non applicable | En attendant : numéro déclaratif et figé (implémenté). |
