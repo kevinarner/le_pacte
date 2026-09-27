@@ -143,17 +143,32 @@ select verifier('N', 'un nouveau Swend peut être créé ensuite (compteur à z�
 -- R. Rattrapage des Swends existants (migration)
 -- ===================================================================
 alter table pactes disable trigger trg_marquer_scellement;
-insert into pactes (id, statut, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
-  ('00000000-0000-4000-9000-000000000001', 'confirme', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000003', 'annule', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000004', 'annule', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
+insert into pactes (id, statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
+  ('00000000-0000-4000-9000-000000000001', 'confirme', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000003', 'annule', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000004', 'annule', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
 alter table pactes enable trigger trg_marquer_scellement;
 select ajouter_fiche(:'D', '00000000-0000-4000-9000-000000000004', 'destinataire', 'Camille', '0600000004') as x \gset
+-- Même expression que la ligne de vérification finale de la migration.
+create or replace function verification_scellage() returns boolean language sql as $$
+  select not exists (select 1 from public.pactes p
+               where p.scelle_le is null
+                 and (p.statut in ('confirme', 'maintenu', 'annuleDoubleAbsence')
+                      or (p.statut = 'annule' and exists (
+                            select 1 from public.remplacants r where r.pacte_id = p.id and r.cote = 'destinataire'))))
+$$;
+select verifier('R', 'avant rattrapage : la vérification finale détecte les Swends scellés sans date (dont l''annulé accepté)',
+  not verification_scellage());
+select clock_timestamp() as t0 \gset
 select rattraper_scellement() as n \gset
 select verifier('R', 'rattrapage : scellé = confirmé, ou annulé après acceptation de David',
   (select string_agg(right(id::text, 1) || ':' || (scelle_le is not null), ',' order by id) from pactes
    where id::text like '00000000-0000-4000-9000-%') = '1:true,2:false,3:false,4:true');
+select verifier('R', 'rattrapage : valeur de backfill = date d''exécution, pas date_retenue',
+  (select bool_and(scelle_le >= :'t0'::timestamptz and scelle_le <= clock_timestamp() and scelle_le <> date_retenue)
+   from pactes where id in ('00000000-0000-4000-9000-000000000001', '00000000-0000-4000-9000-000000000004')));
+select verifier('R', 'après rattrapage : la vérification finale de la migration est vraie', verification_scellage());
 
 select verifier('X', 'aucune notification à Kevin pendant tout ce fichier',
   (select count(*) from notifications_log where id > :debut and profile_id = :'K') = 0);

@@ -4,7 +4,9 @@
 -- Sûre à ré-exécuter.
 --
 -- Données : ajoute pactes.scelle_le et le remplit pour les Swends déjà
--- scellés (voir 2). Aucune autre donnée modifiée.
+-- scellés (voir 2) avec la date d'exécution de la migration (valeur de
+-- backfill historique, la vraie date de scellage étant inconnue). Aucune
+-- autre donnée modifiée.
 --
 -- D-019 — Avant le scellage, une personne de confiance déjà rattachée à
 -- son compte (profil_id) voyait le Swend : RLS de `pactes` via
@@ -29,6 +31,13 @@ alter table public.pactes add column if not exists scelle_le timestamptz;
 -- de confiance au moment d'accepter), pour qu'un Swend scellé puis annulé
 -- reste visible de ses personnes de confiance. Un refus ou une négociation
 -- abandonnée n'a jamais été scellé.
+--
+-- Valeur posée : now(), c'est-à-dire la date d'exécution de ce rattrapage.
+-- C'est une VALEUR DE BACKFILL HISTORIQUE : la vraie date de scellage de ces
+-- Swends n'a jamais été enregistrée (date_retenue est la date du rendez-vous,
+-- pas celle du scellage). Seule compte ici la présence d'une date (Swend
+-- scellé ou non). Les Swends scellés après cette migration reçoivent leur
+-- vraie date de scellage via marquer_scellement().
 
 create or replace function public.rattraper_scellement()
 returns integer
@@ -42,7 +51,7 @@ begin
   -- Le déclencheur trg_marquer_scellement protège scelle_le : on le
   -- signale explicitement pour ce seul rattrapage (limité à la transaction).
   perform set_config('swend.rattrapage_scellement', 'on', true);
-  update pactes p set scelle_le = coalesce(p.date_retenue, now())
+  update pactes p set scelle_le = now() -- backfill historique, voir ci-dessus
   where p.scelle_le is null
     and (p.statut in ('confirme', 'maintenu', 'annuleDoubleAbsence')
          or (p.statut = 'annule' and exists (
@@ -259,8 +268,12 @@ select 'Colonne scelle_le présente' as verification,
           where table_schema = 'public' and table_name = 'pactes' and column_name = 'scelle_le')::text as resultat
 union all
 select 'Tous les Swends scellés ont une date de scellage',
-  (not exists (select 1 from public.pactes
-               where statut in ('confirme', 'maintenu', 'annuleDoubleAbsence') and scelle_le is null))::text
+  -- Même définition des Swends scellés que rattraper_scellement().
+  (not exists (select 1 from public.pactes p
+               where p.scelle_le is null
+                 and (p.statut in ('confirme', 'maintenu', 'annuleDoubleAbsence')
+                      or (p.statut = 'annule' and exists (
+                            select 1 from public.remplacants r where r.pacte_id = p.id and r.cote = 'destinataire')))))::text
 union all
 select 'Politiques restrictives en place (Swend, fiche, conversation)',
   ((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE'
