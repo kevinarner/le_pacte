@@ -12,9 +12,8 @@
 > `20260927010000_disponibilite_spontanee_et_notifications.sql` exécutée).
 >
 > Lot D-019 / D-011 (personnes de confiance actives après scellage, limite
-> de négociation garantie par la base) : implémenté et testé dans le dépôt ;
-> en ligne une fois la migration `20260927020000_scellage_et_negociation.sql`
-> exécutée en production et l'app redéployée.
+> de négociation garantie par la base) : en production depuis le 27/09
+> (migration `20260927020000_scellage_et_negociation.sql` exécutée).
 
 ---
 

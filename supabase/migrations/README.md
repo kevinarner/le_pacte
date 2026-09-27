@@ -7,8 +7,8 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
 - Ne pas les pousser avec la CLI Supabase : ils ont déjà été appliqués en
   production (jusqu'à `20260927010000_disponibilite_spontanee_et_notifications.sql`,
   exécutée le 27/09 — lot D-008 / D-015).
-  `20260927020000_scellage_et_negociation.sql` : **pas encore exécutée en
-  production** (lot D-019 / D-011).
+  `20260927020000_scellage_et_negociation.sql` : exécutée le 27/09 (lot
+  D-019 / D-011).
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de
