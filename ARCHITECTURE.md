@@ -384,7 +384,7 @@ Sylvain. Tout est dans `qa/` (mode d'emploi complet : `qa/README.md`).
 
 - **Trois niveaux** : `qa/run_metier.sh` (SQL + Dart, ~10 s),
   `qa/run_smoke.sh` (parcours principal en navigateur, ~1 min),
-  `qa/run_full.sh` (métier + 19 scénarios E2E, ~21 min) ;
+  `qa/run_full.sh` (métier + 19 scénarios E2E, ~23 min) ;
   `qa/run_scenario.sh <nom>` pour un seul scénario.
 - **Pile 100 % locale** (`qa/stack.sh`) : Postgres 16 + PostgREST 12.2.3 +
   un faux Supabase Node (`qa/stack/faux_supabase.mjs` : auth par mot de
