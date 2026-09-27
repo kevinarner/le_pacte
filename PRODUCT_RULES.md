@@ -513,6 +513,8 @@ Les deux titulaires peuvent connaître la raison générale :
 
 L’identité des remplaçants n’a pas besoin d’être révélée.
 
+Au moment de l’annulation automatique, une push immédiate part (voir 9.8) : aux deux titulaires et à chaque remplaçant sélectionné. Elle ne révèle jamais à un côté qui remplace l’autre côté. Aucun rappel n’est ensuite envoyé.
+
 ---
 
 ## 9. Chat et notifications
@@ -603,11 +605,95 @@ Exemples :
 
 Les textes exacts, regroupements éventuels et priorités de push peuvent être affinés ultérieurement.
 
-### 9.7 Rappels automatiques
+### 9.7 Rappels automatiques (D-021)
 
-Les rappels automatiques liés au temps — par exemple J-7, J-3, J-1, Jour J — restent à définir plus tard.
+Les rappels liés au temps sont distincts des notifications déclenchées par une action directe d’un utilisateur.
 
-Ils sont distincts des notifications déclenchées par une action directe d’un utilisateur.
+#### Cadence et horaires
+
+Pour chaque Swend scellé :
+
+- J-7 à 18h ;
+- J-3 à 18h ;
+- J-1 à 18h ;
+- Jour J, 3 heures avant le rendez-vous.
+
+Toutes les heures sont calculées en Europe/Paris en V1 (changements d’heure compris). J-7, J-3 et J-1 sont des jours du calendrier Europe/Paris ; le Jour J est exactement 3 heures avant la date et l’heure du rendez-vous.
+
+#### Nature
+
+- Push uniquement : aucune box ni aucun état supplémentaire dans l’app.
+- Chaque rappel mentionne toujours la date, l’heure et le restaurant.
+- Aucun rappel pour un Swend non scellé, annulé, annulé par double remplacement ou autrement inactif.
+- Pas de rattrapage : une échéance déjà passée au moment où le Swend est scellé ou découvert est ignorée (ex. un Swend scellé à J-2 ne reçoit jamais J-7 ni J-3, mais reçoit J-1 et le Jour J).
+- Une même échéance n’est envoyée qu’une seule fois à une même personne pour un même Swend (garanti par le backend).
+
+#### Trois familles de rappels
+
+Pour chaque côté du Swend, l’état du titulaire est évalué au moment de chaque envoi :
+
+- **Normal** : il vient lui-même → il reçoit les rappels « repas » avec l’autre titulaire.
+- **Remplacé** : une personne a accepté de prendre sa place → cette personne reçoit les rappels « repas » avec l’autre titulaire ; le titulaire reçoit les rappels « remplacé » (« Kevin prend ta place », avec le prénom de la personne actuellement sélectionnée).
+- **Cherche un remplaçant** : personne n’a accepté, et au moins une demande de ce côté est en attente, refusée ou désistée → le titulaire reçoit les rappels « cherche ». Annuler toutes ses demandes en attente (sans refus ni désistement) le ramène à l’état normal.
+
+L’autre titulaire reçoit toujours les rappels « repas » avec le prénom du titulaire officiel : il ne découvre jamais par un rappel qu’un remplacement a eu lieu ou est cherché.
+
+Textes validés (exemple : lundi 13 octobre à 20h00 · Au Père Lapin).
+
+Rappels « repas » ([prénom] = l’autre titulaire officiel) :
+
+| Échéance | Titre | Message |
+|---|---|---|
+| J-7 | Le compte à rebours est lancé | Votre Swend avec [prénom] approche : lundi 13 octobre à 20h00 · Au Père Lapin. |
+| J-3 | Ça se rapproche… | Plus que 3 jours avant votre Swend avec [prénom] : lundi 13 octobre à 20h00 · Au Père Lapin. |
+| J-1 | C’est demain ! | Votre Swend avec [prénom], c’est demain : lundi 13 octobre à 20h00 · Au Père Lapin. |
+| Jour J | C’est le jour du Swend ! | Rendez-vous à 20h00 · Au Père Lapin. Est-ce que tu vas vraiment [déjeuner/dîner] avec [prénom] ? |
+
+Rappels « remplacé » (au titulaire remplacé, [Kevin] = la personne qui prend sa place) :
+
+| Échéance | Titre | Message |
+|---|---|---|
+| J-7 | Ton Swend approche | Lundi 13 octobre à 20h00 · Au Père Lapin. / Kevin prend ta place. |
+| J-3 | Plus que 3 jours | Ton Swend est prévu lundi 13 octobre à 20h00 · Au Père Lapin. / Kevin prend ta place. |
+| J-1 | C’est demain ! | Ton Swend aura lieu lundi 13 octobre à 20h00 · Au Père Lapin. / Kevin prend ta place. |
+| Jour J | C’est le jour du Swend ! | Aujourd’hui, lundi 13 octobre à 20h00 · Au Père Lapin. / Kevin prend ta place. |
+
+Rappels « cherche » ([prénom] = l’autre titulaire officiel) :
+
+| Échéance | Titre | Message |
+|---|---|---|
+| J-7 | Ton Swend avec [prénom] approche | Lundi 13 octobre à 20h00 · Au Père Lapin. / Tente de trouver quelqu’un pour te remplacer tant qu’il en est encore temps. |
+| J-3 | Plus que 3 jours pour ton Swend avec [prénom] | Lundi 13 octobre à 20h00 · Au Père Lapin. / Tente de trouver quelqu’un pour te remplacer tant qu’il en est encore temps. |
+| J-1 | C’est demain ! | Ton Swend avec [prénom] : lundi 13 octobre à 20h00 · Au Père Lapin. / Le temps presse, essaie de trouver quelqu’un pour te remplacer au plus vite. |
+| Jour J | Ton Swend avec [prénom] est dans 3h ! | Aujourd’hui à 20h00 · Au Père Lapin. / Ton Swend est en péril ! Trouve quelqu’un pour te remplacer dès que possible. Et si vraiment personne n’est disponible, annule le Swend pour que le restaurant soit prévenu. |
+
+(« / » = retour à la ligne.)
+
+#### Changement de rôle entre deux rappels
+
+Les destinataires et la famille sont recalculés au moment de chaque envoi ; aucun rappel déjà passé n’est renvoyé. Exemples :
+
+- Kevin accepte après J-3 : aucun J-3 rétroactif, il reçoit les rappels suivants.
+- Kevin se désiste : plus aucun rappel pour lui ; le titulaire repasse en « cherche » ; l’autre titulaire continue ses rappels normaux.
+- Sylvain accepte ensuite : Sylvain reçoit les rappels « repas » suivants ; le titulaire reçoit « Sylvain prend ta place ».
+
+#### Clic sur un rappel
+
+La destination est déterminée selon l’état actuel du Swend au moment du clic, jamais figée dans la notification :
+
+- participant normal → fiche du Swend ;
+- remplaçant accepté → sa fiche de remplaçant ;
+- titulaire remplacé → fiche du Swend ;
+- titulaire qui cherche encore quelqu’un → « Un imprévu ? ».
+
+### 9.8 Double remplacement : push immédiate
+
+Ce n’est pas un rappel programmé. Quand le Swend est automatiquement annulé parce que les deux titulaires ont chacun un remplaçant accepté, une push immédiate part :
+
+- à chaque titulaire — titre « Ton Swend est annulé », message « Toi et [prénom] avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du lundi 13 octobre à 20h00 · Au Père Lapin est annulé. » ([prénom] = l’autre titulaire) ;
+- à chaque remplaçant sélectionné — titre « Le Swend est annulé », message « Tu n’as finalement plus besoin de prendre la place de [titulaire] lundi 13 octobre à 20h00 · Au Père Lapin : [autre titulaire] a lui aussi fait appel à quelqu’un pour le remplacer. »
+
+Le prénom du remplaçant de l’autre côté n’est jamais révélé. Aucun rappel n’est envoyé ensuite. L’acceptation qui déclenche cette annulation ne donne pas lieu, en plus, à la push « … a accepté de prendre votre place ».
 
 ---
 
@@ -767,7 +853,9 @@ Le cœur de Swend comprend notamment :
 - rôles tiers visibles sur leur propre compte ;
 - messages non lus persistants ;
 - événements système persistants ;
-- notifications dans l’app et push pour les actions qui concernent directement un utilisateur.
+- notifications dans l’app et push pour les actions qui concernent directement un utilisateur ;
+- rappels push J-7, J-3, J-1 à 18h et Jour J à H-3 (Europe/Paris), en trois familles (repas, remplacé, cherche) ;
+- push immédiate en cas de double remplacement.
 
 ### 12.2 Prévu plus tard
 
@@ -780,14 +868,6 @@ Le cœur de Swend comprend notamment :
 #### Invitations
 
 - `Copier le message`.
-
-#### Notifications automatiques
-
-- J-7 ;
-- J-3 ;
-- J-1 ;
-- Jour J ;
-- fréquence et contenu exacts.
 
 #### Réservation
 

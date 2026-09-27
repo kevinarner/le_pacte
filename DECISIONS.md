@@ -405,6 +405,32 @@ D-016 (pour la V1 ; le modèle cible reste ouvert).
 
 ---
 
+## D-021 — Rappels automatiques autour du Jour J et push de double remplacement
+
+**Statut : Validée**  
+**Décidée : 27/09/2026**
+
+### Décision
+Rappels push automatiques pour les Swends scellés : J-7, J-3 et J-1 à 18h, et Jour J 3 heures avant le rendez-vous, en Europe/Paris pour la V1.
+
+- Push uniquement, sans box supplémentaire dans l’app ; toujours la date, l’heure et le restaurant.
+- Trois familles, selon l’état de chaque côté au moment de l’envoi : « repas » (personne qui vient réellement, avec l’autre titulaire officiel), « remplacé » (titulaire dont quelqu’un a accepté de prendre la place : « Kevin prend ta place »), « cherche » (titulaire sans remplaçant accepté ayant au moins une demande en attente, refusée ou désistée ; annuler toutes ses demandes en attente sans refus ni désistement le ramène à l’état normal).
+- L’autre titulaire voit toujours le titulaire officiel : aucun remplacement ne fuit par les rappels.
+- Destinataires et famille recalculés à chaque envoi ; pas de rattrapage ; une échéance au plus une fois par personne et par Swend (garanti par le backend).
+- Aucun rappel pour un Swend non scellé ou inactif.
+- Double remplacement : push immédiate aux deux titulaires et aux deux remplaçants sélectionnés (textes validés), sans révéler le remplaçant du côté opposé ; elle remplace la push d’acceptation qui l’a déclenchée ; plus aucun rappel ensuite.
+- Au clic, la destination est recalculée selon l’état actuel (fiche du Swend, fiche de remplaçant, ou « Un imprévu ? »).
+
+Textes détaillés : `PRODUCT_RULES.md` §9.7 et §9.8.
+
+### Raison
+Rappeler le rendez-vous sans jamais trahir le mystère, et pousser un titulaire qui cherche encore quelqu’un à agir tant qu’il en est temps.
+
+### Précise
+D-015 (rappels distincts des notifications d’actions directes) et D-005 (double remplacement).
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

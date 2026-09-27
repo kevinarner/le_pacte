@@ -114,6 +114,17 @@ class PacteRepository {
     return _pacteDe(rows.first, restau);
   }
 
+  /// Où ouvrir un rappel (D-021), calculé par la base à l'instant du clic
+  /// selon l'état ACTUEL du Swend : 'imprevu' (titulaire qui cherche
+  /// encore quelqu'un), 'fiche', ou null (plus d'accès, ex. désisté).
+  static Future<String?> destinationRappel(String pacteId) async {
+    final res = await _client.rpc(
+      'destination_rappel',
+      params: {'p_pacte_id': pacteId},
+    );
+    return res as String?;
+  }
+
   static Future<Pacte> _pacteDe(
     Map<String, dynamic> row,
     Restaurant restau,

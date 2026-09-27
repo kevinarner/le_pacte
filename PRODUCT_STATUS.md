@@ -11,10 +11,10 @@
 | Notifications des actions directes | Validé (D-015) | Implémenté | QA OK | Test réel à faire | Push vérifiés dans le journal local, pas via Firebase ; textes à affiner. |
 | Personnes de confiance actives après scellage | Validé (D-019) | Implémenté | QA OK | Test réel OK | Garanti par la base ; en production depuis le 27/09 (migration exécutée). |
 | Maximum 2 contre-propositions de date | Validé (D-011) | Implémenté | QA OK | Test réel à faire | 2 au total (précisé le 27/09) ; garanti aussi par la base. |
-| Double remplacement | Validé (D-005) | Implémenté | QA OK | Test réel à faire | Annulation automatique ; libellé affiché ≠ libellé de `PRODUCT_RULES.md` §8.5. |
+| Double remplacement | Validé (D-005, D-021) | Implémenté | QA OK | Test réel à faire | Annulation automatique + push immédiate (D-021, en attente de la migration `20260927040000`) ; libellé affiché ≠ libellé de `PRODUCT_RULES.md` §8.5. |
 | OTP téléphone | Validé pour plus tard (D-014) | Non implémenté | Non applicable | Non applicable | En attendant : numéro déclaratif et figé (implémenté). |
 | Copier le message | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Canaux V1 : Messages, WhatsApp. |
-| Rappels automatiques | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | J-7 / J-3 / J-1 / Jour J ; fréquence et contenu à définir. |
+| Rappels automatiques | Validé (D-021) | Implémenté | QA OK | Test réel à faire | J-7 / J-3 / J-1 à 18h, Jour J à H-3 (Paris) ; en attente de la migration `20260927040000` et de l'activation du planificateur. |
 | Réservation V1 (manuelle) | Validé (D-020) | Implémenté (outil interne) | QA OK | Non applicable | Gérée manuellement par l'équipe Swend après scellage ; suivi interne dans Supabase (`reservations_suivi`, vue `reservations_a_suivre`) ; aucun état visible dans l'app. |
 | Réservation automatisée (partenaires / API) | Validé pour plus tard (D-016, D-020) | Non implémenté | Non applicable | Non applicable | Fonctionnement cible à définir. |
 | Historique / Refaire un Swend | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | — |

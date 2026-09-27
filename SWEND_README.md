@@ -368,9 +368,30 @@ Elles sont envoyées :
   - se désiste ;
   - se déclare indisponible ;
   - redevient disponible ;
-- à l'annulation pour double remplacement.
+- à l'annulation pour double remplacement : push immédiate aux deux
+  titulaires (« Ton Swend est annulé ») et aux deux remplaçants sélectionnés
+  (« Le Swend est annulé »), sans jamais révéler qui remplace l'autre côté.
+  L'acceptation qui déclenche cette annulation n'envoie pas en plus « … a
+  accepté de prendre votre place ».
 
-Chaque notification ouvre la conversation concernée. Les effets de bord
+**Rappels automatiques (D-021)** : J-7, J-3 et J-1 à 18h, Jour J 3 heures
+avant, en heure de Paris, pour les Swends scellés et actifs. Push uniquement.
+Trois familles selon l'état de chaque côté au moment de l'envoi :
+- « repas » pour qui vient réellement, avec l'autre titulaire officiel ;
+- « remplacé » pour le titulaire dont quelqu'un a accepté la place (« Kevin
+  prend ta place ») ;
+- « cherche » pour le titulaire sans remplaçant accepté ayant une demande en
+  attente, refusée ou désistée.
+
+L'autre titulaire voit toujours le titulaire officiel. Pas de rattrapage,
+jamais deux fois la même échéance. Au clic sur mobile, l'écran est choisi
+selon l'état actuel (fiche du Swend, ou « Un imprévu ? » pour qui cherche
+encore) ; sur le web, l'app s'ouvre sur l'accueil. Textes :
+`PRODUCT_RULES.md` §9.7 et §9.8. **En ligne une fois la migration
+`20260927040000_rappels_jour_j.sql` exécutée, la planification
+(`supabase/planification/rappels_pg_cron.sql`) activée et l'app redéployée.**
+
+Chaque notification d'action ouvre la conversation concernée. Les effets de bord
 (clôtures, réouvertures) ne notifient jamais le titulaire. Il n'y a
 **jamais** de notification à l'autre participant sur un remplacement.
 

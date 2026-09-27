@@ -8,6 +8,7 @@ import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
 import 'package:le_pacte/screens/detail_pacte/bloc_choix_date.dart';
+import 'package:le_pacte/models/destination_rappel.dart';
 import 'package:le_pacte/utils/date_fr.dart';
 import 'package:le_pacte/widgets/action_disponibilite.dart';
 
@@ -203,6 +204,25 @@ void main() {
     test('après la n°2 : plus aucune contre-proposition', () {
       expect(peutEncoreContreProposer(2), isFalse);
       expect(peutEncoreContreProposer(3), isFalse);
+    });
+  });
+
+  group('Clic sur un rappel (D-021) : destination calculée par la base', () {
+    test('titulaire qui cherche encore quelqu\'un → Un imprévu ?', () {
+      expect(
+        destinationRappelDepuis('imprevu'),
+        DestinationRappel.imprevu,
+      );
+    });
+    test('participant, titulaire remplacé, remplaçant accepté → fiche', () {
+      expect(
+        destinationRappelDepuis('fiche'),
+        DestinationRappel.fiche,
+      );
+    });
+    test('plus d\'accès (ex. désisté) ou réponse inconnue → rien', () {
+      expect(destinationRappelDepuis(null), isNull);
+      expect(destinationRappelDepuis('autre'), isNull);
     });
   });
 

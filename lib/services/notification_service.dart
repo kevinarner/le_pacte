@@ -5,8 +5,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app.dart';
 import '../constants.dart';
+import '../models/destination_rappel.dart';
 import '../screens/detail_pacte/chat_screen.dart';
 import '../screens/detail_pacte/detail_pacte_screen.dart';
+import '../screens/detail_pacte/imprevu_screen.dart';
 import 'app_store.dart';
 import 'pacte_repository.dart';
 
@@ -70,6 +72,27 @@ class NotificationService {
         if (pacte == null) return;
         navigatorKey.currentState
             ?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
+      case 'rappel':
+        // Rappel J-7 / J-3 / J-1 / Jour J : aucune destination figée dans la
+        // push, elle est recalculée maintenant (le rôle a pu changer).
+        final pacteId = data['pacte_id'] as String?;
+        if (pacteId == null) return;
+        final destination = destinationRappelDepuis(
+            await PacteRepository.destinationRappel(pacteId));
+        if (destination == null) return;
+        final pacte = await PacteRepository.pacteParId(pacteId);
+        if (pacte == null) return;
+        final navigateur = navigatorKey.currentState;
+        navigateur?.push(MaterialPageRoute(builder: (_) => DetailPacteScreen(pacte: pacte)));
+        if (destination == DestinationRappel.imprevu) {
+          navigateur?.push(MaterialPageRoute(
+            builder: (_) => ImprevuScreen(
+              pacte: pacte,
+              jeSuisInitiateur: pacte.initiateur.idTitulaire == AppStore.moi.id,
+              onChanged: () {},
+            ),
+          ));
+        }
       case 'chat':
         final remplacantId = data['remplacant_id'] as String?;
         if (remplacantId == null) return;

@@ -11,6 +11,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   D-019 / D-011).
   `20260927030000_reservations_suivi.sql` : exécutée le 27/09 (suivi
   interne des réservations, D-020).
+  `20260927040000_rappels_jour_j.sql` : **pas encore exécutée en
+  production** (rappels J-7 / J-3 / J-1 / Jour J et push de double
+  remplacement, D-021).
+- La planification des rappels (pg_cron) n'est pas une migration :
+  `supabase/planification/rappels_pg_cron.sql`, à exécuter après
+  validation, une fois la migration des rappels exécutée.
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de

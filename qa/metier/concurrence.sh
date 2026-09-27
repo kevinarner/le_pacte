@@ -64,3 +64,14 @@ SQL
   if [ "$nsel" = 1 ] && [ "$statut" = confirme ]; then ok=$((ok+1)); else detail="essai $i : sélectionnés=$nsel statut=$statut"; fi
 done
 resultat "même personne des deux côtés en même temps : une seule place, Swend toujours scellé" "$([ "$ok" = $((COURSES / 2)) ] && echo 1)" "$ok/$((COURSES / 2)) — $detail"
+
+# 4. Rappels (D-021) : plusieurs exécutions simultanées du moteur à la même
+#    échéance → chaque personne reçoit le rappel une seule fois.
+ok=0; detail=""
+for i in $(seq 1 10); do
+  p=$(P -c "select swend_rappels()")
+  for j in 1 2 3; do P -c "select envoyer_rappels_dus('2026-10-05 16:00+00')" >/dev/null 2>&1 & done; wait
+  n=$(P -c "select count(*) from notifications_log where data->>'type' = 'rappel' and data->>'pacte_id' = '$p'")
+  if [ "$n" = 2 ]; then ok=$((ok+1)); else detail="essai $i : $n push au lieu de 2"; fi
+done
+resultat "rappels : 3 exécutions simultanées du moteur, jamais de push en double" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
