@@ -31,6 +31,7 @@ export default {
 
     await ex.etape('Cas normal : proposer d\'abord un remplaçant', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
+      await ex.verifier('Swend scellé : pas de bouton "Réserver la table" (D-020)', async () => (await eliot.nombreDeBoutons('Réserver la table')) === 0);
       await eliot.cliquer('Annuler le Swend');
       await ex.verifierTexte(eliot, 'Vous ne pouvez plus être là ?', 'Eliot : "Vous ne pouvez plus être là ?"');
       await ex.verifierTexte(eliot, 'Avant d’annuler, vous pouvez demander à quelqu’un de confiance de prendre votre place.', 'Eliot : proposition de remplacement');

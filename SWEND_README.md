@@ -146,6 +146,9 @@ La fiche montre la date, le restaurant et l'autre participant, puis le bloc
   (écrire à l'une des personnes de la liste qui a un compte) ;
 - sous le bloc, un bouton **« Un imprévu ? »** (demander).
 
+Aucun bouton n'invite à réserver soi-même : la réservation est gérée par
+l'équipe Swend (D-020). Seul le lien « Voir le restaurant » reste.
+
 Il y a trois intentions bien séparées : **préparer**, **discuter**,
 **demander**. Aucune demande ne part depuis « Modifier ma liste ».
 

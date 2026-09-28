@@ -876,6 +876,7 @@ Après le scellage :
 
 - la réservation est gérée manuellement par l’équipe Swend ;
 - cette opération est interne et n’ajoute pas de nouvel état visible par l’utilisateur ;
+- l’app n’invite jamais l’utilisateur à réserver lui-même (pas de bouton « Réserver la table ») ; seul le lien « Voir le restaurant » reste ;
 - il n’y a pas de statut « Réservation en cours » en V1.
 
 Si un Swend est annulé (voir 3.5) :

@@ -157,7 +157,7 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
                       const SizedBox(height: 4),
                       InkWell(
                         onTap: () =>
-                            _reserverLaTable(pacte.restaurantRetenu!.lien),
+                            _ouvrirLeRestaurant(pacte.restaurantRetenu!.lien),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -209,16 +209,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
             ),
 
           // --- Cas : le pacte est confirmé, chacun peut déléguer sa présence ---
+          // La réservation est gérée par Swend (D-020) : aucune invitation
+          // à réserver soi-même.
           if (pacte.statut == StatutPacte.confirme) ...[
-            if (pacte.restaurantRetenu != null &&
-                pacte.restaurantRetenu!.lien.isNotEmpty) ...[
-              FilledButton.icon(
-                onPressed: () => _reserverLaTable(pacte.restaurantRetenu!.lien),
-                icon: const Icon(Icons.restaurant_menu, size: 18),
-                label: const Text('Réserver la table'),
-              ),
-              const SizedBox(height: 16),
-            ],
             BlocPresence(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,
@@ -294,7 +287,7 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     );
   }
 
-  Future<void> _reserverLaTable(String lien) async {
+  Future<void> _ouvrirLeRestaurant(String lien) async {
     await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
   }
 
