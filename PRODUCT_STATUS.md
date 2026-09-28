@@ -14,7 +14,7 @@
 | Double remplacement | Validé (D-005, D-021) | Implémenté | QA OK | Test réel à faire | Annulation automatique + push immédiate (D-021, en production depuis le 28/09) ; libellé affiché ≠ libellé de `PRODUCT_RULES.md` §8.5. |
 | OTP téléphone | Validé pour plus tard (D-014) | Non implémenté | Non applicable | Non applicable | En attendant : numéro déclaratif et figé (implémenté). |
 | Copier le message | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Canaux V1 : Messages, WhatsApp. |
-| Rappels automatiques | Validé (D-021) | Implémenté | QA OK | Test réel à faire | J-7 / J-3 / J-1 à 18h, Jour J à H-3 (Paris) ; clic web et mobile vers la bonne destination ; migration, Edge Function et app en production depuis le 28/09 ; en attente de l'activation du planificateur (pg_cron). |
+| Rappels automatiques | Validé (D-021) | Implémenté | QA OK | Test réel à faire | J-7 / J-3 / J-1 à 18h, Jour J à H-3 (Paris) ; clic web et mobile vers la bonne destination ; en production depuis le 28/09 (migration, Edge Function, app, planification pg_cron active) ; test réel = réception d'une notification programmée sur un appareil. |
 | Réservation V1 (manuelle) | Validé (D-020) | Implémenté (outil interne) | QA OK | Non applicable | Gérée manuellement par l'équipe Swend après scellage ; suivi interne dans Supabase (`reservations_suivi`, vue `reservations_a_suivre`) ; aucun état visible dans l'app. |
 | Réservation automatisée (partenaires / API) | Validé pour plus tard (D-016, D-020) | Non implémenté | Non applicable | Non applicable | Fonctionnement cible à définir. |
 | Historique / Refaire un Swend | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | — |

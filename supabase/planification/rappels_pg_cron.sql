@@ -1,6 +1,5 @@
--- Planification des rappels automatiques (D-021) — À N'EXÉCUTER QU'APRÈS
--- VALIDATION, une fois la migration 20260927040000_rappels_jour_j.sql
--- exécutée. Ce fichier n'est pas une migration : le banc QA ne l'applique
+-- Planification des rappels automatiques (D-021) — ACTIVE EN PRODUCTION
+-- depuis le 28/09 (après la migration 20260927040000_rappels_jour_j.sql). Ce fichier n'est pas une migration : le banc QA ne l'applique
 -- pas (il appelle le moteur directement avec un instant contrôlé).
 --
 -- Effet : toutes les 5 minutes, la base exécute envoyer_rappels_dus(), qui

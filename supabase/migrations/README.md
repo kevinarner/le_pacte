@@ -14,8 +14,9 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260927040000_rappels_jour_j.sql` : exécutée (confirmée le 28/09 ;
   rappels J-7 / J-3 / J-1 / Jour J et push de double remplacement, D-021).
 - La planification des rappels (pg_cron) n'est pas une migration :
-  `supabase/planification/rappels_pg_cron.sql`, à exécuter après
-  validation. **Pas encore activée** : aucun rappel programmé ne part.
+  `supabase/planification/rappels_pg_cron.sql`. **Active en production
+  depuis le 28/09** (job `swend-rappels`, toutes les 5 minutes, exécutions
+  vérifiées : `succeeded`, `1 row`).
 - L'Edge Function `supabase/functions/send-notification` (hors migration)
   a été redéployée le 28/09 avec le lien web des rappels
   (`?rappel=<pacte_id>`).
