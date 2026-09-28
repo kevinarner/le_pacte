@@ -462,7 +462,9 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
 - Annulation d'un Swend scellé : uniquement par `annuler_swend` (un des deux
   titulaires, avant l'heure du rendez-vous) ; l'app ne peut plus changer
   directement le statut d'un Swend scellé ou terminé, ni supprimer un Swend
-  scellé (D-022).
+  scellé (D-022). `annuler_swend` enregistre aussi qui a annulé et quand
+  (`annule_par`, `annule_le`, non affichés) ; l'app ne peut pas écrire ces
+  champs ; vides pour les annulations antérieures.
 - Consentement obligatoire : personne ne « prend la place » sans avoir accepté.
 - Une seule personne par côté, même en cas de clics simultanés. Les actions
   concurrentes sont sérialisées par verrou.

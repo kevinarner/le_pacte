@@ -155,7 +155,7 @@ Actions : `Ne pas annuler` / `Annuler le Swend`.
 
 #### Effet
 
-Le Swend est annulé immédiatement, en une seule opération côté serveur (statut, clôture des demandes en attente, notifications). Aucun motif n’est demandé. Celui qui annule voit :
+Le Swend est annulé immédiatement, en une seule opération côté serveur (statut, clôture des demandes en attente, notifications). Aucun motif n’est demandé. Swend enregistre qui a annulé et quand, sans l’afficher (donnée réservée à un usage futur ; inconnue pour les annulations antérieures, jamais reconstituée). Celui qui annule voit :
 
 > **Swend annulé**  
 > Votre Swend avec [Prénom] est annulé.

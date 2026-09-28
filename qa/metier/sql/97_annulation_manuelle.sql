@@ -255,5 +255,101 @@ select envoyer_rappels_dus('2031-10-06 16:00+00');
 select verifier('P', 'J-7 : aucun rappel pour un Swend annulé',
   not exists (select 1 from notifications_log where id > :n0 and data->>'pacte_id' = :'p'));
 
+-- ===================================================================
+-- Q. Qui a annulé, et quand (annule_par / annule_le)
+-- ===================================================================
+create or replace function d22_auteur(p uuid) returns text language sql as $$
+  select coalesce(annule_par::text, 'null') || '|' || case when annule_le is null then 'null' else 'date' end
+  from pactes where id = p
+$$;
+select swend_annulable() as p \gset
+select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select d22_demander(:'E', :'k');
+select d22_accepter(:'K', :'k');
+select verifier('Q', 'Swend actif : ni auteur ni date', d22_auteur(:'p') = 'null|null');
+select verifier('Q', 'Kevin (remplaçant accepté) ne peut toujours pas annuler ; rien n''est enregistré',
+  d22_annuler(:'K', :'p') like '%non_autorise%' and d22_auteur(:'p') = 'null|null');
+select now() as t0 \gset
+select d22_annuler(:'E', :'p') as r \gset
+select verifier('Q', 'Eliot annule → annule_par = Eliot', :'r' = 'OK' and (select annule_par from pactes where id = :'p') = :'E', :'r');
+select verifier('Q', 'annule_le renseigné au moment de l''annulation',
+  (select annule_le >= :'t0'::timestamptz and annule_le <= now() from pactes where id = :'p'));
+select verifier('Q', 'statut, auteur et date écrits ensemble',
+  (select statut = 'annule' and annule_par is not null and annule_le is not null from pactes where id = :'p'));
+
+select swend_annulable() as p2 \gset
+select d22_annuler(:'D', :'p2') as r \gset
+select verifier('Q', 'David annule → annule_par = David', :'r' = 'OK' and (select annule_par from pactes where id = :'p2') = :'D', :'r');
+select verifier('Q', 'annule_le renseigné (David)', (select annule_le is not null from pactes where id = :'p2'));
+
+-- L'app ne peut pas falsifier ces champs.
+select swend_annulable() as p3 \gset
+select verifier('Q', 'Swend actif : Eliot ne peut pas écrire annule_par / annule_le',
+  en_tant_que(:'E', format('update pactes set annule_par = %L, annule_le = now() where id = %L', :'E', :'p3')) like '%modification_interdite%'
+  and d22_auteur(:'p3') = 'null|null');
+select verifier('Q', 'Swend annulé par Eliot : David ne peut pas se l''attribuer',
+  en_tant_que(:'D', format('update pactes set annule_par = %L where id = %L', :'D', :'p')) like '%modification_interdite%'
+  and (select annule_par from pactes where id = :'p') = :'E');
+select verifier('Q', '... ni changer la date',
+  en_tant_que(:'E', format('update pactes set annule_le = %L where id = %L', '2020-01-01 12:00+00', :'p')) like '%modification_interdite%');
+select verifier('Q', '... ni effacer l''auteur',
+  en_tant_que(:'E', format('update pactes set annule_par = null, annule_le = null where id = %L', :'p')) like '%modification_interdite%'
+  and (select annule_par from pactes where id = :'p') = :'E');
+select verifier('Q', 'création d''un Swend avec un auteur d''annulation : refusée',
+  en_tant_que(:'E', format(
+    'insert into pactes (statut, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone, annule_par, annule_le) values (%L, %L, %L, %L, %L, %L, now())',
+    'enAttenteChoixDateDestinataire', :'E', 'Eliot E', 'Faux3', '06 00 00 00 02', :'E')) like '%modification_interdite%');
+
+-- Seule annuler_swend() renseigne ces champs.
+select swend_en_negociation() as pn \gset
+select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'annule', :'pn')) as r \gset
+select verifier('Q', 'refus pendant la négociation : annulé, auteur non renseigné',
+  :'r' = 'OK' and d22_statut(:'pn') = 'annule' and d22_auteur(:'pn') = 'null|null', :'r');
+select swend_annulable() as pd \gset
+select ajouter_fiche(:'E', :'pd', 'initiateur', 'Kevin', '0600000003') as kd \gset
+select ajouter_fiche(:'D', :'pd', 'destinataire', 'Camille', '0600000004') as cd \gset
+select d22_demander(:'E', :'kd');
+select d22_accepter(:'K', :'kd');
+select d22_demander(:'D', :'cd');
+select d22_accepter(:'C', :'cd');
+select verifier('Q', 'double remplacement : annulé automatiquement, auteur non renseigné',
+  d22_statut(:'pd') = 'annuleDoubleAbsence' and d22_auteur(:'pd') = 'null|null');
+
+-- Anciennes annulations (avant D-022) : auteur et date inconnus, restent NULL.
+insert into pactes (statut, type, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+                    destinataire_id, destinataire_nom, destinataire_telephone)
+values ('confirme', 'diner', '2031-11-03 19:00+00', '00000000-0000-0000-0000-0000000000aa',
+        :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02')
+returning id as ph \gset
+update pactes set statut = 'annule' where id = :'ph';
+select verifier('Q', 'ancienne annulation : annule_par / annule_le NULL, Swend valide',
+  d22_statut(:'ph') = 'annule' and d22_auteur(:'ph') = 'null|null'
+  and (select scelle_le is not null from pactes where id = :'ph'));
+select verifier('Q', 'ancienne annulation : toujours lisible par ses titulaires',
+  compter_en_tant_que(:'E', format('select count(*)::int from pactes where id = %L', :'ph')) = 1
+  and compter_en_tant_que(:'D', format('select count(*)::int from pactes where id = %L', :'ph')) = 1);
+select verifier('Q', 'ancienne annulation : dans l''historique (Swend scellé), non supprimable, non ré-annulable',
+  compter_en_tant_que(:'E', format('select count(*)::int from mes_swends_scelles() s where s = %L', :'ph')) = 1
+  and en_tant_que(:'E', format('select supprimer_pacte(%L)', :'ph')) like '%swend_scelle%'
+  and d22_annuler(:'E', :'ph') like '%swend_inactif%');
+select verifier('Q', 'ancienne annulation : suivi de réservation inchangé',
+  (select statut_swend = 'annule' and a_faire = '' from reservations_a_suivre where swend_id = :'ph'));
+
+-- Intervention interne (SQL Editor / service role) toujours possible.
+update pactes set annule_par = :'E', annule_le = '2031-10-01 10:00+00' where id = :'ph';
+select verifier('Q', 'interne : l''équipe peut renseigner l''auteur si elle le connaît',
+  (select annule_par from pactes where id = :'ph') = :'E');
+update pactes set annule_par = null, annule_le = null where id = :'ph';
+select verifier('Q', 'interne : et revenir à « inconnu »', d22_auteur(:'ph') = 'null|null');
+do $$ begin
+  begin
+    update pactes set annule_par = '00000000-0000-0000-0000-00000000000e'
+    where id = (select id from pactes where statut = 'annule' and annule_par is null limit 1);
+    perform verifier('Q', 'auteur sans date : refusé (contrainte)', false);
+  exception when check_violation then
+    perform verifier('Q', 'auteur sans date : refusé (contrainte)', true);
+  end;
+end $$;
+
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

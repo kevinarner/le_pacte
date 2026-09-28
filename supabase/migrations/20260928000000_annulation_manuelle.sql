@@ -2,7 +2,9 @@
 -- À exécuter après rappels_jour_j.sql (utilise date_rappel_fr(),
 -- heure_rappel_fr(), de_prenom()). Sûre à ré-exécuter.
 --
--- Aucune donnée existante modifiée.
+-- Aucune donnée existante modifiée : deux colonnes ajoutées (annule_par,
+-- annule_le), vides pour tous les Swends existants — pas de rattrapage, une
+-- donnée inconnue plutôt qu'une attribution inventée.
 --
 -- Principes :
 --  * Seuls les deux titulaires originaux peuvent annuler un Swend scellé,
@@ -20,6 +22,19 @@
 --  * Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé
 --    par un utilisateur : il reste dans l'historique. La suppression interne
 --    (service role / SQL Editor / banc QA) reste possible.
+
+-- 0. Auteur et date d'une annulation manuelle ---------------------------------
+-- Renseignés uniquement par annuler_swend(), dans la même opération que le
+-- passage à 'annule'. NULL pour toute autre annulation (refus ou abandon
+-- pendant la négociation, double remplacement) et pour les annulations
+-- antérieures à cette migration (auteur inconnu).
+
+alter table public.pactes add column if not exists annule_par uuid;
+alter table public.pactes add column if not exists annule_le timestamptz;
+
+alter table public.pactes drop constraint if exists pactes_annulation_complete;
+alter table public.pactes add constraint pactes_annulation_complete
+  check ((annule_par is null) = (annule_le is null));
 
 -- 1. Annulation ---------------------------------------------------------------
 
@@ -78,7 +93,8 @@ begin
   )
   select coalesce(array_agg(id), '{}') into v_cloturees from c;
 
-  update pactes set statut = 'annule' where id = p_pacte_id;
+  update pactes set statut = 'annule', annule_par = v_uid, annule_le = now()
+  where id = p_pacte_id;
 
   if v_cote = 'initiateur' then
     v_autre_id := p.destinataire_id; v_prenom_moi := p.prenom_initiateur;
@@ -275,6 +291,37 @@ create trigger trg_verrou_statut_pacte
   before update of statut on public.pactes
   for each row execute function public.proteger_statut_pacte();
 
+-- 3 bis. Auteur et date d'annulation : jamais écrits par l'app ---------------
+-- Même principe que la protection des participants (proteger_participants_
+-- pacte) : refus explicite pour les rôles de l'app (authenticated, anon), à
+-- la création comme à la modification. annuler_swend() (SECURITY DEFINER),
+-- le service role et le SQL Editor ne sont pas concernés.
+
+create or replace function public.proteger_annulation_pacte()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user in ('authenticated', 'anon') then
+    if tg_op = 'INSERT' then
+      if new.annule_par is not null or new.annule_le is not null then
+        raise exception 'modification_interdite';
+      end if;
+    elsif new.annule_par is distinct from old.annule_par
+       or new.annule_le is distinct from old.annule_le then
+      raise exception 'modification_interdite';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_proteger_annulation_pacte on public.pactes;
+create trigger trg_proteger_annulation_pacte
+  before insert or update on public.pactes
+  for each row execute function public.proteger_annulation_pacte();
+
 -- 4. Suppression : jamais un Swend scellé ------------------------------------
 -- Même fonction qu'avant (supprimer_pacte.sql), plus le refus d'un Swend
 -- scellé. Politique restrictive en plus : même un éventuel droit DELETE
@@ -357,4 +404,10 @@ select 'Pas de push « quelqu''un a pu prendre la place » pendant une annulatio
    where oid = 'public.notifier_demande_remplacement()'::regprocedure)::text
 union all
 select 'Liste des Swends scellés disponible pour l''app',
-  has_function_privilege('authenticated', 'public.mes_swends_scelles()', 'execute')::text;
+  has_function_privilege('authenticated', 'public.mes_swends_scelles()', 'execute')::text
+union all
+select 'Auteur et date d''annulation enregistrés par annuler_swend() et protégés',
+  ((select count(*) from information_schema.columns where table_schema = 'public' and table_name = 'pactes'
+      and column_name in ('annule_par', 'annule_le')) = 2
+   and exists (select 1 from pg_trigger where not tgisinternal and tgname = 'trg_proteger_annulation_pacte')
+   and (select prosrc like '%annule_par = v_uid%' from pg_proc where oid = 'public.annuler_swend(uuid)'::regprocedure))::text;

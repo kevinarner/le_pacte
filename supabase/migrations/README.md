@@ -14,8 +14,8 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260927040000_rappels_jour_j.sql` : exécutée (confirmée le 28/09 ;
   rappels J-7 / J-3 / J-1 / Jour J et push de double remplacement, D-021).
   `20260928000000_annulation_manuelle.sql` : **pas encore exécutée en
-  production** (annulation manuelle d'un Swend scellé, suppression d'un
-  Swend scellé bloquée, D-022).
+  production** (annulation manuelle d'un Swend scellé, auteur et date de
+  l'annulation, suppression d'un Swend scellé bloquée, D-022).
 - La planification des rappels (pg_cron) n'est pas une migration :
   `supabase/planification/rappels_pg_cron.sql`. **Active en production
   depuis le 28/09** (job `swend-rappels`, toutes les 5 minutes, exécutions
