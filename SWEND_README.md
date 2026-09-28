@@ -388,10 +388,11 @@ jamais deux fois la même échéance. Au clic (web et mobile), l'écran est
 choisi selon l'état actuel : fiche du Swend, « Un imprévu ? » pour qui
 cherche encore, accueil sans accès. Sur le web, la notification ouvre
 l'app avec `?rappel=<pacte_id>` (après connexion si besoin). Textes :
-`PRODUCT_RULES.md` §9.7 et §9.8. **En ligne une fois la migration
-`20260927040000_rappels_jour_j.sql` exécutée, l'Edge Function
-`send-notification` redéployée, la planification
-(`supabase/planification/rappels_pg_cron.sql`) activée et l'app redéployée.**
+`PRODUCT_RULES.md` §9.7 et §9.8. **En production depuis le 28/09
+(migration exécutée, Edge Function `send-notification` et app déployées) :
+la push de double remplacement est active ; les rappels programmés
+partiront une fois la planification
+(`supabase/planification/rappels_pg_cron.sql`) activée.**
 
 Chaque notification d'action ouvre la conversation concernée. Les effets de bord
 (clôtures, réouvertures) ne notifient jamais le titulaire. Il n'y a
