@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../models/annulation_swend.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
-import '../../models/statut_pacte.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
@@ -12,6 +12,7 @@ import '../../utils/telephone.dart';
 import '../../utils/textes_invitation.dart';
 import '../../widgets/envoi_invitation.dart';
 import '../../widgets/statut_swend.dart';
+import 'annulation_swend_dialogues.dart';
 import 'chat_screen.dart';
 
 /// Parcours "Un imprévu ?", côté titulaire uniquement : demander à une
@@ -143,7 +144,12 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
           icon: const Icon(Icons.person_add_alt_1, size: 18),
           label: const Text("Ajouter quelqu'un"),
         ),
-      if (personneDisponible) ...[
+      if (personneDisponible &&
+          peutAnnulerSwend(
+            widget.pacte,
+            estTitulaire: true,
+            maintenant: DateTime.now(),
+          )) ...[
         const SizedBox(height: 28),
         Center(
           child: TextButton(
@@ -491,46 +497,20 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     titre: 'Envoyer la demande',
   );
 
+  /// Même parcours que depuis la fiche du Swend (D-022) : on est déjà dans
+  /// « Un imprévu ? », donc « Continuer à chercher » ferme simplement.
   Future<void> _confirmerAnnulation() async {
-    final confirme = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Annuler ce Swend ?'),
-        content: const Text(
-          'Personne ne peut prendre votre place. Cette action est définitive.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Retour'),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: AppColors.erreur),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Annuler le Swend'),
-          ),
-        ],
-      ),
-    );
-    if (confirme != true) return;
-
     setState(() => _enCoursAnnulation = true);
-    try {
-      await PacteRepository.mettreAJourStatut(
-        widget.pacte.id,
-        StatutPacte.annule,
-      );
-      widget.pacte.statut = StatutPacte.annule;
-      widget.onChanged();
-      if (!mounted) return;
-      Navigator.pop(context);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _enCoursAnnulation = false;
-        _erreur = "Impossible d'annuler le Swend pour le moment. Réessayez.";
-      });
-    }
+    final annule = await lancerAnnulationSwend(
+      context,
+      pacte: widget.pacte,
+      jeSuisInitiateur: widget.jeSuisInitiateur,
+    );
+    if (!mounted) return;
+    setState(() => _enCoursAnnulation = false);
+    if (!annule) return;
+    widget.onChanged();
+    Navigator.pop(context);
   }
 }
 

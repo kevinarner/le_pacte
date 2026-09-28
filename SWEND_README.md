@@ -131,7 +131,9 @@ d'envoyer (« Envoyer l'invitation »).
 - Il peut aussi **refuser** (« Refuser le Swend »). Le Swend est alors annulé.
 
 Statuts affichés dans « Mes Swends » : « À vous de répondre », « En attente de
-David », « Date à confirmer », « Scellé », « Annulé ✗ ».
+David », « Date à confirmer », « Scellé », « Annulé ». La liste est séparée en
+**« À venir »** et **« Passés et annulés »** (D-022) : une carte annulée est
+grisée, sans compte à rebours, avec un badge « Annulé » bien lisible.
 
 ### 5.3 Swend scellé : fiche du titulaire
 
@@ -273,6 +275,43 @@ Kevin peut être prévu à la fois par Eliot et par David :
   de l'autre côté.
 - Il ne peut jamais prendre les deux places.
 
+### 5.10 Annulation d'un Swend scellé (D-022)
+
+Seuls Eliot et David (les titulaires) peuvent annuler, jusqu'à l'heure du
+rendez-vous, même si quelqu'un a déjà accepté de prendre leur place. Kevin ne
+peut jamais annuler. L'action discrète **« Annuler le Swend »** est sous
+« Un imprévu ? » sur la fiche ; elle disparaît à l'heure du rendez-vous.
+
+- **Aucun imprévu lancé** : « Vous ne pouvez plus être là ? » propose d'abord
+  « Trouver quelqu'un pour me remplacer » (ouvre « Un imprévu ? »), sinon
+  « Annuler malgré tout » puis « Annuler ce Swend ? — Cette action mettra fin
+  au Swend pour vous deux. ».
+- **Eliot cherche déjà** (demande en attente, refusée ou désistée) : pas de
+  nouvel imprévu ; « Les demandes de remplacement en cours seront annulées… »
+  (ou « Vous avez déjà cherché quelqu'un… » s'il n'y a plus de demande en
+  attente) ; « Continuer à chercher » ramène à « Un imprévu ? ».
+- **Kevin a accepté** : « Kevin a accepté de prendre votre place. Si vous
+  annulez, le Swend prendra fin pour tout le monde. ».
+- Effet immédiat : « Swend annulé — Votre Swend avec David est annulé. ».
+  Aucun motif demandé. Les demandes en attente sont closes.
+- Push : David (« Eliot a annulé votre Swend du … »), Kevin s'il avait accepté
+  (« Le Swend pour lequel tu devais prendre la place d'Eliot, … est annulé. »),
+  les personnes dont la demande était en attente (« La demande n'est plus
+  d'actualité — Le Swend a été annulé. »). Rien pour une personne seulement
+  prévue. David n'apprend jamais qui remplaçait Eliot.
+- Les conversations titulaire ↔ personnes de confiance restent accessibles.
+- Réservation : l'utilisateur n'a rien à faire ; l'équipe suit l'annulation
+  dans `reservations_a_suivre` (« Annuler la réservation au restaurant »
+  seulement si la table avait été réservée).
+- Historique : le Swend reste dans « Passés et annulés » pour Eliot, David et
+  Kevin s'il avait accepté ; il disparaît pour les personnes seulement prévues,
+  sollicitées ou ayant refusé.
+- Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé par
+  glissement ; un Swend jamais scellé, si.
+
+**En attente de la migration `20260928000000_annulation_manuelle.sql`** (non
+exécutée en production).
+
 ---
 
 ## 6. Messagerie
@@ -372,7 +411,10 @@ Elles sont envoyées :
   titulaires (« Ton Swend est annulé ») et aux deux remplaçants sélectionnés
   (« Le Swend est annulé »), sans jamais révéler qui remplace l'autre côté.
   L'acceptation qui déclenche cette annulation n'envoie pas en plus « … a
-  accepté de prendre votre place ».
+  accepté de prendre votre place » ;
+- à l'annulation d'un Swend par un titulaire (D-022, voir 5.10) : l'autre
+  titulaire, le remplaçant accepté, les personnes dont la demande était en
+  attente (jamais « C'est bon, quelqu'un a pu prendre la place »).
 
 **Rappels automatiques (D-021)** : J-7, J-3 et J-1 à 18h, Jour J 3 heures
 avant, en heure de Paris, pour les Swends scellés et actifs. Push uniquement.
@@ -414,6 +456,10 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   - `ajouter_et_demander_remplacement` ;
   - `signaler_indisponibilite` / `signaler_disponibilite` (la personne
     elle-même, seulement si elle est simplement prévue).
+- Annulation d'un Swend scellé : uniquement par `annuler_swend` (un des deux
+  titulaires, avant l'heure du rendez-vous) ; l'app ne peut plus changer
+  directement le statut d'un Swend scellé ou terminé, ni supprimer un Swend
+  scellé (D-022).
 - Consentement obligatoire : personne ne « prend la place » sans avoir accepté.
 - Une seule personne par côté, même en cas de clics simultanés. Les actions
   concurrentes sont sérialisées par verrou.

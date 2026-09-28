@@ -93,7 +93,7 @@ select verifier('V', 'statut de réservation hors liste refusé (pas de « rése
 select swend_en_negociation() as p \gset
 select sceller(:'p');
 update reservations_suivi set statut_reservation = 'reservee', reference_reservation = 'R-7' where pacte_id = :'p';
-select en_tant_que(:'E', format('update pactes set statut = %L where id = %L', 'annule', :'p')) as r \gset
+select en_tant_que(:'E', format('select annuler_swend(%L)', :'p')) as r \gset
 select verifier('A', 'Swend annulé : statut de réservation inchangé (reservee)',
   :'r' = 'OK' and (select statut_reservation from reservations_suivi where pacte_id = :'p') = 'reservee', :'r');
 select verifier('A', 'Swend annulé + réservé : identifiable dans la vue, à annuler au restaurant',
@@ -104,19 +104,21 @@ select verifier('A', 'les actions à mener apparaissent en tête de la vue',
   (select bool_and(a_faire <> '') from (select a_faire from reservations_a_suivre limit 2) x));
 select swend_en_negociation() as p2 \gset
 select sceller(:'p2');
-select en_tant_que(:'E', format('update pactes set statut = %L where id = %L', 'annule', :'p2')) as r \gset
+select en_tant_que(:'E', format('select annuler_swend(%L)', :'p2')) as r \gset
 select verifier('A', 'Swend annulé non réservé : a_reserver conservé, aucune action',
   (select statut_reservation = 'a_reserver' and a_faire = '' from reservations_a_suivre where swend_id = :'p2'));
 
 -- ===================================================================
--- S. Swend supprimé depuis l'app : la ligne de suivi est conservée
+-- S. Swend scellé supprimé (en interne) : la ligne de suivi est conservée
 -- ===================================================================
 select swend_en_negociation() as p \gset
 select sceller(:'p');
 update reservations_suivi set statut_reservation = 'reservee' where pacte_id = :'p';
 select id as suivi from reservations_suivi where pacte_id = :'p' \gset
 select en_tant_que(:'E', format('select supprimer_pacte(%L)', :'p')) as r \gset
-select verifier('S', 'Eliot supprime le Swend depuis l''app (inchangé)', :'r' = 'OK' and not exists (select 1 from pactes where id = :'p'), :'r');
+select verifier('S', 'Swend scellé : Eliot ne peut pas le supprimer depuis l''app (D-022)', :'r' like '%swend_scelle%' and exists (select 1 from pactes where id = :'p'), :'r');
+delete from pactes where id = :'p';
+select verifier('S', 'suppression interne (hors app)', not exists (select 1 from pactes where id = :'p'));
 select verifier('S', 'ligne de suivi conservée, statut reservee, résumé du Swend',
   (select pacte_id is null and statut_reservation = 'reservee' and swend_supprime_le is not null
       and resume_swend_supprime like 'Eliot E / David D — Au Père Lapin — %'

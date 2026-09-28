@@ -75,3 +75,27 @@ for i in $(seq 1 10); do
   if [ "$n" = 2 ]; then ok=$((ok+1)); else detail="essai $i : $n push au lieu de 2"; fi
 done
 resultat "rappels : 3 exécutions simultanées du moteur, jamais de push en double" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 5. Annulation (D-022) pendant qu'une personne accepte : jamais d'état
+#    incohérent. Soit l'acceptation passe d'abord (Kevin remplaçant, puis
+#    prévenu de l'annulation), soit l'annulation d'abord (demande close).
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read p k <<< "$(P <<SQL | tail -1
+select swend_annulable() as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  accepter $K "$k" >/dev/null &
+  P -c "set role authenticated; select set_config('request.jwt.claim.sub', '$E', false); select annuler_swend('$p');" >/dev/null 2>&1 &
+  wait
+  etat=$(P -c "select p.statut || '|' || coalesce(r.demande_statut, 'null') || '|' || r.selectionne from pactes p join remplacants r on r.pacte_id = p.id where p.id = '$p'")
+  push=$(P -c "select string_agg(titre, ' + ') from notifications_log where id > $n0 and profile_id = '$K' and (titre = 'Le Swend est annulé' or titre like 'La demande n%')")
+  if { [ "$etat" = "annule|acceptee|true" ] && [ "$push" = "Le Swend est annulé" ]; } \
+     || { [ "$etat" = "annule|cloturee|false" ] && [[ "$push" == "La demande n"* ]] && [[ "$push" != *" + "* ]]; }; then
+    ok=$((ok+1)); else detail="essai $i : état=$etat push=$push"; fi
+done
+resultat "annulation et acceptation simultanées : Swend annulé, Kevin prévenu une seule fois, jamais d'état incohérent" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"

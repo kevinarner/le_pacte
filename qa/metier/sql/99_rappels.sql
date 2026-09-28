@@ -225,7 +225,8 @@ select verifier('D', 'clic sur l''ancienne push « cherche » d''Eliot : destina
 -- ===================================================================
 select swend_rappels() as p \gset
 select verifier('A', 'J-7 envoyé', rappels_a(:'p', :'J7') = 2);
-select en_tant_que(:'E', format('update pactes set statut = %L where id = %L', 'annule', :'p')) as r \gset
+-- (écriture serveur : l'annulation elle-même est testée dans 97_annulation_manuelle.sql)
+update pactes set statut = 'annule' where id = :'p';
 select verifier('A', 'Swend annulé : plus aucun rappel', rappels_a(:'p', :'J3') = 0 and rappels_a(:'p', :'J1') = 0 and rappels_a(:'p', :'J0') = 0);
 
 -- ===================================================================

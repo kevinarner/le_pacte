@@ -8,7 +8,14 @@ import '../../theme/app_theme.dart';
 /// débloquée à ce stade, tout était déjà visible depuis l'acceptation.
 class BlocEpilogue extends StatelessWidget {
   final StatutPacte statut;
-  const BlocEpilogue({super.key, required this.statut});
+
+  /// Prénom de l'autre titulaire (« Votre Swend avec David est annulé. »).
+  final String autrePrenom;
+  const BlocEpilogue({
+    super.key,
+    required this.statut,
+    required this.autrePrenom,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,8 +44,7 @@ class BlocEpilogue extends StatelessWidget {
                   : doubleAbsence
                   ? "Vous avez chacun dû faire appel à quelqu'un pour vous remplacer : le "
                         "Swend est annulé. Vous pouvez en créer un nouveau quand vous voulez."
-                  : "Personne n'a pu être trouvé côté partenaire à temps. Le mystère "
-                        "s'arrête ici, pour cette fois.",
+                  : 'Votre Swend avec $autrePrenom est annulé.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.black54, fontSize: 13),
             ),

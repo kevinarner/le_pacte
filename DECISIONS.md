@@ -431,6 +431,36 @@ D-015 (rappels distincts des notifications d’actions directes) et D-005 (doubl
 
 ---
 
+## D-022 — Annulation manuelle d’un Swend scellé
+
+**Statut : Validée**  
+**Décidée : 28/09/2026**
+
+### Décision
+Seuls les deux titulaires originaux peuvent annuler un Swend scellé, jusqu’à l’heure prévue du rendez-vous (`date_retenue`). Un remplaçant ne peut jamais annuler. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
+
+- Confirmation selon l’état du côté de celui qui annule :
+  - aucun imprévu lancé : proposer d’abord « Trouver quelqu’un pour me remplacer », puis « Annuler malgré tout » ;
+  - en recherche (état D-021 « cherche ») : pas de nouveau parcours d’imprévu ; texte selon qu’il reste ou non des demandes en attente ; « Continuer à chercher » ;
+  - quelqu’un a accepté : le prénom de cette personne, « le Swend prendra fin pour tout le monde ».
+- Effet immédiat et atomique : le Swend est annulé, toutes les demandes encore en attente sont clôturées. Aucun motif demandé ni transmis.
+- Push à l’autre titulaire ; au remplaçant accepté ; aux personnes dont la demande était en attente. Rien pour une personne seulement prévue. L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
+- Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles ; pas de nouveau chat entre titulaires.
+- Réservation : pour l’utilisateur, l’annulation est gérée par Swend ; on ne lui demande jamais de prévenir le restaurant. Logique D-020 inchangée (rien d’automatique ; à annuler au restaurant seulement si la table avait été réservée).
+- Historique : un Swend annulé ne disparaît pas ; « Mes Swends » sépare « À venir » et « Passés et annulés » ; carte grisée « Annulé ». Il reste visible pour les titulaires et le remplaçant qui avait accepté, pas pour les personnes seulement prévues, sollicitées ou ayant refusé.
+- Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé par un utilisateur ; un Swend jamais scellé reste supprimable. La suppression interne (équipe, banc QA) reste possible.
+- Les alertes internes par e-mail (scellage, annulation) sont prévues plus tard.
+
+Textes détaillés : `PRODUCT_RULES.md` §3.5.
+
+### Raison
+Laisser un titulaire mettre fin proprement à un Swend, en l’orientant d’abord vers un remplaçant, sans jamais trahir un remplacement ni lui faire gérer la réservation.
+
+### Précise
+§4.4 (un remplaçant n’annule pas), D-020 (réservation manuelle), D-021 (état « cherche », rappels : aucun rappel pour un Swend annulé).
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

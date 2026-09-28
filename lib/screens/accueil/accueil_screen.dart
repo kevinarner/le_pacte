@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/annulation_swend.dart';
 import '../../models/demande_statut.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
@@ -25,6 +26,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
   List<Pacte>? pactes;
   String? erreur;
 
+  /// Mes Swends déjà scellés (D-022) : jamais supprimables, ils restent
+  /// dans l'historique. Null si la liste n'a pas pu être chargée : on ne
+  /// propose alors la suppression que pendant la négociation.
+  Set<String>? _scelles;
+
   @override
   void initState() {
     super.initState();
@@ -38,11 +44,20 @@ class _AccueilScreenState extends State<AccueilScreen> {
     });
     try {
       final resultat = (await PacteRepository.mesPactes())
-          .where((p) => !_desisteDe(p))
+          .where((p) => !_desisteDe(p) && !_annuleSansMoi(p))
           .toList();
       _trierParPriorite(resultat);
+      Set<String>? scelles;
+      try {
+        scelles = await PacteRepository.mesSwendsScelles();
+      } catch (_) {
+        scelles = null;
+      }
       if (!mounted) return;
-      setState(() => pactes = resultat);
+      setState(() {
+        pactes = resultat;
+        _scelles = scelles;
+      });
     } catch (e) {
       if (!mounted) return;
       setState(() => erreur = e.toString());
@@ -104,11 +119,28 @@ class _AccueilScreenState extends State<AccueilScreen> {
                 ),
               ),
             )
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
-              children: [for (final p in liste) _cardPacte(p)],
-            ),
+          : _liste(liste),
     );
+  }
+
+  /// Swend annulé où je n'étais qu'une personne de confiance sans avoir
+  /// accepté de venir (prévue, sollicitée, ayant refusé) : il ne reste pas
+  /// dans mon historique (D-022). Les titulaires et le remplaçant accepté
+  /// le gardent.
+  bool _annuleSansMoi(Pacte p) {
+    if (!estAnnule(p)) return false;
+    final v = PerspectivePacte.de(p, AppStore.moi.id);
+    return v != null && !v.estTitulaire && !v.maFiche!.selectionne;
+  }
+
+  /// Suppression par glissement : seulement un Swend dont je suis titulaire
+  /// et qui n'a jamais été scellé (D-022).
+  bool _supprimable(Pacte p) {
+    final scelles = _scelles;
+    if (scelles != null) return !scelles.contains(p.id);
+    return p.statut == StatutPacte.enAttenteChoixDateDestinataire ||
+        p.statut == StatutPacte.enAttenteChoixDateInitiateur ||
+        p.statut == StatutPacte.enAttenteReponse;
   }
 
   /// J'avais accepté de prendre une place puis je me suis désisté : je ne
@@ -169,6 +201,55 @@ class _AccueilScreenState extends State<AccueilScreen> {
     });
   }
 
+  /// « À venir » puis « Passés et annulés » (D-022), chaque section
+  /// affichée seulement si elle n'est pas vide.
+  Widget _liste(List<Pacte> liste) {
+    final maintenant = DateTime.now();
+    final aVenir = [
+      for (final p in liste)
+        if (!estPasseOuAnnule(p, maintenant)) p,
+    ];
+    final passes =
+        [
+          for (final p in liste)
+            if (estPasseOuAnnule(p, maintenant)) p,
+        ]..sort((a, b) {
+          final da = a.dateRetenue;
+          final db = b.dateRetenue;
+          if (da != null && db != null && da != db) return db.compareTo(da);
+          if (da == null && db != null) return 1;
+          if (da != null && db == null) return -1;
+          return a.id.compareTo(b.id);
+        });
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+      children: [
+        if (aVenir.isNotEmpty) ...[
+          _titreSection('À venir'),
+          for (final p in aVenir) _cardPacte(p),
+        ],
+        if (passes.isNotEmpty) ...[
+          if (aVenir.isNotEmpty) const SizedBox(height: 12),
+          _titreSection('Passés et annulés'),
+          for (final p in passes) _cardPacte(p),
+        ],
+      ],
+    );
+  }
+
+  Widget _titreSection(String titre) => Padding(
+    padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
+    child: Text(
+      titre,
+      style: const TextStyle(
+        fontWeight: FontWeight.w800,
+        fontSize: 13,
+        color: AppColors.texteAttenue,
+        letterSpacing: 0.3,
+      ),
+    ),
+  );
+
   Widget _cardPacte(Pacte pacte) {
     final perspective = PerspectivePacte.de(pacte, AppStore.moi.id);
     final estTiers = perspective != null && !perspective.estTitulaire;
@@ -193,14 +274,22 @@ class _AccueilScreenState extends State<AccueilScreen> {
         autrePrenom: prenomDe(autreNom),
       );
     }
-    final tag = affichage.style;
+    final annule = estAnnule(pacte);
+    final tag = annule
+        ? const StatutTag(
+            fond: Colors.transparent,
+            texte: AppColors.texte,
+            bordure: AppColors.texteAttenue,
+          )
+        : affichage.style;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Dismissible(
         key: ValueKey(pacte.id),
-        // Seuls les titulaires peuvent supprimer un Swend.
-        direction: estTiers
+        // Seuls les titulaires peuvent supprimer un Swend, et seulement
+        // s'il n'a jamais été scellé (D-022).
+        direction: estTiers || !_supprimable(pacte)
             ? DismissDirection.none
             : DismissDirection.endToStart,
         background: Container(
@@ -214,7 +303,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
         ),
         confirmDismiss: (_) => _confirmerSuppression(autreNom),
         onDismissed: (_) => _supprimer(pacte),
+        // Un Swend annulé reste consultable mais ne doit jamais paraître
+        // actif : carte grisée, textes atténués, badge « Annulé » bien
+        // lisible, pas de compte à rebours.
         child: Card(
+          color: annule ? AppColors.neutre : null,
           child: InkWell(
             borderRadius: BorderRadius.circular(radiusLg),
             onTap: () async {
@@ -237,9 +330,10 @@ class _AccueilScreenState extends State<AccueilScreen> {
                       Expanded(
                         child: Text(
                           titre,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 15,
+                            color: annule ? AppColors.texteAttenue : null,
                           ),
                         ),
                       ),
@@ -268,8 +362,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
                       '${pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
                       '${pacte.dateRetenue!.day}/${pacte.dateRetenue!.month}/${pacte.dateRetenue!.year} '
                       'à ${formaterHeure(heureDe(pacte.dateRetenue!))}',
-                      style: const TextStyle(
-                        color: Colors.black54,
+                      style: TextStyle(
+                        color: annule ? Colors.black38 : Colors.black54,
                         fontSize: 13,
                       ),
                     )
@@ -282,7 +376,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
                         fontSize: 13,
                       ),
                     ),
-                  if (pacte.dateRetenue != null) ...[
+                  if (pacte.dateRetenue != null && !annule) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [

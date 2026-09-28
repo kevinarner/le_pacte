@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/annulation_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -11,6 +12,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
+import 'annulation_swend_dialogues.dart';
 import 'bloc_attente.dart';
 import 'bloc_choix_date.dart';
 import 'bloc_epilogue.dart';
@@ -232,13 +234,31 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               icon: const Icon(Icons.event_busy_outlined, size: 18),
               label: const Text('Un imprévu ?'),
             ),
+            // Annulation (D-022) : les deux titulaires seulement, jusqu'à
+            // l'heure du rendez-vous.
+            if (peutAnnulerSwend(
+              pacte,
+              estTitulaire: true,
+              maintenant: DateTime.now(),
+            )) ...[
+              const SizedBox(height: 20),
+              Center(
+                child: TextButton(
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.erreur,
+                  ),
+                  onPressed: () => _annuler(pacte, jeSuisInitiateur),
+                  child: const Text('Annuler le Swend'),
+                ),
+              ),
+            ],
           ],
 
           // --- Cas : le pacte est arrivé à son terme ---
           if (pacte.statut == StatutPacte.maintenu ||
               pacte.statut == StatutPacte.annule ||
               pacte.statut == StatutPacte.annuleDoubleAbsence)
-            BlocEpilogue(statut: pacte.statut),
+            BlocEpilogue(statut: pacte.statut, autrePrenom: autrePrenom),
         ],
       ),
     );
@@ -276,6 +296,16 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
 
   Future<void> _reserverLaTable(String lien) async {
     await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
+  }
+
+  Future<void> _annuler(Pacte pacte, bool jeSuisInitiateur) async {
+    final annule = await lancerAnnulationSwend(
+      context,
+      pacte: pacte,
+      jeSuisInitiateur: jeSuisInitiateur,
+      onTrouverQuelquun: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
+    );
+    if (annule && mounted) setState(() {});
   }
 
   Future<void> _ouvrirImprevu(Pacte pacte, bool jeSuisInitiateur) async {

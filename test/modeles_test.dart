@@ -8,6 +8,7 @@ import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
 import 'package:le_pacte/screens/detail_pacte/bloc_choix_date.dart';
+import 'package:le_pacte/models/annulation_swend.dart';
 import 'package:le_pacte/models/destination_rappel.dart';
 import 'package:le_pacte/utils/date_fr.dart';
 import 'package:le_pacte/widgets/action_disponibilite.dart';
@@ -239,6 +240,129 @@ void main() {
         adresseSansRappel(Uri.parse('http://127.0.0.1:8080/?x=1&rappel=abc')),
         '/?x=1',
       );
+    });
+  });
+
+  group('Annulation manuelle d\'un Swend (D-022)', () {
+    CotePacte cote(List<Remplacant> fiches) => CotePacte(
+      idTitulaire: 'eliot',
+      nomTitulaire: 'Eliot Martin',
+      listeRemplacants: fiches,
+    );
+    Pacte swend(StatutPacte statut, DateTime? date) => Pacte(
+      id: 'p',
+      type: TypeRepas.diner,
+      datesProposees: const [],
+      restaurantsProposes: const [],
+      statut: statut,
+      dateRetenue: date,
+      initiateur: cote(const []),
+      destinataire: CotePacte(
+        idTitulaire: 'david',
+        nomTitulaire: 'David',
+        listeRemplacants: const [],
+      ),
+    );
+    test('aucun imprévu lancé : proposer d\'abord un remplaçant', () {
+      final c = ConfirmationAnnulation.pour(
+        cote([Remplacant(prenom: 'Kevin')]),
+      );
+      expect(c.cas, CasAnnulation.normal);
+      expect(c.titre, 'Annuler ce Swend ?');
+      expect(c.corps, 'Cette action mettra fin au Swend pour vous deux.');
+      expect(c.actionGarder, 'Ne pas annuler');
+      expect(c.actionAnnuler, 'Annuler le Swend');
+      expect(AvantAnnulation.titre, 'Vous ne pouvez plus être là ?');
+      expect(AvantAnnulation.actionTrouver, 'Trouver quelqu’un pour me remplacer');
+      expect(AvantAnnulation.actionAnnuler, 'Annuler malgré tout');
+    });
+    test('demande en attente : « Continuer à chercher », demandes annulées', () {
+      final c = ConfirmationAnnulation.pour(
+        cote([
+          Remplacant(prenom: 'Kevin', demandeStatut: DemandeStatut.envoyee),
+          Remplacant(prenom: 'Tom', demandeStatut: DemandeStatut.refusee),
+        ]),
+      );
+      expect(c.cas, CasAnnulation.enRecherche);
+      expect(
+        c.corps,
+        'Les demandes de remplacement en cours seront annulées et le Swend prendra fin pour vous deux.',
+      );
+      expect(c.actionGarder, 'Continuer à chercher');
+    });
+    test('seulement des refus / désistements : déjà cherché', () {
+      for (final statut in [DemandeStatut.refusee, DemandeStatut.desistee]) {
+        final c = ConfirmationAnnulation.pour(
+          cote([Remplacant(prenom: 'Tom', demandeStatut: statut)]),
+        );
+        expect(c.cas, CasAnnulation.enRecherche);
+        expect(
+          c.corps,
+          'Vous avez déjà cherché quelqu’un pour vous remplacer. Si vous annulez, le Swend prendra fin pour vous deux.',
+        );
+      }
+    });
+    test('demande close ou annulée seulement : cas normal', () {
+      final c = ConfirmationAnnulation.pour(
+        cote([Remplacant(prenom: 'Tom', demandeStatut: DemandeStatut.cloturee)]),
+      );
+      expect(c.cas, CasAnnulation.normal);
+    });
+    test('quelqu\'un a accepté : son prénom, fin pour tout le monde', () {
+      final c = ConfirmationAnnulation.pour(
+        cote([
+          Remplacant(prenom: 'Sylvain', demandeStatut: DemandeStatut.cloturee),
+          Remplacant(
+            prenom: 'Kevin ',
+            selectionne: true,
+            demandeStatut: DemandeStatut.acceptee,
+          ),
+        ]),
+      );
+      expect(c.cas, CasAnnulation.remplace);
+      expect(
+        c.corps,
+        'Kevin a accepté de prendre votre place.\nSi vous annulez, le Swend prendra fin pour tout le monde.',
+      );
+      expect(c.actionGarder, 'Ne pas annuler');
+    });
+    test('annulable jusqu\'à l\'heure du rendez-vous, par un titulaire', () {
+      final maintenant = DateTime(2031, 10, 13, 19, 59);
+      final rdv = DateTime(2031, 10, 13, 20);
+      expect(
+        peutAnnulerSwend(swend(StatutPacte.confirme, rdv), estTitulaire: true, maintenant: maintenant),
+        isTrue,
+      );
+      expect(
+        peutAnnulerSwend(swend(StatutPacte.confirme, rdv), estTitulaire: true, maintenant: rdv),
+        isFalse,
+      );
+      expect(
+        peutAnnulerSwend(swend(StatutPacte.confirme, rdv), estTitulaire: false, maintenant: maintenant),
+        isFalse,
+      );
+      expect(
+        peutAnnulerSwend(swend(StatutPacte.annule, rdv), estTitulaire: true, maintenant: maintenant),
+        isFalse,
+      );
+    });
+    test('Mes Swends : annulés et passés à part, jamais présentés comme actifs', () {
+      final maintenant = DateTime(2031, 10, 1);
+      final futur = DateTime(2031, 10, 13, 20);
+      final passe = DateTime(2031, 9, 1, 20);
+      expect(estPasseOuAnnule(swend(StatutPacte.confirme, futur), maintenant), isFalse);
+      expect(estPasseOuAnnule(swend(StatutPacte.enAttenteReponse, null), maintenant), isFalse);
+      expect(estPasseOuAnnule(swend(StatutPacte.annule, futur), maintenant), isTrue);
+      expect(estPasseOuAnnule(swend(StatutPacte.annuleDoubleAbsence, futur), maintenant), isTrue);
+      expect(estPasseOuAnnule(swend(StatutPacte.confirme, passe), maintenant), isTrue);
+      expect(StatutPacte.annule.libelle, 'Annulé');
+    });
+    test('refus de la base : message compréhensible', () {
+      expect(
+        messageErreurAnnulation(Exception('... swend_passe ...')),
+        'L’heure du rendez-vous est passée : ce Swend ne peut plus être annulé.',
+      );
+      expect(messageErreurAnnulation(Exception('swend_inactif')), 'Ce Swend n’est plus actif.');
     });
   });
 

@@ -27,7 +27,7 @@ extension StatutPacteLibelle on StatutPacte {
         return 'Maintenu ✅';
       case StatutPacte.annule:
       case StatutPacte.annuleDoubleAbsence:
-        return 'Annulé ✗';
+        return 'Annulé';
     }
   }
 }

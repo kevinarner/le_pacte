@@ -74,8 +74,10 @@ select verifier('X', 'scellé : la conversation est ouverte',
 select en_tant_que(:'K', format('select signaler_indisponibilite(%L)', :'k')) as r1 \gset
 select en_tant_que(:'K', format('select signaler_disponibilite(%L)', :'k')) as r2 \gset
 select verifier('X', 'scellé : Kevin peut se déclarer indisponible puis disponible (D-008)', :'r1' = 'OK' and :'r2' = 'OK', :'r1' || ' / ' || :'r2');
-select en_tant_que(:'E', format('update pactes set statut = %L where id = %L', 'annule', :'p')) as r1 \gset
-select verifier('X', 'la date de scellage ne bouge plus (annulation ultérieure)', :'r1' = 'OK' and (select scelle_le from pactes where id = :'p') is not null, :'r1');
+-- Annulation ultérieure (écriture serveur ; le parcours d'annulation est
+-- testé dans 97_annulation_manuelle.sql).
+update pactes set statut = 'annule' where id = :'p';
+select verifier('X', 'la date de scellage ne bouge plus (annulation ultérieure)', (select scelle_le from pactes where id = :'p') is not null);
 select verifier('X', 'Swend scellé puis annulé : Kevin garde l''accès (inchangé)', vu_par_kevin(:'p') = '1/1/1', vu_par_kevin(:'p'));
 
 -- Refus : Kevin ne voit jamais rien.

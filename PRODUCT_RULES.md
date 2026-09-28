@@ -112,6 +112,84 @@ En V1, la réservation du restaurant n’est pas une condition préalable au sce
 
 Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
+### 3.5 Annulation d’un Swend scellé (D-022)
+
+Seuls les deux titulaires originaux peuvent annuler un Swend scellé. Un remplaçant ne peut jamais annuler : il peut seulement accepter ou refuser une demande, ou se désister. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
+
+L’annulation est possible jusqu’à l’heure prévue du rendez-vous. Ensuite, l’action `Annuler le Swend` n’est plus proposée (et la base la refuse). Le cycle « Swend terminé » sera défini séparément.
+
+#### Confirmation selon la situation de celui qui annule
+
+**Aucun imprévu lancé.**
+
+> **Vous ne pouvez plus être là ?**  
+> Avant d’annuler, vous pouvez demander à quelqu’un de confiance de prendre votre place.
+
+- action principale : `Trouver quelqu’un pour me remplacer` (ouvre « Un imprévu ? ») ;
+- action secondaire : `Annuler malgré tout`, puis :
+
+> **Annuler ce Swend ?**  
+> Cette action mettra fin au Swend pour vous deux.
+
+Actions : `Ne pas annuler` / `Annuler le Swend`.
+
+**Déjà en recherche** (état D-021 « cherche » : au moins une demande en attente, refusée ou désistée, personne n’a accepté). Le parcours d’imprévu n’est pas reproposé.
+
+> **Annuler ce Swend ?**  
+> Les demandes de remplacement en cours seront annulées et le Swend prendra fin pour vous deux.
+
+S’il ne reste plus de demande en attente (seulement des refus ou désistements) :
+
+> **Annuler ce Swend ?**  
+> Vous avez déjà cherché quelqu’un pour vous remplacer. Si vous annulez, le Swend prendra fin pour vous deux.
+
+Actions : `Continuer à chercher` / `Annuler le Swend`. Toutes les demandes encore en attente sont clôturées.
+
+**Quelqu’un a déjà accepté** (exemple : Kevin remplace Eliot).
+
+> **Annuler ce Swend ?**  
+> Kevin a accepté de prendre votre place.  
+> Si vous annulez, le Swend prendra fin pour tout le monde.
+
+Actions : `Ne pas annuler` / `Annuler le Swend`.
+
+#### Effet
+
+Le Swend est annulé immédiatement, en une seule opération côté serveur (statut, clôture des demandes en attente, notifications). Aucun motif n’est demandé. Celui qui annule voit :
+
+> **Swend annulé**  
+> Votre Swend avec [Prénom] est annulé.
+
+#### Notifications
+
+| Destinataire | Titre | Message |
+|---|---|---|
+| Autre titulaire | Ton Swend est annulé | [Prénom] a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin. |
+| Remplaçant ayant accepté | Le Swend est annulé | Le Swend pour lequel tu devais prendre la place d’Eliot, lundi 13 octobre à 20h00 · Au Père Lapin, est annulé. |
+| Personne dont la demande était en attente | La demande n’est plus d’actualité | Le Swend a été annulé. |
+
+- Aucun motif n’est communiqué.
+- Une personne seulement prévue, jamais sollicitée, ne reçoit rien ; le Swend disparaît de `On compte sur toi`.
+- Une demande en attente est clôturée (événement « La demande n’est plus d’actualité » dans le fil).
+- L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
+- Élision du prénom comme en §9.8 (« d’Eliot », « de David »).
+- Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles après l’annulation. Il n’existe pas de chat entre les deux titulaires.
+
+#### Réservation
+
+Pour l’utilisateur, l’annulation de la réservation est gérée par Swend : on ne lui demande jamais d’appeler ou de prévenir le restaurant. En interne, l’équipe Swend gère cette annulation manuellement (voir 11.3).
+
+#### Historique
+
+Un Swend annulé ne disparaît pas. `Mes Swends` sépare :
+
+- **À venir** : Swends actifs ;
+- **Passés et annulés** : Swends dont l’heure est passée et Swends annulés.
+
+Une carte annulée est grisée, affiche clairement `Annulé` et ne donne jamais l’impression d’être encore active ou actionnable. Un Swend annulé reste dans l’historique des deux titulaires et du remplaçant qui avait accepté ; il n’apparaît plus pour les personnes seulement prévues, sollicitées ou ayant refusé.
+
+Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé par un utilisateur. Un Swend jamais scellé peut toujours être supprimé par ses titulaires.
+
 ---
 
 ## 4. Rôles
@@ -601,7 +679,8 @@ Exemples :
 - refus ;
 - désistement ;
 - clôture automatique d’une demande ;
-- annulation liée au double remplacement.
+- annulation liée au double remplacement ;
+- annulation manuelle du Swend par un titulaire (voir 3.5).
 
 Les textes exacts, regroupements éventuels et priorités de push peuvent être affinés ultérieurement.
 
@@ -799,6 +878,12 @@ Après le scellage :
 - cette opération est interne et n’ajoute pas de nouvel état visible par l’utilisateur ;
 - il n’y a pas de statut « Réservation en cours » en V1.
 
+Si un Swend est annulé (voir 3.5) :
+
+- l’utilisateur n’a rien à faire vis-à-vis du restaurant ;
+- aucun statut de réservation n’est modifié automatiquement ;
+- si la table avait déjà été réservée, le suivi interne l’indique comme à annuler auprès du restaurant ; sinon, aucune réservation n’est à effectuer.
+
 Si la réservation ne peut exceptionnellement pas être obtenue :
 
 - l’équipe Swend contacte les participants ;
@@ -858,7 +943,9 @@ Le cœur de Swend comprend notamment :
 - événements système persistants ;
 - notifications dans l’app et push pour les actions qui concernent directement un utilisateur ;
 - rappels push J-7, J-3, J-1 à 18h et Jour J à H-3 (Europe/Paris), en trois familles (repas, remplacé, cherche) ;
-- push immédiate en cas de double remplacement.
+- push immédiate en cas de double remplacement ;
+- annulation d’un Swend scellé par l’un de ses titulaires, jusqu’à l’heure du rendez-vous ;
+- historique `Mes Swends` : À venir / Passés et annulés.
 
 ### 12.2 Prévu plus tard
 

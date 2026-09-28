@@ -101,6 +101,23 @@ class PacteRepository {
     await _client.rpc('supprimer_pacte', params: {'p_pacte_id': pacteId});
   }
 
+  /// Annule un Swend scellé (D-022) : seul un des deux titulaires, jusqu'à
+  /// l'heure du rendez-vous. La base clôt les demandes en attente et
+  /// prévient les personnes concernées, en une seule opération.
+  static Future<void> annulerSwend(String pacteId) async {
+    await _client.rpc('annuler_swend', params: {'p_pacte_id': pacteId});
+  }
+
+  /// Mes Swends déjà scellés (actifs, passés ou annulés) : ils restent dans
+  /// l'historique et ne peuvent pas être supprimés (D-022).
+  static Future<Set<String>> mesSwendsScelles() async {
+    final rows = await _client.rpc('mes_swends_scelles') as List<dynamic>;
+    return {
+      for (final r in rows)
+        (r is Map ? r.values.first : r) as String,
+    };
+  }
+
   /// Un pacte précis par son id — utilisé pour ouvrir directement le
   /// bon pacte au clic sur une notification.
   static Future<Pacte?> pacteParId(String id) async {
