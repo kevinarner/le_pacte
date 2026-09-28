@@ -312,8 +312,8 @@ peut jamais annuler. L'action discrète **« Annuler le Swend »** est sous
 - Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé par
   glissement ; un Swend jamais scellé, si.
 
-**En attente de la migration `20260928000000_annulation_manuelle.sql`** (non
-exécutée en production).
+**En production depuis le 28/09** (migration
+`20260928000000_annulation_manuelle.sql` exécutée, app déployée).
 
 ---
 
