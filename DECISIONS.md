@@ -445,7 +445,7 @@ Seuls les deux titulaires originaux peuvent annuler un Swend scellé, jusqu’à
   - quelqu’un a accepté : le prénom de cette personne, « le Swend prendra fin pour tout le monde ».
 - Effet immédiat et atomique : le Swend est annulé, toutes les demandes encore en attente sont clôturées. Aucun motif demandé ni transmis.
 - Swend enregistre qui a annulé et quand (`annule_par`, `annule_le`), sans l’afficher, pour pouvoir l’exploiter plus tard (indicateurs du profil, lot dédié). Aucune attribution rétroactive : pour les annulations antérieures, l’information reste inconnue.
-- Push à l’autre titulaire ; au remplaçant accepté ; aux personnes dont la demande était en attente. Rien pour une personne seulement prévue. L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
+- Push à l’autre titulaire ; au remplaçant accepté, qui apprend quel titulaire a annulé ; aux personnes dont la demande était en attente (sans détail). Rien pour une personne seulement prévue. L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
 - Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles ; pas de nouveau chat entre titulaires.
 - Réservation : pour l’utilisateur, l’annulation est gérée par Swend ; on ne lui demande jamais de prévenir le restaurant. Logique D-020 inchangée (rien d’automatique ; à annuler au restaurant seulement si la table avait été réservée).
 - Historique : un Swend annulé ne disparaît pas ; « Mes Swends » sépare « À venir » et « Passés et annulés » ; carte grisée « Annulé ». Il reste visible pour les titulaires et le remplaçant qui avait accepté, pas pour les personnes seulement prévues, sollicitées ou ayant refusé.

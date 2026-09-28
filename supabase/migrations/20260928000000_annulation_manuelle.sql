@@ -1,6 +1,6 @@
 -- Migration : annulation manuelle d'un Swend scellé (D-022).
 -- À exécuter après rappels_jour_j.sql (utilise date_rappel_fr(),
--- heure_rappel_fr(), de_prenom()). Sûre à ré-exécuter.
+-- heure_rappel_fr()). Sûre à ré-exécuter.
 --
 -- Aucune donnée existante modifiée : deux colonnes ajoutées (annule_par,
 -- annule_le), vides pour tous les Swends existants — pas de rattrapage, une
@@ -52,7 +52,6 @@ declare
   v_prenom_moi text;
   v_quand text;
   v_fiche record;
-  v_titulaire text;
   v_cloturees uuid[];
 begin
   select pa.id, pa.statut, pa.date_retenue, pa.initiateur_id, pa.destinataire_id,
@@ -111,9 +110,10 @@ begin
       jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
   end if;
 
-  -- Personnes de confiance ayant un compte : remplaçant accepté, ou demande
-  -- qui vient d'être clôturée par cette annulation. Une personne seulement
-  -- prévue (ou dont la demande était déjà close) ne reçoit rien.
+  -- Personnes de confiance ayant un compte : remplaçant accepté (on lui dit
+  -- quel titulaire a annulé : l'expérience est terminée), ou demande qui
+  -- vient d'être clôturée par cette annulation (sans détail). Une personne
+  -- seulement prévue (ou dont la demande était déjà close) ne reçoit rien.
   for v_fiche in
     select r.id, r.cote, r.profil_id, r.selectionne
     from remplacants r
@@ -121,10 +121,9 @@ begin
       and (r.selectionne or r.id = any (v_cloturees))
     order by r.selectionne desc, r.id
   loop
-    v_titulaire := case when v_fiche.cote = 'initiateur' then p.prenom_initiateur else p.prenom_destinataire end;
     if v_fiche.selectionne then
       perform notifier(v_fiche.profil_id, 'Le Swend est annulé',
-        'Le Swend pour lequel tu devais prendre la place ' || de_prenom(v_titulaire) || ', ' || v_quand || ', est annulé.',
+        v_prenom_moi || ' a annulé le Swend du ' || v_quand || '.',
         jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
     elsif not exists (
       -- Même personne des deux côtés (8.3) : une seule push par personne,

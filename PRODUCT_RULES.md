@@ -165,14 +165,14 @@ Le Swend est annulé immédiatement, en une seule opération côté serveur (sta
 | Destinataire | Titre | Message |
 |---|---|---|
 | Autre titulaire | Ton Swend est annulé | [Prénom] a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin. |
-| Remplaçant ayant accepté | Le Swend est annulé | Le Swend pour lequel tu devais prendre la place d’Eliot, lundi 13 octobre à 20h00 · Au Père Lapin, est annulé. |
+| Remplaçant ayant accepté | Le Swend est annulé | [Prénom] a annulé le Swend du lundi 13 octobre à 20h00 · Au Père Lapin. |
 | Personne dont la demande était en attente | La demande n’est plus d’actualité | Le Swend a été annulé. |
 
 - Aucun motif n’est communiqué.
+- [Prénom] = le titulaire qui a annulé. Le remplaçant ayant accepté l’apprend (exemple : Kevin devait remplacer Eliot et David annule → « David a annulé le Swend du … ») : une fois le Swend annulé, l’expérience est terminée et il vaut mieux qu’il comprenne d’où vient l’annulation. Une personne dont la demande était seulement en attente ne l’apprend pas.
 - Une personne seulement prévue, jamais sollicitée, ne reçoit rien ; le Swend disparaît de `On compte sur toi`.
 - Une demande en attente est clôturée (événement « La demande n’est plus d’actualité » dans le fil).
 - L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
-- Élision du prénom comme en §9.8 (« d’Eliot », « de David »).
 - Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles après l’annulation. Il n’existe pas de chat entre les deux titulaires.
 
 #### Réservation

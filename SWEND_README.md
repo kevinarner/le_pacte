@@ -298,7 +298,7 @@ peut jamais annuler. L'action discrète **« Annuler le Swend »** est sous
 - Effet immédiat : « Swend annulé — Votre Swend avec David est annulé. ».
   Aucun motif demandé. Les demandes en attente sont closes.
 - Push : David (« Eliot a annulé votre Swend du … »), Kevin s'il avait accepté
-  (« Le Swend pour lequel tu devais prendre la place d'Eliot, … est annulé. »),
+  (« Eliot a annulé le Swend du … » : lui sait qui a annulé),
   les personnes dont la demande était en attente (« La demande n'est plus
   d'actualité — Le Swend a été annulé. »). Rien pour une personne seulement
   prévue. David n'apprend jamais qui remplaçait Eliot.

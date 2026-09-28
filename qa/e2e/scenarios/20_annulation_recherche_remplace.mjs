@@ -49,8 +49,8 @@ export default {
       await eliot.cliquer('Annuler le Swend');
       await ex.verifier('Swend annulé en base', () => sql('select statut from pactes') === 'annule', { obtenu: () => sql('select statut from pactes') });
       await ex.verifierTexte(eliot, 'Votre Swend avec David est annulé.', 'Eliot : "Votre Swend avec David est annulé."');
-      await ex.verifier('Kevin : "Le Swend est annulé" (« la place d’Eliot »)',
-        () => notifs('kevin').endsWith(`Le Swend est annulé|Le Swend pour lequel tu devais prendre la place d’Eliot, ${quand()}, est annulé.`),
+      await ex.verifier('Kevin : "Le Swend est annulé — Eliot a annulé le Swend du …"',
+        () => notifs('kevin').endsWith(`Le Swend est annulé|Eliot a annulé le Swend du ${quand()}.`),
         { obtenu: () => notifs('kevin') });
       await ex.verifier('David : "Eliot a annulé votre Swend", sans nom de remplaçant',
         () => notifs('david') === `Ton Swend est annulé|Eliot a annulé votre Swend du ${quand()}.`, { obtenu: () => notifs('david') });
