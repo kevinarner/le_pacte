@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/demande_statut.dart';
 import '../../models/fil_de_discussion.dart';
+import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -83,7 +84,9 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final v = _perspective(p);
     if (v == null) return false;
     if (!v.estTitulaire) {
-      return p.statut == StatutPacte.confirme &&
+      // Après l'heure du Swend, une demande encore en attente n'est plus
+      // d'actualité (D-023a) : rien à faire.
+      return imprevuOuvert(p, DateTime.now()) &&
           !v.maFiche!.selectionne &&
           v.maFiche!.demandeStatut == DemandeStatut.envoyee;
     }
@@ -108,17 +111,22 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     return confirmes.isEmpty ? null : confirmes.first;
   }
 
-  int get _pactesAVenir =>
-      mesPactes
-          ?.where(
-            (p) =>
-                _jyVais(p) &&
-                p.statut != StatutPacte.maintenu &&
-                p.statut != StatutPacte.annule &&
-                p.statut != StatutPacte.annuleDoubleAbsence,
-          )
-          .length ??
-      0;
+  /// Swends à venir : ni terminés, ni annulés, ni passés (un Swend dont
+  /// l'heure est passée rejoint « Passés et annulés », D-023a).
+  int get _pactesAVenir {
+    final maintenant = DateTime.now();
+    return mesPactes
+            ?.where(
+              (p) =>
+                  _jyVais(p) &&
+                  p.statut != StatutPacte.maintenu &&
+                  p.statut != StatutPacte.annule &&
+                  p.statut != StatutPacte.annuleDoubleAbsence &&
+                  !estPasse(p, maintenant),
+            )
+            .length ??
+        0;
+  }
 
   int get _nombreActionsRequises =>
       mesPactes?.where(_actionRequise).length ?? 0;
@@ -169,10 +177,20 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   /// lecture (suivi enregistré en base), de la plus récente à la plus
   /// ancienne — une box chacune, dans les deux sens (titulaire ↔ personne
   /// de confiance). Ouvrir la conversation la marque comme lue.
+  /// Les conversations d'un Swend passé sont terminées (D-023a) : plus de
+  /// box sur l'accueil, elles restent lisibles depuis la fiche.
   List<FilDeDiscussion> get _filsNonLus {
     final fils = mesFils;
     if (fils == null) return [];
-    return fils.where((f) => f.nonLu && f.dateNonLu != null).toList()
+    final maintenant = DateTime.now();
+    return fils
+        .where(
+          (f) =>
+              f.nonLu &&
+              f.dateNonLu != null &&
+              (f.dateConcernee == null || f.dateConcernee!.isAfter(maintenant)),
+        )
+        .toList()
       ..sort((a, b) => b.dateNonLu!.compareTo(a.dateNonLu!));
   }
 

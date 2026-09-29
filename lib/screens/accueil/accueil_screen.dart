@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/annulation_swend.dart';
 import '../../models/demande_statut.dart';
+import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -44,7 +45,9 @@ class _AccueilScreenState extends State<AccueilScreen> {
     });
     try {
       final resultat = (await PacteRepository.mesPactes())
-          .where((p) => !_desisteDe(p) && !_annuleSansMoi(p))
+          .where(
+            (p) => !_desisteDe(p) && !_annuleSansMoi(p) && !_passeSansMoi(p),
+          )
           .toList();
       _trierParPriorite(resultat);
       Set<String>? scelles;
@@ -129,6 +132,16 @@ class _AccueilScreenState extends State<AccueilScreen> {
   /// le gardent.
   bool _annuleSansMoi(Pacte p) {
     if (!estAnnule(p)) return false;
+    final v = PerspectivePacte.de(p, AppStore.moi.id);
+    return v != null && !v.estTitulaire && !v.maFiche!.selectionne;
+  }
+
+  /// Swend passé où je n'étais qu'une personne de confiance sans avoir pris
+  /// la place (prévue, sollicitée, ayant refusé, clôturée) : il ne reste pas
+  /// dans mon historique (D-023a). Les titulaires et le remplaçant
+  /// sélectionné le gardent.
+  bool _passeSansMoi(Pacte p) {
+    if (!estPasse(p, DateTime.now())) return false;
     final v = PerspectivePacte.de(p, AppStore.moi.id);
     return v != null && !v.estTitulaire && !v.maFiche!.selectionne;
   }

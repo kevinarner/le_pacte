@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/gel_swend.dart';
 import '../models/remplacant.dart';
 import '../services/pacte_repository.dart';
 import '../theme/app_theme.dart';
@@ -46,7 +47,9 @@ class _ActionDisponibiliteState extends State<ActionDisponibilite> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              code == 'swend_inactif'
+              code == 'swend_passe'
+                  ? messageSwendPasse
+                  : code == 'swend_inactif'
                   ? "Ce Swend n'est plus actif."
                   : code == 'demande_non_active'
                   ? 'Une demande est en cours : réponds-y depuis la conversation.'

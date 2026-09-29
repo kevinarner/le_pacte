@@ -2,7 +2,7 @@
 
 > Document de référence **produit** destiné à un assistant (Claude) ou à un
 > nouveau collaborateur. Il décrit ce que fait Swend, ses règles et son
-> vocabulaire, tel que c'est implémenté aujourd'hui (27/09/2026).
+> vocabulaire, tel que c'est implémenté aujourd'hui (29/09/2026).
 > Détails techniques complets : `ARCHITECTURE.md`. Banc de tests : `qa/README.md`.
 > Règles produit attendues (source de vérité) : `PRODUCT_RULES.md` ; historique
 > des arbitrages : `DECISIONS.md`.
@@ -161,7 +161,10 @@ Il y a trois intentions bien séparées : **préparer**, **discuter**,
   « Prend ta place ✓ ».
 - Ajouter des personnes (« Enregistrer »).
 - Retirer une personne. Ce n'est pas possible si une demande est en cours ou
-  si la personne a accepté.
+  si la personne a accepté. Depuis D-023a, rien n'est détruit : la fiche est
+  archivée (`retire_le`) avec sa conversation et ses événements ; elle
+  disparaît des listes et la personne n'a plus accès au Swend. Elle peut être
+  ajoutée à nouveau (nouvelle fiche).
 
 ### 5.5 « Un imprévu ? » (demander à quelqu'un de prendre sa place)
 
@@ -315,6 +318,54 @@ peut jamais annuler. L'action discrète **« Annuler le Swend »** est sous
 **En production depuis le 28/09** (migration
 `20260928000000_annulation_manuelle.sql` exécutée, app déployée).
 
+Depuis D-023a, les conversations d'un Swend annulé restent lisibles mais
+n'acceptent plus de message (voir 5.11).
+
+### 5.11 Gel à l'heure du Swend (D-023a)
+
+À l'heure prévue du Swend (`date_retenue`, **heure du serveur**, jamais celle
+de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
+
+- **Plus aucune action d'imprévu**, refusée par la base (`swend_passe`) :
+  demander, annuler une demande, accepter / refuser, se désister, « Ajouter
+  quelqu'un », signaler une (in)disponibilité, ajouter ou retirer une
+  personne de confiance, annuler le Swend (déjà le cas depuis D-022).
+- **L'app masque ces actions** à partir de sa propre horloge : fiche du
+  titulaire (plus de « Modifier ma liste », « Discuter », « Un imprévu ? »,
+  « Annuler le Swend » ; un bloc figé « X a pris votre place » et « Relire
+  une conversation »), fiche de la personne de confiance (« Tu as pris la
+  place d'Eliot » ou « L'heure de ce Swend est passée. »), conversation (plus
+  d'Accepter / Refuser), « Un imprévu ? », liste des personnes, accueil. Si
+  l'appareil affiche encore une action, la base la refuse et l'écran affiche
+  « L'heure du Swend est passée : cette action n'est plus possible. ».
+- **Demandes encore en attente** : clôturées automatiquement par le moteur
+  `figer_swends_passes()` (planifié toutes les 5 minutes, voir
+  `supabase/planification/gel_a_h_pg_cron.sql`). La personne sollicitée
+  reçoit « La demande n'est plus d'actualité — L'heure du Swend est passée. »
+  (une seule push par personne, même prévue des deux côtés ; seulement dans
+  les 12 heures qui suivent). Rien pour le titulaire qui cherchait, jamais
+  « C'est bon, quelqu'un a pu prendre la place ».
+- **Conversations de l'imprévu** : lecture seule dès H (et dès qu'un Swend est
+  annulé). Historique conservé. Dans chaque conversation ayant eu une activité
+  (message ou événement), un dernier événement « Le Swend a commencé. Cette
+  conversation est désormais terminée. » — jamais « non lu ». Une conversation
+  vierge ne reçoit rien.
+- **Historique** : le Swend reste `confirme` en base (« passé » est dérivé de
+  la date ; aucun indicateur du profil n'est modifié) et rejoint « Passés et
+  annulés » pour les titulaires et le remplaçant sélectionné, sans badge
+  particulier. Il disparaît pour les personnes seulement prévues, sollicitées,
+  ayant refusé ou s'étant désistées (Mes Swends, « On compte sur toi », « Une
+  demande t'attend », box de l'accueil).
+- **Rappel cliqué après H** : fiche du Swend, jamais « Un imprévu ? ».
+- **Scellement** : un Swend ne peut jamais être scellé si sa date est passée,
+  et la date d'un Swend scellé n'est plus modifiable par l'app.
+- **Rattrapage** : les Swends déjà passés au moment de la migration sont
+  considérés comme traités (aucune push, aucun événement rétroactif).
+
+**Pas encore en production** : migration `20260929000000_gel_a_h.sql` à
+exécuter, puis app, puis planification. Le chat post-Swend (D-023b) et
+« Faire un nouveau Swend » (D-023c) ne sont **pas** implémentés.
+
 ---
 
 ## 6. Messagerie
@@ -328,9 +379,16 @@ peut jamais annuler. L'action discrète **« Annuler le Swend »** est sous
   - titulaire : « Tu as demandé à Kevin de prendre ta place. » ;
   - Kevin : « Eliot t'a demandé de prendre sa place. ».
 
-  Il y en a huit : demande envoyée, annulée, refusée, acceptée, désistement,
+  Il y en a neuf : demande envoyée, annulée, refusée, acceptée, désistement,
   demande close (« La demande n'est plus d'actualité. »), indisponibilité
-  signalée, retour disponible. Ils sont enregistrés en base et persistent.
+  signalée, retour disponible, et fin de conversation (« Le Swend a commencé.
+  Cette conversation est désormais terminée. », D-023a, jamais non lue). Ils
+  sont enregistrés en base et persistent.
+- **Fin des conversations (D-023a)** : à l'heure du Swend, ou dès son
+  annulation, la conversation reste lisible mais la zone de saisie est
+  remplacée par « Cette conversation est terminée. Elle reste consultable. »
+  (la base refuse tout nouveau message). Plus de box sur l'accueil pour la
+  conversation d'un Swend passé.
 - **Lu / non lu** enregistré en base : sur l'accueil, une box par conversation
   non lue, dans les deux sens. Ouvrir la conversation la marque comme lue.
   - Un message de l'autre : « Kevin Arner vous a écrit ».
@@ -465,6 +523,13 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   scellé (D-022). `annuler_swend` enregistre aussi qui a annulé et quand
   (`annule_par`, `annule_le`, non affichés) ; l'app ne peut pas écrire ces
   champs ; vides pour les annulations antérieures.
+- Gel à l'heure du Swend (D-023a) : toutes les actions d'imprévu ci-dessus,
+  l'ajout d'une personne et le retrait refusent (`swend_passe`) dès
+  `date_retenue <= now()` ; conversations en lecture seule (RLS) dès H ou
+  l'annulation ; clôture des demandes à H par `figer_swends_passes()`
+  (anti-doublon `swends_figes`) ; scellement impossible après la date ; date
+  d'un Swend scellé non modifiable par l'app ; retrait sans destruction
+  (fiche archivée).
 - Consentement obligatoire : personne ne « prend la place » sans avoir accepté.
 - Une seule personne par côté, même en cas de clics simultanés. Les actions
   concurrentes sont sérialisées par verrou.
@@ -485,7 +550,10 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
 - Analytics.
 - Publication iOS / Android : seul le web est déployé.
 - Statut `maintenu` (« Rendez-vous maintenu ») : il existe dans le modèle, mais
-  rien ne le déclenche automatiquement aujourd'hui.
+  rien ne le déclenche automatiquement aujourd'hui (volontairement : un Swend
+  passé reste `confirme`, D-023a).
+- Après-Swend : chat post-Swend (D-023b) et « Faire un nouveau Swend »
+  (D-023c) — décidés, **non implémentés**.
 
 ---
 

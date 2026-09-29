@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/annulation_swend.dart';
+import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -211,7 +212,18 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           // --- Cas : le pacte est confirmé, chacun peut déléguer sa présence ---
           // La réservation est gérée par Swend (D-020) : aucune invitation
           // à réserver soi-même.
-          if (pacte.statut == StatutPacte.confirme) ...[
+          // Gel à H (D-023a) : une fois l'heure du Swend passée, plus
+          // aucune action d'imprévu — seules les conversations restent
+          // lisibles.
+          if (pacte.statut == StatutPacte.confirme &&
+              estPasse(pacte, DateTime.now()))
+            BlocPresence(
+              pacte: pacte,
+              jeSuisInitiateur: jeSuisInitiateur,
+              fige: true,
+              onChanged: () => setState(() {}),
+            )
+          else if (pacte.statut == StatutPacte.confirme) ...[
             BlocPresence(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,

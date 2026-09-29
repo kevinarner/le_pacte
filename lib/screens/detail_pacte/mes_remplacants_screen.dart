@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
+import '../../models/gel_swend.dart';
 import '../../models/remplacant.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
@@ -89,11 +90,39 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     };
   }
 
+  /// Gel à H (D-023a) : l'heure du Swend est passée — la liste ne se
+  /// modifie plus (ni ajout, ni retrait) ; elle reste consultable.
+  bool get _fige =>
+      widget.dates.isNotEmpty && !widget.dates.first.isAfter(DateTime.now());
+
+  Widget _vueFigee() => Scaffold(
+    appBar: AppBar(title: const Text('Personnes prévues')),
+    body: ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        const Text(
+          'L’heure du Swend est passée : la liste ne peut plus être modifiée.',
+          style: TextStyle(fontSize: 13, color: AppColors.texteAttenue),
+        ),
+        const SizedBox(height: 16),
+        for (final r in _enregistrees)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.person_outline),
+            title: Text(r.nomComplet),
+          ),
+      ],
+    ),
+  );
+
   @override
   Widget build(BuildContext context) {
+    if (_fige) return _vueFigee();
     final aEnregistrer = _brouillons.where((r) => r.estRempli).isNotEmpty;
-    final enregistrable =
-        RemplacantsForm.listeValide(_brouillons, _telephonesInterdits);
+    final enregistrable = RemplacantsForm.listeValide(
+      _brouillons,
+      _telephonesInterdits,
+    );
 
     return PopScope(
       canPop: false,
@@ -271,6 +300,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
             "Une des personnes participe déjà à ce Swend : elle ne peut pas être personne de confiance.",
           'personne_deja_prevue' => 'Une des personnes est déjà prévue.',
           'telephone_invalide' => messageTelephoneInvalide,
+          'swend_passe' => messageSwendPasse,
           _ => "Impossible d'enregistrer pour le moment. Réessaie.",
         };
       });
@@ -305,9 +335,13 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
   }
 
   Future<void> _annulerDemande(Remplacant r) async {
-    await _action(r, () => PacteRepository.annulerDemandeRemplacement(r.id!), () {
-      r.demandeStatut = null;
-    });
+    await _action(
+      r,
+      () => PacteRepository.annulerDemandeRemplacement(r.id!),
+      () {
+        r.demandeStatut = null;
+      },
+    );
   }
 
   Future<void> _action(
@@ -338,6 +372,7 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
           'retrait_impossible' =>
             '${r.prenom} a une demande en cours : impossible de la retirer.',
           'demande_non_active' => "Cette demande n'est plus en attente.",
+          'swend_passe' => messageSwendPasse,
           _ => 'Impossible pour le moment. Réessaie.',
         };
         _quelqueChoseAChange = true;

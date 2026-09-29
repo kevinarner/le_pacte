@@ -10,8 +10,8 @@ delete from test_resultats;
 \set K '00000000-0000-0000-0000-00000000000a'
 \set C '00000000-0000-0000-0000-00000000000c'
 
--- Swend scellé Eliot / David, le (lundi) 12 octobre 2026 à 20h00 (Paris) par défaut.
-create or replace function swend_rappels(p_date timestamptz default '2026-10-12 18:00+00', p_type text default 'diner')
+-- Swend scellé Eliot / David, le (lundi) 12 octobre 2037 à 20h00 (Paris) par défaut (calendrier identique à 2026, loin de l’horloge réelle : les gardes « après l’heure » de D-023a ne s’appliquent pas).
+create or replace function swend_rappels(p_date timestamptz default '2037-10-12 18:00+00', p_type text default 'diner')
 returns uuid language plpgsql as $$
 declare v uuid;
 begin
@@ -46,30 +46,30 @@ begin
   end if;
 end $$;
 
-\set J7 '2026-10-05 16:00+00'
-\set J3 '2026-10-09 16:00+00'
-\set J1 '2026-10-11 16:00+00'
-\set J0 '2026-10-12 15:00+00'
+\set J7 '2037-10-05 16:00+00'
+\set J3 '2037-10-09 16:00+00'
+\set J1 '2037-10-11 16:00+00'
+\set J0 '2037-10-12 15:00+00'
 \set DATE '« lundi 12 octobre à 20h00 · Au Père Lapin »'
 
 -- ===================================================================
 -- T. Calendrier (Europe/Paris, changement d'heure)
 -- ===================================================================
 select verifier('T', 'J-7, J-3, J-1 à 18h Paris ; Jour J à H-3 (heure d''été)',
-  echeance_rappel('2026-10-12 18:00+00', 'j7') = :'J7' and echeance_rappel('2026-10-12 18:00+00', 'j3') = :'J3'
-  and echeance_rappel('2026-10-12 18:00+00', 'j1') = :'J1' and echeance_rappel('2026-10-12 18:00+00', 'j0') = :'J0');
+  echeance_rappel('2037-10-12 18:00+00', 'j7') = :'J7' and echeance_rappel('2037-10-12 18:00+00', 'j3') = :'J3'
+  and echeance_rappel('2037-10-12 18:00+00', 'j1') = :'J1' and echeance_rappel('2037-10-12 18:00+00', 'j0') = :'J0');
 select verifier('T', 'changement d''heure (25/10) : J-3 à 18h CEST = 16h UTC, J-1 à 18h CET = 17h UTC',
-  echeance_rappel('2026-10-26 19:00+00', 'j3') = '2026-10-23 16:00+00'
-  and echeance_rappel('2026-10-26 19:00+00', 'j1') = '2026-10-25 17:00+00'
-  and echeance_rappel('2026-10-26 19:00+00', 'j0') = '2026-10-26 16:00+00');
+  echeance_rappel('2037-10-26 19:00+00', 'j3') = '2037-10-23 16:00+00'
+  and echeance_rappel('2037-10-26 19:00+00', 'j1') = '2037-10-25 17:00+00'
+  and echeance_rappel('2037-10-26 19:00+00', 'j0') = '2037-10-26 16:00+00');
 select verifier('T', 'formats : « lundi 12 octobre », « 20h00 »',
-  date_rappel_fr('2026-10-12 18:00+00') = 'lundi 12 octobre' and heure_rappel_fr('2026-10-12 18:00+00') = '20h00');
+  date_rappel_fr('2037-10-12 18:00+00') = 'lundi 12 octobre' and heure_rappel_fr('2037-10-12 18:00+00') = '20h00');
 
 -- ===================================================================
 -- N. Cadence et textes « repas » (Eliot ↔ David, sans remplacement)
 -- ===================================================================
 select swend_rappels() as p \gset
-select verifier('N', 'aucun envoi avant l''heure (J-7 moins 1 minute)', rappels_a(:'p', '2026-10-05 15:59+00') = 0);
+select verifier('N', 'aucun envoi avant l''heure (J-7 moins 1 minute)', rappels_a(:'p', '2037-10-05 15:59+00') = 0);
 select verifier('N', 'J-7 à 18h00 Paris : Eliot et David', rappels_a(:'p', :'J7') = 2);
 select verifier('N', 'J-7 Eliot : texte validé, prénom de David',
   rappels_de(:'p', :'E') = 'j7|Le compte à rebours est lancé|Votre Swend avec David approche : lundi 12 octobre à 20h00 · Au Père Lapin.',
@@ -78,8 +78,8 @@ select verifier('N', 'J-7 David : texte validé, prénom d''Eliot',
   rappels_de(:'p', :'D') = 'j7|Le compte à rebours est lancé|Votre Swend avec Eliot approche : lundi 12 octobre à 20h00 · Au Père Lapin.',
   rappels_de(:'p', :'D'));
 select verifier('N', 'moteur rejoué au même instant : aucune push en double', rappels_a(:'p', :'J7') = 0);
-select verifier('N', 'moteur rejoué 10 minutes plus tard : aucune push en double', rappels_a(:'p', '2026-10-05 16:10+00') = 0);
-select verifier('N', 'rien entre deux échéances', rappels_a(:'p', '2026-10-07 16:00+00') = 0);
+select verifier('N', 'moteur rejoué 10 minutes plus tard : aucune push en double', rappels_a(:'p', '2037-10-05 16:10+00') = 0);
+select verifier('N', 'rien entre deux échéances', rappels_a(:'p', '2037-10-07 16:00+00') = 0);
 select verifier('N', 'J-3 à 18h00 Paris', rappels_a(:'p', :'J3') = 2);
 select verifier('N', 'J-1 à 18h00 Paris', rappels_a(:'p', :'J1') = 2);
 select verifier('N', 'Jour J à H-3 (17h00 Paris)', rappels_a(:'p', :'J0') = 2);
@@ -89,7 +89,7 @@ select verifier('N', 'textes J-3, J-1, Jour J (Eliot)',
     || ' ## j1|C’est demain !|Votre Swend avec David, c’est demain : lundi 12 octobre à 20h00 · Au Père Lapin.'
     || ' ## j0|C’est le jour du Swend !|Rendez-vous à 20h00 · Au Père Lapin. Est-ce que tu vas vraiment dîner avec David ?',
   rappels_de(:'p', :'E'));
-select verifier('N', 'après le Jour J : plus rien', rappels_a(:'p', '2026-10-12 19:00+00') = 0);
+select verifier('N', 'après le Jour J : plus rien', rappels_a(:'p', '2037-10-12 19:00+00') = 0);
 select verifier('N', 'payload : type rappel + pacte_id + échéance, aucun rôle figé',
   (select bool_and((select array_agg(k order by k) from jsonb_object_keys(data) k) = array['pacte_id', 'rappel', 'type'])
    from notifications_log where data->>'type' = 'rappel' and data->>'pacte_id' = :'p'));
@@ -102,21 +102,21 @@ select verifier('N', 'Jour J d''un déjeuner : « déjeuner avec »',
 -- ===================================================================
 select swend_rappels() as p \gset
 select verifier('P', 'moteur découvert après J-7 et J-3 : seul J-1 part',
-  rappels_a(:'p', '2026-10-11 16:05+00') = 2 and rappels_de(:'p', :'E') like 'j1|%' and rappels_de(:'p', :'E') not like '%j7|%');
+  rappels_a(:'p', '2037-10-11 16:05+00') = 2 and rappels_de(:'p', :'E') like 'j1|%' and rappels_de(:'p', :'E') not like '%j7|%');
 select swend_rappels() as p \gset
-select verifier('P', 'échéance manquée de plus de 30 minutes (panne) : ignorée', rappels_a(:'p', '2026-10-05 16:31+00') = 0);
+select verifier('P', 'échéance manquée de plus de 30 minutes (panne) : ignorée', rappels_a(:'p', '2037-10-05 16:31+00') = 0);
 select swend_rappels() as p \gset
 select set_config('swend.rattrapage_scellement', 'on', false) as x \gset
-update pactes set scelle_le = '2026-10-10 12:00+00' where id = :'p';
+update pactes set scelle_le = '2037-10-10 12:00+00' where id = :'p';
 select set_config('swend.rattrapage_scellement', 'off', false) as x \gset
 select verifier('P', 'Swend scellé à J-2 : jamais de J-7 ni de J-3', rappels_a(:'p', :'J7') = 0 and rappels_a(:'p', :'J3') = 0);
 select verifier('P', 'Swend scellé à J-2 : J-1 puis Jour J normalement', rappels_a(:'p', :'J1') = 2 and rappels_a(:'p', :'J0') = 2);
-select swend_rappels('2026-10-26 19:00+00') as p \gset
-select verifier('P', 'heure d''hiver : rien à 17h00 Paris la veille', rappels_a(:'p', '2026-10-25 16:00+00') = 0);
+select swend_rappels('2037-10-26 19:00+00') as p \gset
+select verifier('P', 'heure d''hiver : rien à 17h00 Paris la veille', rappels_a(:'p', '2037-10-25 16:00+00') = 0);
 select verifier('P', 'heure d''hiver : J-1 à 18h00 Paris (17h UTC), date du lundi 26 octobre',
-  rappels_a(:'p', '2026-10-25 17:00+00') = 2 and rappels_de(:'p', :'E') like '%lundi 26 octobre à 20h00%');
+  rappels_a(:'p', '2037-10-25 17:00+00') = 2 and rappels_de(:'p', :'E') like '%lundi 26 octobre à 20h00%');
 insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-values ('enAttenteReponse', 'diner', '2026-10-12 18:00+00', array['2026-10-12 18:00+00'::timestamptz], '00000000-0000-0000-0000-0000000000aa',
+values ('enAttenteReponse', 'diner', '2037-10-12 18:00+00', array['2037-10-12 18:00+00'::timestamptz], '00000000-0000-0000-0000-0000000000aa',
         :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02') returning id as pn \gset
 select verifier('P', 'Swend non scellé : aucun rappel', rappels_a(:'pn', :'J1') = 0);
 
@@ -214,7 +214,7 @@ select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
 select en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'k')) as r \gset
 select verifier('D', 'J-3 traité (Eliot en recherche)', rappels_a(:'p', :'J3') = 2);
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) as r \gset
-select verifier('D', 'Kevin accepte après J-3 : aucun J-3 rétroactif, même dans la fenêtre', rappels_a(:'p', '2026-10-09 16:10+00') = 0
+select verifier('D', 'Kevin accepte après J-3 : aucun J-3 rétroactif, même dans la fenêtre', rappels_a(:'p', '2037-10-09 16:10+00') = 0
   and rappels_de(:'p', :'K') = '');
 select verifier('D', 'Kevin reçoit le J-1 suivant', rappels_a(:'p', :'J1') = 3 and rappels_de(:'p', :'K') like 'j1|%');
 select verifier('D', 'clic sur l''ancienne push « cherche » d''Eliot : destination recalculée (fiche, plus Un imprévu ?)',

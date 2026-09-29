@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/demande_statut.dart';
+import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/remplacant.dart';
@@ -127,6 +128,21 @@ class _BlocTiersState extends State<BlocTiers> {
       contenu = [_texte('Ce Swend a été annulé.')];
     } else if (statut == StatutPacte.maintenu) {
       contenu = [_texte('Ce Swend a eu lieu.')];
+    } else if (statut == StatutPacte.confirme &&
+        estPasse(widget.pacte, DateTime.now())) {
+      // Gel à H (D-023a) : plus aucune action (ni réponse, ni désistement,
+      // ni disponibilité) ; la conversation reste lisible.
+      contenu = _fiche.selectionne
+          ? [
+              _titre('Tu as pris la place ${deNom(_titulaire)}'),
+              const SizedBox(height: 16),
+              _boutonEcrire(principal: false, lecture: true),
+            ]
+          : [
+              _texte("L’heure de ce Swend est passée."),
+              const SizedBox(height: 14),
+              _boutonEcrire(principal: false, lecture: true),
+            ];
     } else if (statut != StatutPacte.confirme) {
       contenu = [
         _texte(
@@ -197,7 +213,9 @@ class _BlocTiersState extends State<BlocTiers> {
           ];
         case DemandeStatut.cloturee:
           contenu = [
-            _texte("C'est bon, quelqu'un a pu prendre la place ${deNom(_titulaire)}."),
+            _texte(
+              "C'est bon, quelqu'un a pu prendre la place ${deNom(_titulaire)}.",
+            ),
             const SizedBox(height: 14),
             _boutonEcrire(principal: false),
           ];
@@ -234,15 +252,17 @@ class _BlocTiersState extends State<BlocTiers> {
     style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 17),
   );
 
-  Widget _texte(String texte) => Text(
-    texte,
-    style: const TextStyle(fontSize: 14, color: AppColors.texte),
-  );
+  Widget _texte(String texte) =>
+      Text(texte, style: const TextStyle(fontSize: 14, color: AppColors.texte));
 
   Widget _mystere(String texte) => Row(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const Icon(Icons.visibility_off_outlined, size: 16, color: AppColors.accent),
+      const Icon(
+        Icons.visibility_off_outlined,
+        size: 16,
+        color: AppColors.accent,
+      ),
       const SizedBox(width: 8),
       Expanded(
         child: Text(
@@ -253,8 +273,10 @@ class _BlocTiersState extends State<BlocTiers> {
     ],
   );
 
-  Widget _boutonEcrire({required bool principal}) {
-    final label = Text('Écrire à $_titulaire');
+  Widget _boutonEcrire({required bool principal, bool lecture = false}) {
+    final label = Text(
+      lecture ? 'Relire la conversation' : 'Écrire à $_titulaire',
+    );
     const icone = Icon(Icons.chat_bubble_outline, size: 16);
     return principal
         ? FilledButton.icon(
@@ -316,7 +338,9 @@ class _BlocTiersState extends State<BlocTiers> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              code == 'swend_inactif'
+              code == 'swend_passe'
+                  ? messageSwendPasse
+                  : code == 'swend_inactif'
                   ? "Ce Swend n'est plus actif."
                   : code == 'demande_non_active'
                   ? 'Tu ne prends déjà plus cette place.'

@@ -78,3 +78,13 @@ export async function appelerComme(nom, fonction, params) {
   });
   return { ok: r.ok, statut: r.status, corps: await r.text() };
 }
+// Insertion directe en tant qu'un compte (la RLS s'applique) ; renvoie
+// { ok, statut, corps } — sert à vérifier qu'une écriture est refusée.
+export async function insererComme(nom, table, ligne) {
+  const r = await fetch(`${config.apiUrl}/rest/v1/${table}`, {
+    method: 'POST',
+    headers: { apikey: await anon(), authorization: `Bearer ${await jeton(nom)}`, 'content-type': 'application/json' },
+    body: JSON.stringify(ligne),
+  });
+  return { ok: r.ok, statut: r.status, corps: await r.text() };
+}

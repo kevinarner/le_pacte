@@ -34,9 +34,9 @@ class _BlocReponseState extends State<BlocReponse> {
 
   bool get _peutAccepter =>
       widget.pacte.destinataire.listeRemplacants
-                  .where((r) => r.estRempli)
-                  .length >=
-              _minimumRemplacants &&
+              .where((r) => r.estRempli)
+              .length >=
+          _minimumRemplacants &&
       RemplacantsForm.listeValide(
         widget.pacte.destinataire.listeRemplacants,
         _telephonesInterdits,
@@ -128,8 +128,11 @@ class _BlocReponseState extends State<BlocReponse> {
         erreur = switch (PacteRepository.codeErreurMetier(e)) {
           'personne_est_participant' =>
             "${widget.pacte.initiateur.nomTitulaire} participe à ce Swend : impossible d'en faire une personne de confiance.",
-          'personne_deja_prevue' => 'Une même personne apparaît deux fois dans ta liste.',
+          'personne_deja_prevue' =>
+            'Une même personne apparaît deux fois dans ta liste.',
           'telephone_invalide' => messageTelephoneInvalide,
+          'swend_passe' =>
+            'La date de ce Swend est passée : il ne peut plus être accepté.',
           _ => "Impossible d'accepter le Swend pour le moment. Réessaie.",
         };
       });

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/annulation_swend.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
+import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
 import '../../services/contact_picker_service.dart';
@@ -93,6 +94,21 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
   }
 
   List<Widget> _corps(List<Remplacant> liste) {
+    // Gel à H (D-023a) : l'heure du Swend est passée, on ne cherche plus
+    // personne (la base refuserait de toute façon).
+    if (estPasse(widget.pacte, DateTime.now())) {
+      return [
+        Text(
+          'L’heure du Swend est passée.',
+          style: Theme.of(context).textTheme.titleLarge,
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'Il n’est plus possible de demander à quelqu’un de prendre votre place.',
+          style: TextStyle(fontSize: 14, color: AppColors.texteAttenue),
+        ),
+      ];
+    }
     final valides = Remplacant.comptesDAbord(
       liste.where((r) => r.estRempli && r.id != null),
     );
@@ -246,7 +262,10 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                             TextButton(
                               style: styleLien,
                               onPressed: () => _envoyerMessageUrgence(r),
-                              child: const Text('Envoyer le message', style: lien),
+                              child: const Text(
+                                'Envoyer le message',
+                                style: lien,
+                              ),
                             ),
                           TextButton(
                             style: styleLien.copyWith(
@@ -254,8 +273,13 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                                 AppColors.texteAttenue,
                               ),
                             ),
-                            onPressed: enCours ? null : () => _annulerDemande(r),
-                            child: const Text('Annuler la demande', style: lien),
+                            onPressed: enCours
+                                ? null
+                                : () => _annulerDemande(r),
+                            child: const Text(
+                              'Annuler la demande',
+                              style: lien,
+                            ),
                           ),
                         ],
                       ),
@@ -290,7 +314,11 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
               else if (enAttente)
                 _badge('En attente', AppColors.neutre, AppColors.texte)
               else
-                _badge('Indisponible', AppColors.neutre, AppColors.texteAttenue),
+                _badge(
+                  'Indisponible',
+                  AppColors.neutre,
+                  AppColors.texteAttenue,
+                ),
             ],
           ),
         ),
@@ -363,7 +391,9 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     final confirme = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Inviter ${r.prenom} et lui demander de prendre votre place ?'),
+        title: Text(
+          'Inviter ${r.prenom} et lui demander de prendre votre place ?',
+        ),
         content: Text(
           "${r.prenom} n'a pas encore Swend : vous allez lui envoyer un message "
           "qui l'invite à rejoindre Swend et lui explique votre demande. "
@@ -425,10 +455,13 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
 
   String _messageErreur(String? code) => switch (code) {
     'place_deja_prise' => "Quelqu'un vient d'accepter de prendre votre place.",
-    'personne_indisponible' => "Cette personne n'est pas disponible pour ce Swend.",
-    'deja_acceptee' => 'Cette personne a déjà accepté : le remplacement est définitif.',
+    'personne_indisponible' =>
+      "Cette personne n'est pas disponible pour ce Swend.",
+    'deja_acceptee' =>
+      'Cette personne a déjà accepté : le remplacement est définitif.',
     'demande_non_active' => "Cette demande n'est plus en attente.",
     'swend_inactif' => "Ce Swend n'est plus actif.",
+    'swend_passe' => messageSwendPasse,
     'champs_manquants' => 'Renseignez le prénom, le nom et le téléphone.',
     'telephone_invalide' => messageTelephoneInvalide,
     'personne_est_participant' =>

@@ -81,10 +81,13 @@ select en_tant_que(:'E', format('select ajouter_et_demander_remplacement(%L, %L,
 select verifier('F8', 'ajout + demande → événement demande_envoyee',
   (select codes(id) from remplacants where pacte_id = :'p' and prenom = 'Zoé') = 'demande_envoyee');
 
--- F9 : retirer une personne supprime aussi ses événements
+-- F9 : retirer une personne ne détruit rien (D-023a) : fiche archivée,
+-- événements conservés en base, plus visibles pour Thomas.
+select count(*) as nev_ft from evenements_fil where remplacant_id = :'ft' \gset
 select en_tant_que(:'E', format('select retirer_remplacant(%L)', :'ft')) \gset
-select verifier('F9', 'retrait de Thomas → ses événements disparaissent aussi',
-  (select count(*) from evenements_fil where remplacant_id = :'ft') = 0);
+select verifier('F9', 'retrait de Thomas → fiche archivée, ses événements conservés',
+  (select retire_le is not null from remplacants where id = :'ft')
+  and (select count(*) from evenements_fil where remplacant_id = :'ft') = :nev_ft and :nev_ft > 0);
 
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

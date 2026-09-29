@@ -74,7 +74,7 @@ create or replace function nouveau_swend() returns uuid language plpgsql as $$
 declare v uuid;
 begin
   insert into pactes (statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('confirme', '2026-10-13 20:00+02', '00000000-0000-0000-0000-0000000000aa',
+  values ('confirme', '2031-10-13 20:00+02', '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
   returning id into v;
@@ -189,8 +189,8 @@ select verifier('D', 'la demande à Camille reste active', statut_fiche(:'c') = 
 select verifier('D', 'Kevin ne peut pas être re-sollicité',
   en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'k')) like '%personne_indisponible%');
 select en_tant_que(:'E', format('select retirer_remplacant(%L)', :'k')) as r \gset
-select verifier('D', 'Kevin (refusé) peut être retiré de la liste',
-  :'r' = 'OK' and not exists (select 1 from remplacants where id = :'k'), :'r');
+select verifier('D', 'Kevin (refusé) peut être retiré de la liste (fiche archivée, rien détruit)',
+  :'r' = 'OK' and exists (select 1 from remplacants where id = :'k' and retire_le is not null), :'r');
 
 -- ===================================================================
 -- E. Camille accepte puis se désiste
@@ -287,7 +287,7 @@ select verifier('G', 'Kevin ne peut pas accepter côté David',
 select verifier('G', 'David retire puis ré-ajoute Kevin : il renaît indisponible',
   en_tant_que(:'D', format('select retirer_remplacant(%L)', :'kd')) = 'OK'
   and statut_fiche(ajouter_fiche(:'D', :'p', 'destinataire', 'Kevin', '0600000003')) = 'cloturee');
-select id as kd from remplacants where pacte_id = :'p' and cote = 'destinataire' and prenom = 'Kevin' \gset
+select id as kd from remplacants where pacte_id = :'p' and cote = 'destinataire' and prenom = 'Kevin' and retire_le is null \gset
 select count(*) as nrows from remplacants where pacte_id = :'p' \gset
 select verifier('G', 'ajout+demande de Kevin par David refusé (déjà dans sa liste), rien inséré',
   en_tant_que(:'D', format('select ajouter_et_demander_remplacement(%L, %L, %L, %L, %L)', :'p', 'destinataire', 'Kevin', 'A', '0600000003')) like '%personne_deja_prevue%'

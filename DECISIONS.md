@@ -462,6 +462,35 @@ Laisser un titulaire mettre fin proprement à un Swend, en l’orientant d’abo
 
 ---
 
+## D-023a — Gel à l’heure du Swend
+
+**Statut : Validée**  
+**Décidée : 29/09/2026**
+
+### Décision
+À l’heure prévue du Swend (`date_retenue`, heure du serveur, jamais l’horloge du client), l’état du rendez-vous est figé : on ne gère plus l’imprévu, on entre dans l’après-Swend.
+
+- Plus aucune action d’imprévu : demande, annulation de demande, acceptation / refus, désistement, ajout et demande, (in)disponibilité, ajout ou retrait d’une personne de confiance ; annulation du Swend déjà impossible (D-022). Refus serveur `swend_passe` ; l’app masque ces actions et affiche un message propre si le serveur refuse.
+- Demandes encore en attente clôturées automatiquement à H (moteur planifié, idempotent, sans doublon) ; push « La demande n’est plus d’actualité / L’heure du Swend est passée. » à la personne sollicitée, une seule par personne ; rien de spécifique pour le titulaire qui cherchait ; aucune push parasite.
+- Conversations de l’imprévu en lecture seule dès H (historique conservé) ; événement de fin « Le Swend a commencé. Cette conversation est désormais terminée. » seulement dans les conversations ayant eu une activité, jamais « non lu ».
+- **Nouvelle règle** : dès qu’un Swend est annulé, ses conversations d’imprévu passent immédiatement en lecture seule (compatible avec D-022 : elles restent lisibles).
+- Le statut reste `confirme` en base ; « passé » est dérivé de la date ; aucun badge (`Réalisé`, `Terminé`…) ; aucun indicateur du profil modifié.
+- Historique : titulaires et remplaçant sélectionné gardent le Swend ; les personnes seulement prévues, sollicitées, ayant refusé ou désistées ne le voient plus comme élément actif ou historique.
+- Invariants : jamais de scellement d’un Swend dont la date est passée ; date d’un Swend scellé non modifiable par l’app ; retirer une personne ne détruit plus sa conversation (fiche archivée) ; un ancien rappel cliqué après H n’ouvre plus « Un imprévu ? ».
+- Rattrapage : les Swends déjà passés à la mise en place sont considérés comme traités (aucune push, aucun événement rétroactif).
+
+D-023b (chat post-Swend) et D-023c (« Faire un nouveau Swend ») sont décidés à part et **non implémentés** à ce stade.
+
+Textes détaillés : `PRODUCT_RULES.md` §3.6.
+
+### Raison
+Socle de l’après-Swend : l’existant laissait presque toutes les actions d’imprévu possibles après l’heure du rendez-vous. Un rendez-vous commencé ne doit plus pouvoir changer, et chacun doit savoir que la conversation d’imprévu est terminée.
+
+### Précise
+D-022 (annulation jusqu’à l’heure du rendez-vous ; conversations d’un Swend annulé désormais en lecture seule), D-021 (clic sur un rappel), D-003 et D-004 (plus d’acceptation ni de désistement après H).
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

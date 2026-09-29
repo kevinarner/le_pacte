@@ -116,7 +116,7 @@ Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
 Seuls les deux titulaires originaux peuvent annuler un Swend scellé. Un remplaçant ne peut jamais annuler : il peut seulement accepter ou refuser une demande, ou se désister. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
 
-L’annulation est possible jusqu’à l’heure prévue du rendez-vous. Ensuite, l’action `Annuler le Swend` n’est plus proposée (et la base la refuse). Le cycle « Swend terminé » sera défini séparément.
+L’annulation est possible jusqu’à l’heure prévue du rendez-vous. Ensuite, l’action `Annuler le Swend` n’est plus proposée (et la base la refuse). Ce qui se passe à l’heure du Swend est défini en 3.6 (D-023a).
 
 #### Confirmation selon la situation de celui qui annule
 
@@ -173,7 +173,7 @@ Le Swend est annulé immédiatement, en une seule opération côté serveur (sta
 - Une personne seulement prévue, jamais sollicitée, ne reçoit rien ; le Swend disparaît de `On compte sur toi`.
 - Une demande en attente est clôturée (événement « La demande n’est plus d’actualité » dans le fil).
 - L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
-- Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles après l’annulation. Il n’existe pas de chat entre les deux titulaires.
+- Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles et lisibles après l’annulation, mais passent immédiatement en lecture seule (D-023a) : il n’y a plus de raison d’y écrire. Il n’existe pas de chat entre les deux titulaires.
 
 #### Réservation
 
@@ -189,6 +189,70 @@ Un Swend annulé ne disparaît pas. `Mes Swends` sépare :
 Une carte annulée est grisée, affiche clairement `Annulé` et ne donne jamais l’impression d’être encore active ou actionnable. Un Swend annulé reste dans l’historique des deux titulaires et du remplaçant qui avait accepté ; il n’apparaît plus pour les personnes seulement prévues, sollicitées ou ayant refusé.
 
 Un Swend scellé (actif, passé ou annulé) ne peut plus être supprimé par un utilisateur. Un Swend jamais scellé peut toujours être supprimé par ses titulaires.
+
+### 3.6 À l’heure du Swend : gel (D-023a)
+
+À l’heure prévue du Swend, l’état du rendez-vous est figé. À partir de ce moment, on ne gère plus l’imprévu ; on entre dans l’après-Swend. L’heure du serveur et la date du Swend font foi, jamais l’horloge de l’appareil.
+
+#### Plus aucune action d’imprévu
+
+À partir de l’heure du Swend, plus rien ne peut modifier la situation :
+
+- envoyer une demande de remplacement ;
+- annuler une demande ;
+- accepter ou refuser une demande ;
+- se désister ;
+- ajouter quelqu’un et lui demander ;
+- signaler une disponibilité ou une indisponibilité ;
+- ajouter ou retirer une personne de confiance ;
+- annuler le Swend (déjà la règle de 3.5).
+
+L’application masque ces actions. Si elle en affiche encore une brièvement (horloge de l’appareil en retard), le serveur la refuse et l’utilisateur voit :
+
+> L’heure du Swend est passée : cette action n’est plus possible.
+
+#### Demandes encore en attente
+
+Toute demande encore en attente à l’heure du Swend est clôturée automatiquement (au plus quelques minutes après). La personne sollicitée reçoit une push :
+
+| Titre | Message |
+|---|---|
+| La demande n’est plus d’actualité | L’heure du Swend est passée. |
+
+- Une seule push par personne, même si elle était sollicitée des deux côtés.
+- Le titulaire qui cherchait quelqu’un ne reçoit pas de push spécifique.
+- Jamais « C’est bon, quelqu’un a pu prendre la place ».
+- Si le traitement automatique a plus de 12 heures de retard (panne), la demande est clôturée sans push tardive.
+
+#### Conversations de l’imprévu
+
+À l’heure du Swend, toutes les conversations titulaire ↔ personne de confiance du Swend passent en lecture seule : lecture et historique conservés, aucun nouveau message possible.
+
+Une conversation qui a réellement eu une activité (un message ou un événement) reçoit un dernier événement système :
+
+> Le Swend a commencé.  
+> Cette conversation est désormais terminée.
+
+- Cet événement ne crée jamais de « non lu ».
+- Une conversation vierge ne reçoit rien : elle devient simplement non modifiable.
+- Un Swend annulé : ses conversations passent en lecture seule dès l’annulation (sans cet événement).
+
+#### Swend passé
+
+- Le Swend n’est pas « terminé » en base : il reste scellé (`confirme`) ; « passé » se déduit de son heure. Aucun indicateur du profil (Fiabilité, Swends réalisés, Remplacements) n’est modifié.
+- Il rejoint automatiquement `Passés et annulés`, sans confirmation ni badge particulier (`Réalisé`, `Terminé`, `En attente`…).
+- Il reste dans l’historique des deux titulaires et du remplaçant sélectionné encore actif à l’heure du Swend.
+- Il disparaît pour les personnes seulement prévues, sollicitées, ayant refusé ou s’étant désistées (`Mes Swends`, `On compte sur toi`, `Une demande t’attend`, box de l’accueil).
+- Un rappel cliqué après l’heure du Swend ouvre la fiche, jamais `Un imprévu ?`.
+
+#### Invariants
+
+- Un Swend ne peut jamais être scellé si sa date est déjà passée.
+- La date d’un Swend scellé ne peut plus être modifiée par l’application.
+- Retirer une personne de confiance ne détruit jamais sa conversation : elle est archivée avec son historique.
+- Les Swends déjà passés au moment de la mise en place de cette règle sont considérés comme déjà traités : aucune push, aucun événement rétroactif.
+
+L’après-Swend (chat post-Swend, D-023b ; « Faire un nouveau Swend », D-023c) est décidé mais pas encore implémenté.
 
 ---
 
@@ -279,7 +343,7 @@ Il permet notamment de :
 - voir toutes les personnes prévues ;
 - voir leur statut ;
 - ajouter une personne ;
-- retirer une personne lorsque l’état le permet ;
+- retirer une personne lorsque l’état le permet (sa conversation et son historique sont conservés, D-023a) ;
 - inviter une personne qui n’a pas encore Swend.
 
 Ce parcours ne doit pas envoyer de demande de remplacement.
@@ -643,7 +707,8 @@ Au minimum :
 - refus ;
 - acceptation ;
 - désistement ;
-- clôture automatique.
+- clôture automatique ;
+- fin de la conversation à l’heure du Swend (« Le Swend a commencé. Cette conversation est désormais terminée. », D-023a, voir 3.6).
 
 ### 9.5 Formulation selon le lecteur
 
@@ -765,6 +830,7 @@ La destination est déterminée selon l’état actuel du Swend au moment du cli
 - titulaire remplacé → fiche du Swend ;
 - titulaire qui cherche encore quelqu’un → « Un imprévu ? ».
 - personne qui n’a plus accès au Swend (ex. désistée) → accueil.
+- après l’heure du Swend : jamais « Un imprévu ? » (fiche du Swend), D-023a.
 
 Même comportement sur le web et sur mobile. Sur le web, l’app s’ouvre sur la page de connexion si besoin, puis sur la destination.
 
@@ -946,6 +1012,7 @@ Le cœur de Swend comprend notamment :
 - rappels push J-7, J-3, J-1 à 18h et Jour J à H-3 (Europe/Paris), en trois familles (repas, remplacé, cherche) ;
 - push immédiate en cas de double remplacement ;
 - annulation d’un Swend scellé par l’un de ses titulaires, jusqu’à l’heure du rendez-vous ;
+- gel à l’heure du Swend : plus d’imprévu, demandes en attente clôturées, conversations en lecture seule (D-023a) ;
 - historique `Mes Swends` : À venir / Passés et annulés.
 
 ### 12.2 Prévu plus tard
@@ -970,8 +1037,9 @@ Le cœur de Swend comprend notamment :
 
 #### Après le Swend
 
-- historique détaillé ;
-- `Refaire un Swend`.
+- chat post-Swend (D-023b, décidé, non implémenté) ;
+- `Faire un nouveau Swend` depuis ce chat (D-023c, décidé, non implémenté) ;
+- historique détaillé.
 
 #### Recherche / contacts
 

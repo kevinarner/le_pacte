@@ -143,9 +143,12 @@ select verifier('R', 'David : aucune mention de Kevin ; 2 push en tout',
   push_annul(:n0, :'D') not like '%Kevin%' and d22_nb_push(:n0) = 2);
 select verifier('R', 'Kevin ne peut plus se désister d''un Swend annulé',
   en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'k')) like '%swend_inactif%');
-select verifier('R', 'conversation Eliot ↔ Kevin toujours accessible (Eliot écrit, Kevin lit)',
-  en_tant_que(:'E', format('insert into messages (remplacant_id, expediteur_id, contenu) values (%L, %L, %L)', :'k', :'E', 'Merci quand même'))= 'OK'
-  and compter_en_tant_que(:'K', format('select count(*)::int from messages where remplacant_id = %L and contenu = %L', :'k', 'Merci quand même')) = 1);
+-- D-023a : conversation lisible mais en lecture seule dès l'annulation.
+select verifier('R', 'conversation Eliot ↔ Kevin toujours lisible par Kevin (historique conservé)',
+  compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k')) >= 1);
+select verifier('R', 'conversation en lecture seule après l''annulation (D-023a)',
+  en_tant_que(:'E', format('insert into messages (remplacant_id, expediteur_id, contenu) values (%L, %L, %L)', :'k', :'E', 'Merci quand même')) like '%row-level security%'
+  and en_tant_que(:'K', format('insert into messages (remplacant_id, expediteur_id, contenu) values (%L, %L, %L)', :'k', :'K', 'Dommage')) like '%row-level security%');
 
 -- R2. Kevin remplace Eliot, mais c'est David qui annule
 select swend_annulable() as p \gset

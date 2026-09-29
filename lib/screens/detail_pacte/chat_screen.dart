@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
 import '../../models/evenement_fil.dart';
+import '../../models/gel_swend.dart';
 import '../../models/message.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
@@ -62,6 +63,20 @@ class _ChatScreenState extends State<ChatScreen> {
   /// lis comme titulaire ou comme personne de confiance.
   Remplacant? _fiche;
 
+  /// Le Swend de ce fil, quel que soit mon rôle : une fois passé ou annulé,
+  /// la conversation est terminée (lecture seule, D-023a).
+  Pacte? _pacteDuFil;
+
+  /// Vrai si la base a refusé un message parce que la conversation est
+  /// terminée (l'appareil n'était pas encore à l'heure).
+  bool _refuseParLaBase = false;
+
+  bool get _lectureSeule {
+    if (_refuseParLaBase) return true;
+    final pacte = _pacteDuFil;
+    return pacte != null && conversationEnLectureSeule(pacte, DateTime.now());
+  }
+
   /// Les événements enregistrés par la base dans ce fil (demande envoyée,
   /// acceptée...), affichés à leur place parmi les messages.
   List<EvenementFil> _evenements = [];
@@ -89,7 +104,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
   Future<void> _chargerEvenements() async {
     try {
-      final evenements = await PacteRepository.evenementsDe(widget.remplacantId);
+      final evenements = await PacteRepository.evenementsDe(
+        widget.remplacantId,
+      );
       if (!mounted) return;
       setState(() => _evenements = evenements);
     } catch (_) {
@@ -126,15 +143,24 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final fiche = await PacteRepository.remplacantParId(widget.remplacantId);
       if (fiche != null && mounted) setState(() => _fiche = fiche);
-      if (fiche == null || fiche.profilId != _monId) return;
-      final pacte = await PacteRepository.pacteDuRemplacant(widget.remplacantId);
+      if (fiche == null) return;
+      final pacte = await PacteRepository.pacteDuRemplacant(
+        widget.remplacantId,
+      );
       if (!mounted || pacte == null) return;
+      // Côté titulaire : le Swend sert seulement à savoir si la
+      // conversation est terminée (lecture seule).
+      if (fiche.profilId != _monId) {
+        setState(() => _pacteDuFil = pacte);
+        return;
+      }
       final coteInitiateur = pacte.initiateur.listeRemplacants.any(
         (r) => r.id == fiche.id,
       );
       setState(() {
         _maFiche = fiche;
         _pacte = pacte;
+        _pacteDuFil = pacte;
         _coteTitulaire = coteInitiateur ? pacte.initiateur : pacte.destinataire;
         _coteAutre = coteInitiateur ? pacte.destinataire : pacte.initiateur;
       });
@@ -146,7 +172,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _appeler() async {
     final tel = _telephone?.trim();
     if (tel == null || tel.isEmpty) return;
-    final numero = normaliserTelephone(tel) ?? tel.replaceAll(RegExp(r'\s+'), '');
+    final numero =
+        normaliserTelephone(tel) ?? tel.replaceAll(RegExp(r'\s+'), '');
     await launchUrl(Uri.parse('tel:$numero'));
   }
 
@@ -227,34 +254,52 @@ class _ChatScreenState extends State<ChatScreen> {
               },
             ),
           ),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Écrire un message…',
+          if (_lectureSeule)
+            SafeArea(
+              top: false,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+                color: AppColors.neutre,
+                child: const Text(
+                  'Cette conversation est terminée. Elle reste consultable.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.texteAttenue,
+                  ),
+                ),
+              ),
+            )
+          else
+            SafeArea(
+              top: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(8, 4, 8, 8),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        decoration: const InputDecoration(
+                          hintText: 'Écrire un message…',
+                        ),
+                        minLines: 1,
+                        maxLines: 4,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _envoyer(),
                       ),
-                      minLines: 1,
-                      maxLines: 4,
-                      textInputAction: TextInputAction.send,
-                      onSubmitted: (_) => _envoyer(),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
-                    onPressed: enCours ? null : _envoyer,
-                    icon: const Icon(Icons.send),
-                  ),
-                ],
+                    const SizedBox(width: 4),
+                    IconButton(
+                      onPressed: enCours ? null : _envoyer,
+                      icon: const Icon(Icons.send),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -341,6 +386,15 @@ class _ChatScreenState extends State<ChatScreen> {
         "$titulaire pourra faire appel à toi en cas d'imprévu, une fois la date fixée.",
       );
     }
+    // Gel à H (D-023a) : plus d'Accepter / Refuser, même si la demande n'a
+    // pas encore été clôturée par le serveur.
+    if (estPasse(pacte, DateTime.now())) {
+      return _bandeauLeger(
+        fiche.selectionne
+            ? 'Tu as pris la place ${deNom(titulaire)} pour ce Swend.'
+            : "L’heure de ce Swend est passée.",
+      );
+    }
     if (fiche.selectionne) {
       return _bandeauLeger(
         'Tu prends la place ${deNom(titulaire)} pour ce Swend.',
@@ -366,7 +420,10 @@ class _ChatScreenState extends State<ChatScreen> {
             if (pacte.dateRetenue != null)
               Text(
                 formaterJourEtHeureCourt(pacte.dateRetenue!),
-                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             if (pacte.restaurantRetenu != null)
               Text(
@@ -400,7 +457,9 @@ class _ChatScreenState extends State<ChatScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size(0, 42)),
+                    style: OutlinedButton.styleFrom(
+                      minimumSize: const Size(0, 42),
+                    ),
                     onPressed: _enCoursReponse ? null : () => _repondre(false),
                     child: const Text('Refuser'),
                   ),
@@ -408,7 +467,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: FilledButton(
-                    style: FilledButton.styleFrom(minimumSize: const Size(0, 42)),
+                    style: FilledButton.styleFrom(
+                      minimumSize: const Size(0, 42),
+                    ),
                     onPressed: _enCoursReponse ? null : () => _repondre(true),
                     child: _enCoursReponse
                         ? const SizedBox(
@@ -429,7 +490,9 @@ class _ChatScreenState extends State<ChatScreen> {
       case null when fiche.indisponibleSpontanement:
         return _bandeauLeger('Tu as indiqué que tu ne seras pas disponible.');
       case null:
-        return _bandeauLeger("$titulaire peut faire appel à toi en cas d'imprévu.");
+        return _bandeauLeger(
+          "$titulaire peut faire appel à toi en cas d'imprévu.",
+        );
       case DemandeStatut.refusee:
         return _bandeauLeger('Tu as indiqué ne pas être disponible.');
       case DemandeStatut.cloturee:
@@ -462,7 +525,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 onPressed: _voirLeSwend,
-                child: const Text('Voir le Swend', style: TextStyle(fontSize: 12.5)),
+                child: const Text(
+                  'Voir le Swend',
+                  style: TextStyle(fontSize: 12.5),
+                ),
               ),
           ],
         ),
@@ -527,7 +593,9 @@ class _ChatScreenState extends State<ChatScreen> {
         widget.remplacantId,
         accepte,
       );
-      message = accepte ? "C'est noté : tu prends la place." : 'Réponse envoyée.';
+      message = accepte
+          ? "C'est noté : tu prends la place."
+          : 'Réponse envoyée.';
     } catch (e) {
       message = switch (PacteRepository.codeErreurMetier(e)) {
         'place_deja_prise' => "La place vient d'être prise.",
@@ -535,6 +603,7 @@ class _ChatScreenState extends State<ChatScreen> {
           "Tu prends déjà la place de l'autre participant de ce Swend.",
         'demande_non_active' => "Cette demande n'est plus active.",
         'swend_inactif' => "Ce Swend n'est plus actif.",
+        'swend_passe' => messageSwendPasse,
         _ => 'Impossible de répondre pour le moment. Réessaie.',
       };
     }
@@ -542,7 +611,9 @@ class _ChatScreenState extends State<ChatScreen> {
     await _chargerEvenements();
     if (!mounted) return;
     setState(() => _enCoursReponse = false);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _envoyer() async {
@@ -552,10 +623,24 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       await PacteRepository.envoyerMessage(widget.remplacantId, texte);
       _controller.clear();
-    } catch (_) {
+    } catch (e) {
+      // Conversation terminée côté serveur (Swend passé ou annulé) : la
+      // base refuse le message (RLS). On passe en lecture seule.
+      final termine =
+          e is PostgrestException && e.message.contains('row-level security');
+      if (termine) {
+        await _chargerDemande();
+        if (mounted) setState(() => _refuseParLaBase = true);
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Message non envoyé, réessaie.")),
+          SnackBar(
+            content: Text(
+              termine
+                  ? 'Cette conversation est terminée : le message n’a pas été envoyé.'
+                  : 'Message non envoyé, réessaie.',
+            ),
+          ),
         );
       }
     } finally {

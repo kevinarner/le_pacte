@@ -70,7 +70,7 @@ resultat "même personne des deux côtés en même temps : une seule place, Swen
 ok=0; detail=""
 for i in $(seq 1 10); do
   p=$(P -c "select swend_rappels()")
-  for j in 1 2 3; do P -c "select envoyer_rappels_dus('2026-10-05 16:00+00')" >/dev/null 2>&1 & done; wait
+  for j in 1 2 3; do P -c "select envoyer_rappels_dus('2037-10-05 16:00+00')" >/dev/null 2>&1 & done; wait
   n=$(P -c "select count(*) from notifications_log where data->>'type' = 'rappel' and data->>'pacte_id' = '$p'")
   if [ "$n" = 2 ]; then ok=$((ok+1)); else detail="essai $i : $n push au lieu de 2"; fi
 done
@@ -99,3 +99,70 @@ SQL
     ok=$((ok+1)); else detail="essai $i : état=$etat push=$push"; fi
 done
 resultat "annulation et acceptation simultanées : Swend annulé, Kevin prévenu une seule fois, jamais d'état incohérent" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 6. Gel à H (D-023a) : une acceptation commencée juste avant H et tenue
+#    ouverte pendant que le moteur passe à H. Le moteur attend le verrou, puis
+#    voit la place prise : Kevin reste sélectionné, aucune push « La demande
+#    n'est plus d'actualité », événement de fin après l'acceptation.
+read p k <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '1500 milliseconds') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+( P -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub', '$K', true); select repondre_demande_remplacement('$k', true); select pg_sleep(2.5); commit;" >/dev/null 2>&1 ) &
+sleep 1.8
+P -c "select figer_swends_passes()" >/dev/null 2>&1; wait
+etat=$(P -c "select statut_fiche('$k') || '|' || g_fige('$p') || '|' || g_codes('$k')")
+push=$(P -c "select count(*) from notifications_log where id > $n0 and profile_id = '$K' and titre like 'La demande n%'")
+resultat "gel à H : acceptation commencée avant H, moteur en attente du verrou → Kevin garde la place, aucune push de clôture" \
+  "$([ "$etat" = "acceptee+sel|traite|demande_envoyee,demande_acceptee,swend_commence" ] && [ "$push" = 0 ] && echo 1)" "état=$etat push=$push"
+
+# 7. Courses réelles à H : acceptation et moteur lancés ensemble au moment
+#    exact de H. Deux issues seulement : acceptée avant H (place prise, pas de
+#    push de clôture), ou refusée (swend_passe / place_deja_prise) et demande
+#    close avec une seule push. Jamais les deux.
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read p k <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '700 milliseconds') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  sleep 0.5
+  f1=$(mktemp)
+  accepter $K "$k" > "$f1" & P -c "select figer_swends_passes()" >/dev/null 2>&1 &
+  sleep 0.4; P -c "select figer_swends_passes()" >/dev/null 2>&1; wait
+  err=$(grep -oE "swend_passe|place_deja_prise" "$f1" | head -1); rm -f "$f1"
+  etat=$(P -c "select statut_fiche('$k') || '|' || g_fige('$p')")
+  push=$(P -c "select count(*) from notifications_log where id > $n0 and profile_id = '$K' and titre like 'La demande n%'")
+  if { [ "$etat" = "acceptee+sel|traite" ] && [ -z "$err" ] && [ "$push" = 0 ]; } \
+     || { [ "$etat" = "cloturee|traite" ] && [ -n "$err" ] && [ "$push" = 1 ]; }; then
+    ok=$((ok+1)); else detail="essai $i : état=$etat erreur=$err push=$push"; fi
+done
+resultat "gel à H : 10 courses acceptation / moteur au moment de H, toujours une seule issue cohérente" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 8. Gel à H : trois exécutions simultanées du moteur → une seule clôture,
+#    une seule push, un seul événement de fin.
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read p k <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '1 hour') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select g_dater(:'p', now() - interval '1 second');
+select :'p' || ' ' || :'k';
+SQL
+)"
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  for j in 1 2 3; do P -c "select figer_swends_passes()" >/dev/null 2>&1 & done; wait
+  push=$(P -c "select count(*) from notifications_log where id > $n0 and profile_id = '$K'")
+  codes=$(P -c "select g_codes('$k')")
+  if [ "$push" = 1 ] && [ "$codes" = "demande_envoyee,demande_cloturee,swend_commence" ]; then ok=$((ok+1)); else detail="essai $i : push=$push événements=$codes"; fi
+done
+resultat "gel à H : 3 exécutions simultanées du moteur, jamais de doublon" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"

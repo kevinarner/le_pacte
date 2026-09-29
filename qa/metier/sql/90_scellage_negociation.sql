@@ -15,7 +15,7 @@ declare v uuid;
 begin
   insert into pactes (statut, dates_proposees, nombre_echanges_date, restaurant_id,
                       initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('enAttenteChoixDateDestinataire', array['2026-11-10 19:30+00'::timestamptz], 0,
+  values ('enAttenteChoixDateDestinataire', array['2031-11-10 19:30+00'::timestamptz], 0,
           '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
@@ -62,7 +62,7 @@ select verifier('X', 'avant scellage : Eliot ne peut pas envoyer de demande',
 select en_tant_que(:'E', format('update pactes set scelle_le = now() where id = %L', :'p')) as r \gset
 select verifier('X', 'la date de scellage ne peut pas être forcée par l''app', (select scelle_le from pactes where id = :'p') is null, :'r');
 
-select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2026-11-10 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
+select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2031-11-10 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'confirme', :'p')) as r2 \gset
 select verifier('X', 'David choisit la date A puis accepte', :'r1' = 'OK' and :'r2' = 'OK', :'r1' || ' / ' || :'r2');
 select verifier('X', 'scellé : date de scellage posée par la base', (select scelle_le from pactes where id = :'p') is not null);
@@ -83,7 +83,7 @@ select verifier('X', 'Swend scellé puis annulé : Kevin garde l''accès (inchan
 -- Refus : Kevin ne voit jamais rien.
 select swend_en_negociation() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
-select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2026-11-10 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
+select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2031-11-10 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'annule', :'p')) as r2 \gset
 select verifier('X', 'refus : David choisit une date puis refuse', :'r1' = 'OK' and :'r2' = 'OK', :'r1' || ' / ' || :'r2');
 select verifier('X', 'refus : jamais scellé, Kevin ne voit rien', (select scelle_le from pactes where id = :'p') is null and vu_par_kevin(:'p') = '0/0/0', vu_par_kevin(:'p'));
@@ -103,29 +103,29 @@ select swend_en_negociation() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
 select verifier('N', 'proposition initiale A : aucune contre-proposition', (select nombre_echanges_date from pactes where id = :'p') = 0);
 select verifier('N', 'David contre-propose B (n°1)',
-  contre_proposer(:'D', :'p', '2026-11-11 19:30+00', 1, 'enAttenteChoixDateInitiateur') = 'OK');
+  contre_proposer(:'D', :'p', '2031-11-11 19:30+00', 1, 'enAttenteChoixDateInitiateur') = 'OK');
 select verifier('N', 'Eliot contre-propose C (n°2)',
-  contre_proposer(:'E', :'p', '2026-11-12 19:30+00', 2, 'enAttenteChoixDateDestinataire') = 'OK');
+  contre_proposer(:'E', :'p', '2031-11-12 19:30+00', 2, 'enAttenteChoixDateDestinataire') = 'OK');
 select verifier('N', 'David ne peut pas contre-proposer D (n°3)',
-  contre_proposer(:'D', :'p', '2026-11-13 19:30+00', 3, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
+  contre_proposer(:'D', :'p', '2031-11-13 19:30+00', 3, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
 select verifier('N', 'ni en réutilisant le compteur (dates changées, compteur inchangé)',
-  contre_proposer(:'D', :'p', '2026-11-13 19:30+00', 2, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
+  contre_proposer(:'D', :'p', '2031-11-13 19:30+00', 2, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
 select verifier('N', 'ni en remettant le compteur à zéro',
-  contre_proposer(:'D', :'p', '2026-11-13 19:30+00', 0, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
+  contre_proposer(:'D', :'p', '2031-11-13 19:30+00', 0, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
 select verifier('N', 'les dates restent celles de C',
-  (select dates_proposees from pactes where id = :'p') = array['2026-11-12 19:30+00'::timestamptz]);
-select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2026-11-12 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
+  (select dates_proposees from pactes where id = :'p') = array['2031-11-12 19:30+00'::timestamptz]);
+select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2031-11-12 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'confirme', :'p')) as r2 \gset
 select verifier('N', 'un accord sur C reste possible (choix puis acceptation)',
   :'r1' = 'OK' and :'r2' = 'OK' and (select scelle_le from pactes where id = :'p') is not null, :'r1' || ' / ' || :'r2');
 select verifier('N', 'Swend scellé : plus aucune contre-proposition',
-  contre_proposer(:'E', :'p', '2026-11-14 19:30+00', 3, 'enAttenteChoixDateDestinataire') like '%negociation_terminee%');
+  contre_proposer(:'E', :'p', '2031-11-14 19:30+00', 3, 'enAttenteChoixDateDestinataire') like '%negociation_terminee%');
 
 select swend_en_negociation() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
-select contre_proposer(:'D', :'p', '2026-11-11 19:30+00', 1, 'enAttenteChoixDateInitiateur') as r1 \gset
-select contre_proposer(:'E', :'p', '2026-11-12 19:30+00', 2, 'enAttenteChoixDateDestinataire') as r2 \gset
-select contre_proposer(:'D', :'p', '2026-11-13 19:30+00', 3, 'enAttenteChoixDateInitiateur') as r3 \gset
+select contre_proposer(:'D', :'p', '2031-11-11 19:30+00', 1, 'enAttenteChoixDateInitiateur') as r1 \gset
+select contre_proposer(:'E', :'p', '2031-11-12 19:30+00', 2, 'enAttenteChoixDateDestinataire') as r2 \gset
+select contre_proposer(:'D', :'p', '2031-11-13 19:30+00', 3, 'enAttenteChoixDateInitiateur') as r3 \gset
 select verifier('N', 'second Swend : B (n°1), C (n°2), puis D refusé',
   :'r1' = 'OK' and :'r2' = 'OK' and :'r3' like '%negociation_terminee%', :'r1' || ' / ' || :'r2' || ' / ' || :'r3');
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'annule', :'p')) as r1 \gset
@@ -135,10 +135,10 @@ select verifier('N', 'négociation échouée : jamais scellé, Kevin ne voit rie
 select count(*) as avant from pactes where initiateur_id = :'E' \gset
 select en_tant_que(:'E', format(
     'insert into pactes (statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values (%L, array[%L::timestamptz], %L, %L, %L, %L, %L)',
-    'enAttenteChoixDateDestinataire', '2026-11-20 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02')) as r1 \gset
+    'enAttenteChoixDateDestinataire', '2031-11-20 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02')) as r1 \gset
 select verifier('N', 'un nouveau Swend peut être créé ensuite (compteur à zéro, non scellé)',
   :'r1' = 'OK' and (select count(*) from pactes where initiateur_id = :'E') = :avant + 1
-  and (select count(*) from pactes where initiateur_id = :'E' and dates_proposees = array['2026-11-20 19:30+00'::timestamptz]
+  and (select count(*) from pactes where initiateur_id = :'E' and dates_proposees = array['2031-11-20 19:30+00'::timestamptz]
        and nombre_echanges_date = 0 and scelle_le is null) = 1, :'r1');
 
 -- ===================================================================
@@ -146,10 +146,10 @@ select verifier('N', 'un nouveau Swend peut être créé ensuite (compteur à z�
 -- ===================================================================
 alter table pactes disable trigger trg_marquer_scellement;
 insert into pactes (id, statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
-  ('00000000-0000-4000-9000-000000000001', 'confirme', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000003', 'annule', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000004', 'annule', '2026-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
+  ('00000000-0000-4000-9000-000000000001', 'confirme', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000003', 'annule', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000004', 'annule', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
 alter table pactes enable trigger trg_marquer_scellement;
 select ajouter_fiche(:'D', '00000000-0000-4000-9000-000000000004', 'destinataire', 'Camille', '0600000004') as x \gset
 -- Même expression que la ligne de vérification finale de la migration.

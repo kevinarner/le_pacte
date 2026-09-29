@@ -35,6 +35,7 @@ class EvenementFil {
           "Tu as indiqué à $autre que tu ne seras pas disponible.",
         'disponibilite_retablie' =>
           "Tu as indiqué à $autre que tu es finalement disponible.",
+        'swend_commence' => finConversation,
         _ => '',
       };
     }
@@ -49,9 +50,16 @@ class EvenementFil {
         '$autre ne sera pas disponible en cas d\'imprévu.',
       'disponibilite_retablie' =>
         '$autre est de nouveau disponible en cas d\'imprévu.',
+      'swend_commence' => finConversation,
       _ => '',
     };
   }
+
+  /// Dernier événement d'une conversation de l'imprévu, ajouté par la base
+  /// à l'heure du Swend (D-023a). Identique pour les deux lecteurs et jamais
+  /// « non lu » : ce n'est pas une action de l'interlocuteur.
+  static const finConversation =
+      'Le Swend a commencé.\nCette conversation est désormais terminée.';
 
   /// Vrai si l'événement vient de l'interlocuteur et me concerne
   /// directement : il rend la conversation "non lue" et s'affiche en box

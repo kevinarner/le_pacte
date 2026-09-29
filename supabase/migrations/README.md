@@ -16,6 +16,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260928000000_annulation_manuelle.sql` : exécutée le 28/09 (annulation
   manuelle d'un Swend scellé, auteur et date de l'annulation, suppression
   d'un Swend scellé bloquée, D-022).
+  `20260929000000_gel_a_h.sql` : **pas encore exécutée** (gel à l'heure du
+  Swend, D-023a). À exécuter avant de déployer l'app correspondante ; la
+  planification `supabase/planification/gel_a_h_pg_cron.sql` s'active en
+  dernier, après le déploiement de l'app.
+- La planification du gel à H (pg_cron, D-023a) n'est pas une migration :
+  `supabase/planification/gel_a_h_pg_cron.sql`, **pas encore activée**.
 - La planification des rappels (pg_cron) n'est pas une migration :
   `supabase/planification/rappels_pg_cron.sql`. **Active en production
   depuis le 28/09** (job `swend-rappels`, toutes les 5 minutes, exécutions

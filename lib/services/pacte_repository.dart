@@ -112,10 +112,7 @@ class PacteRepository {
   /// l'historique et ne peuvent pas être supprimés (D-022).
   static Future<Set<String>> mesSwendsScelles() async {
     final rows = await _client.rpc('mes_swends_scelles') as List<dynamic>;
-    return {
-      for (final r in rows)
-        (r is Map ? r.values.first : r) as String,
-    };
+    return {for (final r in rows) (r is Map ? r.values.first : r) as String};
   }
 
   /// Un pacte précis par son id — utilisé pour ouvrir directement le
@@ -199,6 +196,9 @@ class PacteRepository {
         .select()
         .eq('pacte_id', pacteId)
         .eq('cote', cote)
+        // Une personne retirée de la liste reste en base avec sa
+        // conversation (D-023a), mais n'est plus présentée.
+        .isFilter('retire_le', null)
         .order('id');
     return (rows as List)
         .map((row) => _remplacantDe(row as Map<String, dynamic>))
@@ -398,6 +398,7 @@ class PacteRepository {
       'destinataire_est_initiateur',
       'telephone_fige',
       'modification_interdite',
+      'swend_passe',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;
@@ -568,11 +569,14 @@ class PacteRepository {
 
   /// Jusqu'à quand j'ai lu chaque conversation (remplacant_id → date).
   static Future<Map<String, DateTime>> mesLectures() async {
-    final rows = await _client.from('lectures_fil').select('remplacant_id, lu_le');
+    final rows = await _client
+        .from('lectures_fil')
+        .select('remplacant_id, lu_le');
     return {
       for (final r in rows as List)
-        (r as Map<String, dynamic>)['remplacant_id'] as String:
-            DateTime.parse(r['lu_le'] as String),
+        (r as Map<String, dynamic>)['remplacant_id'] as String: DateTime.parse(
+          r['lu_le'] as String,
+        ),
     };
   }
 
@@ -602,7 +606,8 @@ class PacteRepository {
           'id, cote, prenom, nom, telephone, profil_id, '
           'pactes(initiateur_nom, destinataire_nom, date_retenue)',
         )
-        .not('profil_id', 'is', null);
+        .not('profil_id', 'is', null)
+        .isFilter('retire_le', null);
     final restau = await restaurant();
     Map<String, DateTime> lectures;
     try {
