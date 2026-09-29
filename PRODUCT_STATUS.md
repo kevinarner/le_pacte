@@ -1,7 +1,7 @@
 # SWEND — PRODUCT_STATUS
 
 > Vue synthétique au **29/09/2026**. Règles : `PRODUCT_RULES.md` · décisions : `DECISIONS.md` · implémentation : `SWEND_README.md`.
-> Dernier QA : `qa/run_full.sh` = PASS (métier 559 / 0, E2E 501 / 0, 22 / 22 scénarios). La colonne “Test réel” reflète uniquement les vérifications humaines explicitement tracées dans les documents.
+> Dernier QA : `qa/run_full.sh` = PASS le 29/09 sur la branche de travail avec D-023a (métier 651 / 0, E2E 546 / 0, 24 / 24 scénarios). La colonne “Test réel” reflète uniquement les vérifications humaines explicitement tracées dans les documents.
 
 | Sujet | Statut produit | Implémentation | QA | Test réel | Note courte |
 |---|---|---|---|---|---|
@@ -13,7 +13,7 @@
 | Maximum 2 contre-propositions de date | Validé (D-011) | Implémenté | QA OK | Test réel à faire | 2 au total (précisé le 27/09) ; garanti aussi par la base. |
 | Double remplacement | Validé (D-005, D-021) | Implémenté | QA OK | Test réel à faire | Annulation automatique + push immédiate (D-021, en production depuis le 28/09) ; libellé affiché ≠ libellé de `PRODUCT_RULES.md` §8.5. |
 | Annulation manuelle d’un Swend scellé | Validé (D-022) | Implémenté | QA OK | Test réel à faire | Titulaires seulement, jusqu’à l’heure du RDV ; historique « Passés et annulés » ; suppression d’un Swend scellé bloquée ; en production depuis le 28/09 (migration exécutée, app déployée). |
-| Gel à l’heure du Swend | Validé (D-023a) | Implémenté (branche de travail) | QA OK (voir ci-dessous) | Test réel à faire | Plus d’imprévu dès H (refus serveur `swend_passe`), demandes en attente clôturées + push, conversations en lecture seule (H ou annulation), retrait sans destruction ; **pas en production** : migration `20260929000000_gel_a_h.sql`, app et planification `swend-gel-a-h` à faire dans cet ordre. |
+| Gel à l’heure du Swend | Validé (D-023a) | Implémenté (branche de travail) | QA OK | Test réel à faire | Plus d’imprévu dès H (refus serveur `swend_passe`), demandes en attente clôturées + push, conversations en lecture seule (H ou annulation), retrait sans destruction ; **pas en production** : migration `20260929000000_gel_a_h.sql`, app et planification `swend-gel-a-h` à faire dans cet ordre. |
 | Chat post-Swend / Faire un nouveau Swend | Validé (D-023b, D-023c) | Non implémenté | Non applicable | Non applicable | Après D-023a. |
 | OTP téléphone | Validé pour plus tard (D-014) | Non implémenté | Non applicable | Non applicable | En attendant : numéro déclaratif et figé (implémenté). |
 | Copier le message | Validé pour plus tard | Non implémenté | Non applicable | Non applicable | Canaux V1 : Messages, WhatsApp. |
