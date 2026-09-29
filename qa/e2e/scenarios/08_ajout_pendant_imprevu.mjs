@@ -14,7 +14,7 @@ async function ajouterDepuisImprevu(ex, eliot, { prenom, nom, tel }, { valider =
   await A.statutAffiche(eliot, prenom);
   if (valider) await eliot.cliquer('Lui demander de prendre ma place');
 }
-const ficheDe = (prenom) => sql(`select coalesce(demande_statut, '') || '|' || (profil_id is not null) from remplacants where cote = 'initiateur' and prenom = '${prenom}'`);
+const ficheDe = (prenom) => sql(`select coalesce(demande_statut, '') || '|' || (profil_id is not null) from remplacants where cote = 'initiateur' and prenom = '${prenom}' and retire_le is null`);
 
 export default {
   nom: 'ajout_pendant_imprevu',
@@ -28,7 +28,8 @@ export default {
 
     await ex.etape('Préparation : Eliot retire Sylvain de sa liste', async () => {
       await A.retirerPersonne(eliot, 'Sylvain Landiech');
-      await ex.verifier('Sylvain retiré', () => ficheDe('Sylvain') === '');
+      await ex.verifier('Sylvain retiré (fiche archivée, D-023a)', () => ficheDe('Sylvain') === ''
+        && sql(`select count(*) from remplacants where prenom = 'Sylvain' and retire_le is not null`) === '1');
     });
 
     await ex.etape('Ajout de Sylvain (a un compte) : demande envoyée directement', async () => {
@@ -66,7 +67,7 @@ export default {
         async () => eliot.page.getByRole('button', { name: 'Lui demander de prendre ma place', exact: true }).isDisabled());
       await eliot.page.keyboard.press('Escape');
       await ex.verifier('aucune fiche en trop (Kevin, Tom, Sylvain, Paul)',
-        () => sql(`select string_agg(prenom, ',' order by prenom) from remplacants where cote = 'initiateur'`) === 'Kevin,Paul,Sylvain,Tom');
+        () => sql(`select string_agg(prenom, ',' order by prenom) from remplacants where cote = 'initiateur' and retire_le is null`) === 'Kevin,Paul,Sylvain,Tom');
     });
 
     await ex.etape('David ne voit rien', async () => {

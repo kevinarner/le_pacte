@@ -5,7 +5,8 @@ import * as A from '../lib/actions.mjs';
 import { sql } from '../lib/donnees.mjs';
 import { photoDavid, verifierDavidNeVoitRien } from '../lib/confidentialite.mjs';
 
-const nbCoteEliot = () => sql(`select count(*) from remplacants where cote = 'initiateur'`);
+// Fiches actives : une personne retirée est archivée, pas supprimée (D-023a).
+const nbCoteEliot = () => sql(`select count(*) from remplacants where cote = 'initiateur' and retire_le is null`);
 
 export default {
   nom: 'personnes_de_confiance',
@@ -66,6 +67,8 @@ export default {
       await eliot.accueil({ rafraichir: false });
       await A.retirerPersonne(eliot, 'Zoé Moreau');
       await ex.verifier('Zoé retirée en base (5 personnes)', () => nbCoteEliot() === '5', { obtenu: nbCoteEliot });
+      await ex.verifier('Zoé archivée, pas supprimée (D-023a)',
+        () => sql(`select count(*) from remplacants where prenom = 'Zoé' and retire_le is not null`) === '1');
       await ex.verifierAbsent(eliot, 'Zoé Moreau', 'Zoé n\'apparaît plus');
     });
 
