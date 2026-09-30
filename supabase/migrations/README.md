@@ -32,9 +32,10 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   l'app qui ne relit plus cette colonne, vérification de cette app en
   production, puis seulement la migration (une ancienne version de l'app
   verrait ses lectures de Swends refusées).
-  `20260930010000_chat_apres_swend.sql` : **préparée, NON exécutée**
-  (chat après le Swend, D-023b). Ordre : migration, puis app et Edge
-  Function `send-notification` (lien web du chat), puis planification.
+  `20260930010000_chat_apres_swend.sql` : **exécutée le 30/09** (chat après
+  le Swend, D-023b) : 6 vérifications à true. App déployée le 30/09 ;
+  restent l'Edge Function `send-notification` (lien web du chat), puis la
+  planification.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`, **non
   activée** (job `swend-chat-apres`, chaque minute). Le fichier repositionne
