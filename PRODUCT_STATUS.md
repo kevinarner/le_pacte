@@ -1,7 +1,7 @@
 # SWEND — PRODUCT_STATUS
 
 > Vue synthétique au **30/09/2026**. Règles : `PRODUCT_RULES.md` · décisions : `DECISIONS.md` · implémentation : `SWEND_README.md`.
-> Dernier QA : `qa/run_full.sh` = PASS le 30/09 sur la branche de travail avec D-023a (métier 688 / 0, E2E 569 / 0, 25 / 25 scénarios). La colonne “Test réel” reflète uniquement les vérifications humaines explicitement tracées dans les documents.
+> Dernier QA : `qa/run_full.sh` = PASS le 30/09 sur la branche de travail avec D-024 (métier 776 / 0, E2E 598 / 0, 26 / 26 scénarios). La colonne “Test réel” reflète uniquement les vérifications humaines explicitement tracées dans les documents.
 
 | Sujet | Statut produit | Implémentation | QA | Test réel | Note courte |
 |---|---|---|---|---|---|
