@@ -473,9 +473,10 @@ message au support).
   seulement par `telephone_titulaire_accessible()`, tant qu'elle a accès au
   Swend. Un titulaire voit les numéros des personnes qu'il a ajoutées. Le
   numéro saisi pour le destinataire est écrit à la création mais jamais
-  relu par l'app. Aucun numéro dans les push. App déployée le
-  30/09 ; migration `confidentialite_telephones.sql` préparée, **non
-  exécutée** (après vérification de l'app en production).
+  relu par l'app. Aucun numéro dans les push. **En production
+  depuis le 30/09** : app déployée, puis migration
+  `confidentialite_telephones.sql` exécutée (6/6 vérifications). Test réel
+  humain à faire.
 
 ---
 
@@ -562,7 +563,7 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   concurrentes sont sérialisées par verrou.
 - Un historique « qui a remplacé qui » est conservé dans des colonnes
   invisibles pour l'app.
-- Numéros (D-024, après la migration `confidentialite_telephones.sql`) :
+- Numéros (D-024, migration `confidentialite_telephones.sql` exécutée le 30/09) :
   l'app ne peut plus lire `pactes.destinataire_telephone` (écriture à la
   création conservée) ; les seuls numéros lisibles sont ceux des fiches de
   son côté (RLS), le sien, et celui de son titulaire via

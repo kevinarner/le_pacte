@@ -525,7 +525,7 @@ Audit du 30/09 : toute personne de confiance ayant accès à un Swend lisait `pa
 D-001 (confidentialité du remplacement), D-023a (numéro du titulaire soumis à la règle d’accès).
 
 ### Mise en production
-QA OK (métier 776/0, E2E 598/0). App déployée le 30/09/2026 (gh-pages `80b4739`, source `07e1fa2`) : elle ne relit plus le numéro. Migration `20260930000000_confidentialite_telephones.sql` **non exécutée** : à passer après vérification de l’app en production.
+QA OK (métier 776/0, E2E 598/0). App déployée le 30/09/2026 (gh-pages `80b4739`, source `07e1fa2`) : elle ne relit plus le numéro. Migration `20260930000000_confidentialite_telephones.sql` exécutée en production le 30/09/2026 après vérification de l’app (6/6 vérifications à true). D-024 techniquement en production ; test réel humain à faire.
 
 ---
 
