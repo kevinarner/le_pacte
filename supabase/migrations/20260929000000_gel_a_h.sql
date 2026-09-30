@@ -40,6 +40,11 @@
 --  6. destination_rappel() : après H, jamais « Un imprévu ? ».
 --  7. Un Swend ne peut jamais être scellé si sa date est passée, et la date
 --     d'un Swend scellé n'est plus modifiable par l'app.
+--  8. Numéro du titulaire pour sa personne de confiance : nouvelle fonction
+--     versionnée telephone_titulaire_accessible() (même règle d'accès que le
+--     Swend) ; l'ancienne telephone_titulaire_du_pacte(), non versionnée en
+--     production, n'est PAS réécrite : l'app ne peut simplement plus
+--     l'exécuter (revoke explicite, réversible par un grant).
 --
 -- Hors scope (D-023b / D-023c) : aucun chat post-Swend, aucune table de
 -- participants, aucune notification « Alors, ce Swend ? ». Le statut reste
@@ -1021,6 +1026,46 @@ create trigger trg_proteger_date_scellement
   before insert or update on public.pactes
   for each row execute function public.proteger_date_scellement();
 
+-- 9. Numéro du titulaire pour sa personne de confiance --------------------------
+-- Utilisé par la conversation, côté personne de confiance (bouton « Appeler »).
+-- Renvoie le numéro du titulaire de ce côté seulement si l'appelant est la
+-- personne liée à la fiche, que le Swend est scellé (D-019) et que la fiche
+-- lui est accessible (voir 0 bis : avant H sur un Swend en cours, ou
+-- remplaçant sélectionné). Sinon : null — jamais le numéro d'une autre
+-- personne, jamais pour le titulaire ni pour un extérieur.
+
+create or replace function public.telephone_titulaire_accessible(p_remplacant_id uuid)
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select case when r.cote = 'initiateur' then pi.telephone else pd.telephone end
+  from remplacants r
+  join pactes p on p.id = r.pacte_id
+  left join profiles pi on pi.id = p.initiateur_id
+  left join profiles pd on pd.id = p.destinataire_id
+  where r.id = p_remplacant_id
+    and auth.uid() is not null
+    and r.profil_id = auth.uid()
+    and p.scelle_le is not null
+    and public.fiche_de_confiance_accessible(r.id)
+$$;
+revoke execute on function public.telephone_titulaire_accessible(uuid) from public, anon;
+grant execute on function public.telephone_titulaire_accessible(uuid) to authenticated;
+
+-- L'ancienne fonction (non versionnée) n'est pas modifiée : seul son droit
+-- d'exécution est retiré aux rôles de l'app (y compris via public). Sans
+-- effet si elle n'existe pas avec cette signature. Pour revenir en arrière :
+--   grant execute on function public.telephone_titulaire_du_pacte(uuid) to authenticated;
+do $$
+begin
+  if to_regprocedure('public.telephone_titulaire_du_pacte(uuid)') is not null then
+    revoke execute on function public.telephone_titulaire_du_pacte(uuid) from public, anon, authenticated;
+  end if;
+end $$;
+
 -- Vérification (résultat affiché) ------------------------------------------
 select 'Fiches archivées (retire_le) et unicité sur les fiches actives' as verification,
   (exists (select 1 from information_schema.columns where table_schema = 'public'
@@ -1073,4 +1118,11 @@ select 'Pas de push parasite pendant le gel',
    where oid = 'public.notifier_demande_remplacement()'::regprocedure)::text
 union all
 select 'Scellement après la date refusé, date d''un Swend scellé figée',
-  exists (select 1 from pg_trigger where not tgisinternal and tgname = 'trg_proteger_date_scellement')::text;
+  exists (select 1 from pg_trigger where not tgisinternal and tgname = 'trg_proteger_date_scellement')::text
+union all
+select 'Numéro du titulaire : nouvelle fonction pour l''app, ancienne fonction plus exécutable par l''app',
+  (has_function_privilege('authenticated', 'public.telephone_titulaire_accessible(uuid)', 'execute')
+   and not has_function_privilege('anon', 'public.telephone_titulaire_accessible(uuid)', 'execute')
+   and (to_regprocedure('public.telephone_titulaire_du_pacte(uuid)') is null
+        or (not has_function_privilege('authenticated', 'public.telephone_titulaire_du_pacte(uuid)', 'execute')
+            and not has_function_privilege('anon', 'public.telephone_titulaire_du_pacte(uuid)', 'execute'))))::text;

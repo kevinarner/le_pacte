@@ -249,7 +249,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 
 - Les deux titulaires gardent le Swend et peuvent relire toutes les conversations de leur côté qui ont eu une activité, y compris avec une personne qui n’a finalement pas participé.
 - Le remplaçant effectivement sélectionné garde le Swend dans son historique et peut relire sa propre conversation (en cas de double remplacement, chacun des deux).
-- Une personne seulement prévue, sollicitée, ayant refusé ou s’étant désistée n’a plus accès au Swend ni à sa conversation. Les données restent conservées ; seul son accès disparaît.
+- Une personne seulement prévue, sollicitée, ayant refusé ou s’étant désistée n’a plus accès au Swend ni à sa conversation, ni à aucune donnée du Swend, y compris le numéro de téléphone du titulaire. Les données restent conservées ; seul son accès disparaît.
 - Une personne retirée de la liste n’a plus accès, à aucun moment ; un utilisateur extérieur n’a jamais accès.
 - Avant l’heure du Swend, sur un Swend en cours, chaque personne de confiance non retirée garde les accès de son rôle.
 - Garanti par la base (RLS), pas seulement par l’écran.

@@ -6,7 +6,7 @@
 // aussi sa conversation. Sylvain (seulement prévu) n'a plus accès ni au Swend
 // ni à la sienne (données conservées). David ne voit rien.
 import * as A from '../lib/actions.mjs';
-import { sql, lireComme } from '../lib/donnees.mjs';
+import { sql, lireComme, appelerComme, FICHES } from '../lib/donnees.mjs';
 
 const champSaisie = (a) => a.page.getByRole('textbox', { name: 'Écrire un message…' }).count();
 
@@ -67,6 +67,10 @@ export default {
         () => sql(`select count(*) from messages where contenu = 'Et toi Sylvain ?'`) === '1');
       const k = await lireComme('kevin', 'pactes');
       await ex.verifier('API : Kevin (sélectionné) lit toujours le Swend annulé', () => k.length === 1, { obtenu: () => `${k.length}` });
+      const tk = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
+      const ts = await appelerComme('sylvain', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.sylvain });
+      await ex.verifier('API : numéro d\'Eliot pour Kevin (sélectionné), rien pour Sylvain (seulement prévu)',
+        () => tk.corps.includes('06 01 02 03 04') && ts.ok && !ts.corps.includes('06'), { obtenu: () => `${tk.corps} | ${ts.corps}` });
       const m = await lireComme('david', 'messages');
       const e = await lireComme('david', 'evenements_fil');
       await ex.verifier('David : aucun message ni événement lisible', () => m.length === 0 && e.length === 0,

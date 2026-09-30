@@ -510,5 +510,73 @@ select verifier('M', 'fonctions d''accès : exécutables par authenticated seule
   and not has_function_privilege('anon', 'public.fiche_de_confiance_accessible(uuid)', 'execute')
   and not has_function_privilege('anon', 'public.fil_lisible(uuid)', 'execute'));
 
+-- ===================================================================
+-- N. Numéro du titulaire pour sa personne de confiance
+--    (telephone_titulaire_accessible ; ancienne fonction plus exécutable)
+-- ===================================================================
+-- Numéro obtenu par p_user pour la fiche (vide si refusé, « ERREUR » si la
+-- fonction n'est pas exécutable).
+create or replace function g_tel(p_user uuid, p_fonction text, p_fiche uuid) returns text language plpgsql as $$
+declare v text;
+begin
+  perform set_config('request.jwt.claim.sub', p_user::text, true);
+  execute 'set local role authenticated';
+  begin
+    execute format('select %s(%L)', p_fonction, p_fiche) into v;
+  exception when insufficient_privilege then
+    v := 'ERREUR';
+  end;
+  execute 'reset role';
+  return coalesce(v, '');
+end $$;
+
+select g_swend(now() + interval '1 hour') as p17 \gset
+select ajouter_fiche(:'E', :'p17', 'initiateur', 'Kevin', '0600000003') as k17 \gset
+select ajouter_fiche(:'E', :'p17', 'initiateur', 'Camille', '0600000004') as c17 \gset
+select ajouter_fiche(:'E', :'p17', 'initiateur', 'Thomas', '0600000005') as t17 \gset
+select ajouter_fiche(:'D', :'p17', 'destinataire', 'Walter', '0600000007') as w17 \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'w17') \gset
+select g_rpc(:'W', 'repondre_demande_remplacement', :'w17', 'false') \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'c17') \gset
+select g_rpc(:'E', 'retirer_remplacant', :'t17') \gset
+-- Avant H : le rôle légitime fonctionne.
+select verifier('N', 'avant H : Kevin (prévu) obtient le numéro d''Eliot', g_tel(:'K', 'telephone_titulaire_accessible', :'k17') = '0600000001',
+  g_tel(:'K', 'telephone_titulaire_accessible', :'k17'));
+select verifier('N', 'avant H : Camille (sollicitée) obtient le numéro d''Eliot', g_tel(:'C', 'telephone_titulaire_accessible', :'c17') = '0600000001');
+select verifier('N', 'avant H : Walter (a refusé) obtient le numéro de David', g_tel(:'W', 'telephone_titulaire_accessible', :'w17') = '0600000002');
+select verifier('N', 'personne retirée : aucun numéro', g_tel(:'T', 'telephone_titulaire_accessible', :'t17') = '');
+select verifier('N', 'fiche d''un autre : aucun numéro (Kevin sur la fiche de Camille, Zoé, David)',
+  g_tel(:'K', 'telephone_titulaire_accessible', :'c17') = '' and g_tel(:'Z', 'telephone_titulaire_accessible', :'k17') = ''
+  and g_tel(:'D', 'telephone_titulaire_accessible', :'k17') = '');
+select verifier('N', 'ancienne fonction telephone_titulaire_du_pacte : plus exécutable par l''app',
+  g_tel(:'K', 'telephone_titulaire_du_pacte', :'k17') = 'ERREUR'
+  and not has_function_privilege('anon', 'public.telephone_titulaire_du_pacte(uuid)', 'execute'));
+-- Kevin accepte, puis H passe.
+select g_rpc(:'E', 'annuler_demande_remplacement', :'c17') \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k17') \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'c17') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k17', 'true') \gset
+select g_dater(:'p17', now() - interval '1 second');
+select verifier('N', 'après H : Kevin (sélectionné) obtient toujours le numéro d''Eliot', g_tel(:'K', 'telephone_titulaire_accessible', :'k17') = '0600000001');
+select verifier('N', 'après H : Camille (demande close) n''obtient plus rien', g_tel(:'C', 'telephone_titulaire_accessible', :'c17') = '');
+select verifier('N', 'après H : Walter (a refusé) n''obtient plus rien', g_tel(:'W', 'telephone_titulaire_accessible', :'w17') = '');
+-- Annulation.
+select g_swend(now() + interval '1 day') as p18 \gset
+select ajouter_fiche(:'E', :'p18', 'initiateur', 'Kevin', '0600000003') as k18 \gset
+select ajouter_fiche(:'E', :'p18', 'initiateur', 'Camille', '0600000004') as c18 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k18') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k18', 'true') \gset
+select verifier('N', 'avant l''annulation : Camille (prévue) obtient le numéro', g_tel(:'C', 'telephone_titulaire_accessible', :'c18') = '0600000001');
+select g_rpc(:'E', 'annuler_swend', :'p18') \gset
+select verifier('N', 'annulé : Camille (prévue) n''obtient plus rien ; Kevin (sélectionné) oui',
+  g_tel(:'C', 'telephone_titulaire_accessible', :'c18') = '' and g_tel(:'K', 'telephone_titulaire_accessible', :'k18') = '0600000001');
+-- Avant scellage (D-019) : rien.
+insert into pactes (id, statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+                    destinataire_nom, destinataire_telephone)
+values ('00000000-0000-4000-9800-000000000019', 'enAttenteChoixDateDestinataire', 'diner', array[now() + interval '3 days'],
+        null, '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02');
+select ajouter_fiche(:'E', '00000000-0000-4000-9800-000000000019', 'initiateur', 'Kevin', '0600000003') as k19 \gset
+select verifier('N', 'avant scellage : aucun numéro (D-019)', g_tel(:'K', 'telephone_titulaire_accessible', :'k19') = '');
+
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

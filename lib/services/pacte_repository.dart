@@ -69,10 +69,12 @@ class PacteRepository {
 
   /// Le téléphone du titulaire d'un pacte, du point de vue de son
   /// remplaçant (pour pouvoir l'appeler) — ne renvoie quelque chose que
-  /// si l'appelant est bien ce remplaçant, jamais pour un tiers.
+  /// si l'appelant est bien ce remplaçant et qu'il a encore accès au Swend
+  /// (avant l'heure du Swend, ou remplaçant sélectionné : D-023a), jamais
+  /// pour un tiers.
   static Future<String?> telephoneTitulaireDuPacte(String remplacantId) async {
     final result = await _client.rpc<String?>(
-      'telephone_titulaire_du_pacte',
+      'telephone_titulaire_accessible',
       params: {'p_remplacant_id': remplacantId},
     );
     return result;

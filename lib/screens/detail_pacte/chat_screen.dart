@@ -135,9 +135,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _chargerTelephone() async {
-    final tel = await PacteRepository.telephoneTitulaireDuPacte(
-      widget.remplacantId,
-    );
+    String? tel;
+    try {
+      tel = await PacteRepository.telephoneTitulaireDuPacte(
+        widget.remplacantId,
+      );
+    } catch (_) {
+      // Pas de bouton « Appeler » si le numéro n'est pas disponible.
+    }
     if (!mounted || tel == null) return;
     setState(() => _telephone = tel);
   }
@@ -153,6 +158,7 @@ class _ChatScreenState extends State<ChatScreen> {
         if (mounted) {
           setState(() {
             _inaccessible = true;
+            _telephone = null;
             _fiche = null;
             _maFiche = null;
             _pacte = null;

@@ -35,6 +35,10 @@ export default {
       await kevin.cliquer('Répondre à la demande');
       await kevin.cliquer('Voir la demande et répondre');
       await kevin.attendreTexte('Accepter');
+      await ex.verifier('avant H : Kevin (sollicité) peut appeler Eliot (bouton « Appeler »)',
+        async () => (await kevin.nombreDeBoutons('Appeler')) === 1);
+      const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
+      await ex.verifier('avant H : API → numéro d\'Eliot', () => t.ok && t.corps.includes('06 01 02 03 04'), { obtenu: () => t.corps });
     });
 
     await ex.etape('H passe pendant que Kevin regarde la demande : refus propre', async () => {
@@ -48,6 +52,11 @@ export default {
       await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin : conversation plus accessible');
       await ex.verifier('Kevin : aucune zone de saisie',
         async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+      await ex.verifier('Kevin : plus de bouton « Appeler »', async () => (await kevin.nombreDeBoutons('Appeler')) === 0);
+      const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
+      await ex.verifier('après H : API → aucun numéro', () => t.ok && !t.corps.includes('06'), { obtenu: () => t.corps });
+      const ancien = await appelerComme('kevin', 'telephone_titulaire_du_pacte', { p_remplacant_id: FICHES.kevin });
+      await ex.verifier('ancienne fonction : refusée à l\'app', () => !ancien.ok, { obtenu: () => `${ancien.statut} ${ancien.corps}` });
     });
 
     await ex.etape('Kevin : plus rien d\'actif (Home, Mes Swends, API)', async () => {

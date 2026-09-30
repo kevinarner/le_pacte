@@ -357,8 +357,10 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
   sélectionné garde le Swend et sa conversation ; les personnes seulement
   prévues, sollicitées, ayant refusé ou désistées perdent tout accès (données
   conservées) ; une conversation ouverte sans accès (ancienne notification)
-  affiche « Cette conversation n'est plus accessible. ». Avant H, rien ne
-  change. `est_remplacant_du_pacte()` n'est pas modifiée : la règle passe par
+  affiche « Cette conversation n'est plus accessible. », sans bouton
+  « Appeler » : le numéro du titulaire n'est plus obtenu que par
+  `telephone_titulaire_accessible()`, soumise à la même règle (l'ancienne
+  fonction n'est plus exécutable par l'app). Avant H, rien ne change. `est_remplacant_du_pacte()` n'est pas modifiée : la règle passe par
   des fonctions et politiques restrictives versionnées. Dans chaque conversation ayant eu une activité
   (message ou événement), un dernier événement « Le Swend a commencé. Cette
   conversation est désormais terminée. » — jamais « non lu ». Une conversation
