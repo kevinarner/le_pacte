@@ -16,18 +16,18 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260928000000_annulation_manuelle.sql` : exécutée le 28/09 (annulation
   manuelle d'un Swend scellé, auteur et date de l'annulation, suppression
   d'un Swend scellé bloquée, D-022).
-  `20260929000000_gel_a_h.sql` : **exécutée partiellement le 30/09**
-  (sections 0 et 0 bis seulement, sans le résultat des vérifications) ; à
-  ré-exécuter EN ENTIER (version du commit `d9d064b`, sha256
-  `95bce7ea47af6a883900f4574726532570c60be88c4d7b8f1ff3d738eea02eac`), idempotente
-  sur tout état partiel (120 points d'arrêt testés), puis contrôler avec
-  `supabase/controles/gel_a_h_controle.sql` (lecture seule, 7 lignes à true).
-  Avant cela : **pas encore exécutée** (gel à l'heure du
-  Swend, D-023a). À exécuter avant de déployer l'app correspondante ; la
-  planification `supabase/planification/gel_a_h_pg_cron.sql` s'active en
-  dernier, après le déploiement de l'app.
+  `20260929000000_gel_a_h.sql` : **exécutée le 30/09** (gel à l'heure du
+  Swend, D-023a). Une première exécution partielle (début du fichier
+  seulement) a été complétée par une ré-exécution EN ENTIER de la version du
+  commit `d9d064b` (sha256
+  `95bce7ea47af6a883900f4574726532570c60be88c4d7b8f1ff3d738eea02eac`,
+  idempotente sur tout état partiel : 120 points d'arrêt testés) :
+  10 vérifications à true, et contrôle
+  `supabase/controles/gel_a_h_controle.sql` (lecture seule) : 7 lignes à
+  true. App correspondante déployée le 30/09.
 - La planification du gel à H (pg_cron, D-023a) n'est pas une migration :
-  `supabase/planification/gel_a_h_pg_cron.sql`, **pas encore activée**.
+  `supabase/planification/gel_a_h_pg_cron.sql`, **pas encore activée** (à
+  activer après validation).
 - La planification des rappels (pg_cron) n'est pas une migration :
   `supabase/planification/rappels_pg_cron.sql`. **Active en production
   depuis le 28/09** (job `swend-rappels`, toutes les 5 minutes, exécutions

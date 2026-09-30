@@ -377,9 +377,12 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
 - **Rattrapage** : les Swends déjà passés au moment de la migration sont
   considérés comme traités (aucune push, aucun événement rétroactif).
 
-**Pas encore en production** : migration `20260929000000_gel_a_h.sql` à
-exécuter, puis app, puis planification. Le chat post-Swend (D-023b) et
-« Faire un nouveau Swend » (D-023c) ne sont **pas** implémentés.
+**En production depuis le 30/09** : migration `20260929000000_gel_a_h.sql`
+exécutée (10/10 vérifications, contrôle 7/7), app déployée. **La
+planification `swend-gel-a-h` n'est pas encore activée** : les actions sont
+déjà refusées après H par la base, mais la clôture automatique des demandes,
+la push et l'événement de fin attendent son activation. Le chat post-Swend
+(D-023b) et « Faire un nouveau Swend » (D-023c) ne sont **pas** implémentés.
 
 ---
 
