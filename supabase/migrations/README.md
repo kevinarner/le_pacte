@@ -37,7 +37,9 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   Function `send-notification` (lien web du chat), puis planification.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`, **non
-  activée** (job `swend-chat-apres`, chaque minute).
+  activée** (job `swend-chat-apres`, chaque minute). Le fichier repositionne
+  la borne de mise en service à `now()` et crée le job dans la même
+  exécution : aucun rattrapage avant l'activation réelle.
 - La planification du gel à H (pg_cron, D-023a) n'est pas une migration :
   `supabase/planification/gel_a_h_pg_cron.sql`. **Active en production
   depuis le 30/09** (job `swend-gel-a-h`, toutes les 5 minutes, exécutions

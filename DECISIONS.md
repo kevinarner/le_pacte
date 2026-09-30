@@ -538,7 +538,7 @@ QA OK (métier 776/0, E2E 598/0). App déployée le 30/09/2026 (gh-pages `80b473
 Après un Swend qui a eu lieu, le silence est levé : un chat s’ouvre automatiquement entre les deux titulaires d’origine et, s’il existe, le remplaçant sélectionné à l’heure du Swend (3 personnes au plus). Détails : `PRODUCT_RULES.md` §3.7.
 
 - Ouverture : H+3 si H+3 ≤ 23:00 (Europe/Paris) le jour du Swend, sinon 10:00 le lendemain ; calcul serveur, changements d’heure compris. Seulement pour un Swend `confirme`, scellé et figé par D-023a ; jamais annulé, double remplacement, `maintenu`.
-- Pas de rattrapage : borne de mise en service explicite (`chat_apres_swend_service`).
+- Pas de rattrapage : borne de mise en service explicite (`chat_apres_swend_service`), repositionnée à `now()` par le fichier de planification dans la même exécution que l’activation du job `swend-chat-apres` : aucun Swend dont l’ouverture précède l’activation réelle ne reçoit de chat.
 - Moteur `ouvrir_chats_apres_swend()` chaque minute (pg_cron) ; chat, participants et état visibles dans une seule transaction ; push « Alors, ce Swend ? » seulement si le retard est ≤ 12 h (la livraison FCM n’est pas nécessaire à l’ouverture).
 - Participants figés à l’ouverture (prénom du compte) ; plus d’un remplaçant actif : chat non ouvert, anomalie enregistrée.
 - Révélation seulement à partir de l’ouverture ; tutoiement conservé pour le remplaçant.
