@@ -16,7 +16,13 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260928000000_annulation_manuelle.sql` : exécutée le 28/09 (annulation
   manuelle d'un Swend scellé, auteur et date de l'annulation, suppression
   d'un Swend scellé bloquée, D-022).
-  `20260929000000_gel_a_h.sql` : **pas encore exécutée** (gel à l'heure du
+  `20260929000000_gel_a_h.sql` : **exécutée partiellement le 30/09**
+  (sections 0 et 0 bis seulement, sans le résultat des vérifications) ; à
+  ré-exécuter EN ENTIER (version du commit `d9d064b`, sha256
+  `95bce7ea47af6a883900f4574726532570c60be88c4d7b8f1ff3d738eea02eac`), idempotente
+  sur tout état partiel (120 points d'arrêt testés), puis contrôler avec
+  `supabase/controles/gel_a_h_controle.sql` (lecture seule, 7 lignes à true).
+  Avant cela : **pas encore exécutée** (gel à l'heure du
   Swend, D-023a). À exécuter avant de déployer l'app correspondante ; la
   planification `supabase/planification/gel_a_h_pg_cron.sql` s'active en
   dernier, après le déploiement de l'app.
