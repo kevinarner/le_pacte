@@ -40,6 +40,28 @@ class BlocTiers extends StatefulWidget {
 class _BlocTiersState extends State<BlocTiers> {
   bool _enCours = false;
 
+  /// Ma conversation avec le titulaire a eu une activité (message ou
+  /// événement) : seule condition pour la proposer à la relecture une fois
+  /// le Swend passé ou annulé (D-023a).
+  bool _filActif = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _chargerActivite();
+  }
+
+  Future<void> _chargerActivite() async {
+    final id = _fiche.id;
+    if (id == null) return;
+    try {
+      final actifs = await PacteRepository.filsAvecActivite([id]);
+      if (mounted) setState(() => _filActif = actifs.contains(id));
+    } catch (_) {
+      // Sans cette information, pas de bouton de relecture.
+    }
+  }
+
   Remplacant get _fiche => widget.perspective.maFiche!;
   String get _titulaire =>
       prenomDe(widget.perspective.coteTitulaire!.nomTitulaire);
@@ -125,24 +147,30 @@ class _BlocTiersState extends State<BlocTiers> {
 
     if (statut == StatutPacte.annule ||
         statut == StatutPacte.annuleDoubleAbsence) {
-      contenu = [_texte('Ce Swend a été annulé.')];
+      contenu = [
+        _texte('Ce Swend a été annulé.'),
+        // Conversation en lecture seule, toujours relisible (D-023a).
+        if (_filActif) ...[
+          const SizedBox(height: 14),
+          _boutonEcrire(principal: false, lecture: true),
+        ],
+      ];
     } else if (statut == StatutPacte.maintenu) {
       contenu = [_texte('Ce Swend a eu lieu.')];
     } else if (statut == StatutPacte.confirme &&
         estPasse(widget.pacte, DateTime.now())) {
       // Gel à H (D-023a) : plus aucune action (ni réponse, ni désistement,
       // ni disponibilité) ; la conversation reste lisible.
-      contenu = _fiche.selectionne
-          ? [
-              _titre('Tu as pris la place ${deNom(_titulaire)}'),
-              const SizedBox(height: 16),
-              _boutonEcrire(principal: false, lecture: true),
-            ]
-          : [
-              _texte("L’heure de ce Swend est passée."),
-              const SizedBox(height: 14),
-              _boutonEcrire(principal: false, lecture: true),
-            ];
+      contenu = [
+        if (_fiche.selectionne)
+          _titre('Tu as pris la place ${deNom(_titulaire)}')
+        else
+          _texte("L’heure de ce Swend est passée."),
+        if (_filActif) ...[
+          const SizedBox(height: 14),
+          _boutonEcrire(principal: false, lecture: true),
+        ],
+      ];
     } else if (statut != StatutPacte.confirme) {
       contenu = [
         _texte(

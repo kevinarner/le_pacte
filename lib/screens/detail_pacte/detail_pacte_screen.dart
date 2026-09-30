@@ -16,6 +16,7 @@ import '../../widgets/ligne_info.dart';
 import 'annulation_swend_dialogues.dart';
 import 'bloc_attente.dart';
 import 'bloc_choix_date.dart';
+import 'bloc_conversations_terminees.dart';
 import 'bloc_epilogue.dart';
 import 'bloc_presence.dart';
 import 'bloc_reponse.dart';
@@ -217,11 +218,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           // lisibles.
           if (pacte.statut == StatutPacte.confirme &&
               estPasse(pacte, DateTime.now()))
-            BlocPresence(
-              pacte: pacte,
-              jeSuisInitiateur: jeSuisInitiateur,
-              fige: true,
-              onChanged: () => setState(() {}),
+            BlocConversationsTerminees(
+              monCote: jeSuisInitiateur ? pacte.initiateur : pacte.destinataire,
+              rappelerRemplacement: true,
             )
           else if (pacte.statut == StatutPacte.confirme) ...[
             BlocPresence(
@@ -264,6 +263,17 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               pacte.statut == StatutPacte.annule ||
               pacte.statut == StatutPacte.annuleDoubleAbsence)
             BlocEpilogue(statut: pacte.statut, autrePrenom: autrePrenom),
+
+          // Swend annulé : conversations en lecture seule mais toujours
+          // relisibles (D-023a), sans rappel d'un remplacement.
+          if (pacte.statut == StatutPacte.annule ||
+              pacte.statut == StatutPacte.annuleDoubleAbsence) ...[
+            const SizedBox(height: 12),
+            BlocConversationsTerminees(
+              monCote: jeSuisInitiateur ? pacte.initiateur : pacte.destinataire,
+              rappelerRemplacement: false,
+            ),
+          ],
         ],
       ),
     );

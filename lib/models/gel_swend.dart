@@ -1,4 +1,5 @@
 import 'pacte.dart';
+import 'remplacant.dart';
 import 'statut_pacte.dart';
 
 /// Gel à H (D-023a) : à l'heure prévue du Swend (`date_retenue`), l'état du
@@ -26,3 +27,13 @@ bool conversationEnLectureSeule(Pacte pacte, DateTime maintenant) =>
 /// Swend est passée (course entre l'horloge de l'appareil et le serveur).
 const messageSwendPasse =
     'L’heure du Swend est passée : cette action n’est plus possible.';
+
+/// Conversations à relire une fois le Swend passé ou annulé : seulement
+/// celles qui ont eu une activité (message ou événement), personnes ayant un
+/// compte d'abord — jamais de fil vierge affiché artificiellement.
+List<Remplacant> filsARelire(
+  Iterable<Remplacant> fiches,
+  Set<String> avecActivite,
+) => Remplacant.comptesDAbord(
+  fiches.where((r) => r.id != null && avecActivite.contains(r.id)),
+);

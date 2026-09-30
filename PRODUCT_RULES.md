@@ -236,6 +236,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Cet événement ne crée jamais de « non lu ».
 - Une conversation vierge ne reçoit rien : elle devient simplement non modifiable.
 - Un Swend annulé : ses conversations passent en lecture seule dès l’annulation (sans cet événement).
+- Relecture : sur la fiche d’un Swend passé ou annulé, `Relire une conversation` propose au titulaire les conversations qui ont eu une activité (ouverte directement s’il n’y en a qu’une, sinon choix) ; la personne de confiance qui garde le Swend dans son historique a `Relire la conversation`. Les conversations vierges ne sont jamais proposées. Aucune écriture possible.
 
 #### Swend passé
 

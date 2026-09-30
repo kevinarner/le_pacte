@@ -4,6 +4,7 @@ import 'package:le_pacte/models/cote_pacte.dart';
 import 'package:le_pacte/models/evenement_fil.dart';
 import 'package:le_pacte/models/gel_swend.dart';
 import 'package:le_pacte/models/pacte.dart';
+import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
 
@@ -105,6 +106,18 @@ void main() {
       );
       expect(e.concerneLecteur(vuParTiers: true), isFalse);
       expect(e.concerneLecteur(vuParTiers: false), isFalse);
+    });
+
+    test('relecture : seulement les conversations actives, comptes d\'abord', () {
+      final fiches = [
+        Remplacant(id: 'tom', prenom: 'Tom'),
+        Remplacant(id: 'kevin', prenom: 'Kevin', profilId: 'k'),
+        Remplacant(id: 'thomas', prenom: 'Thomas', profilId: 't'),
+        Remplacant(prenom: 'Brouillon'),
+      ];
+      final aRelire = filsARelire(fiches, {'tom', 'kevin'});
+      expect(aRelire.map((r) => r.prenom), ['Kevin', 'Tom']);
+      expect(filsARelire(fiches, {}), isEmpty);
     });
 
     test('message propre si la base refuse après H', () {

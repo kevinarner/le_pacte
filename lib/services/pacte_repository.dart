@@ -559,6 +559,28 @@ class PacteRepository {
     }).toList();
   }
 
+  /// Parmi ces conversations, celles qui ont eu une activité (au moins un
+  /// message ou un événement) — les seules proposées à la relecture une
+  /// fois le Swend passé ou annulé (D-023a). La RLS ne renvoie que ce que
+  /// je peux déjà lire.
+  static Future<Set<String>> filsAvecActivite(
+    List<String> remplacantIds,
+  ) async {
+    if (remplacantIds.isEmpty) return {};
+    final messages = await _client
+        .from('messages')
+        .select('remplacant_id')
+        .inFilter('remplacant_id', remplacantIds);
+    final evenements = await _client
+        .from('evenements_fil')
+        .select('remplacant_id')
+        .inFilter('remplacant_id', remplacantIds);
+    return {
+      for (final r in [...messages as List, ...evenements as List])
+        (r as Map<String, dynamic>)['remplacant_id'] as String,
+    };
+  }
+
   /// Marque une conversation comme lue par moi (jusqu'à maintenant).
   static Future<void> marquerFilLu(String remplacantId) async {
     await _client.rpc(

@@ -40,6 +40,17 @@ export default {
       await ex.verifier('aucun message de Kevin en base', () => sql(`select count(*) from messages where expediteur_id = '${COMPTES.kevin.id}'`) === '0');
     });
 
+    await ex.etape('Eliot relit la conversation depuis la fiche du Swend annulé (une seule : ouverte directement)', async () => {
+      await A.ouvrirSwend(eliot, /Swend avec David/);
+      await ex.verifierTexte(eliot, 'Votre Swend avec David est annulé.', 'Eliot : fiche du Swend annulé');
+      await eliot.cliquer('Relire une conversation');
+      await eliot.attendreTexte('Cette conversation est terminée. Elle reste consultable.');
+      await ex.verifierTexte(eliot, 'Tu seras dispo ?', 'Eliot : historique relu');
+      await ex.verifierAbsent(eliot, 'Relire la conversation avec…', 'Eliot : pas de choix (une seule conversation active)');
+      await ex.verifier('Eliot : aucune zone de saisie',
+        async () => (await eliot.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+    });
+
     await ex.etape('Eliot ne peut plus écrire non plus (API), rien d\'autre n\'est créé', async () => {
       const r = await insererComme('eliot', 'messages', { remplacant_id: FICHES.kevin, expediteur_id: COMPTES.eliot.id, contenu: 'Désolé' });
       await ex.verifier('API : écriture d\'Eliot refusée', () => !r.ok, { obtenu: () => `${r.statut} ${r.corps}` });

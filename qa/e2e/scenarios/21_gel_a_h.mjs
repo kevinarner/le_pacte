@@ -93,6 +93,8 @@ export default {
     await ex.etape('Conversations figées : lisibles, sans saisie, événement de fin', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await eliot.cliquer('Relire une conversation');
+      await ex.verifierTexte(eliot, 'Relire la conversation avec…', 'Eliot : choix entre les conversations actives');
+      await ex.verifierAbsent(eliot, 'Tom Petit', 'Eliot : fil vierge (Tom) non proposé');
       await eliot.cliquerTexte('Kevin Arner');
       await eliot.attendreTexte('Cette conversation est terminée. Elle reste consultable.');
       await ex.verifierTexte(eliot, "La demande à Kevin n'est plus d'actualité.", 'Eliot : clôture dans le fil de Kevin');

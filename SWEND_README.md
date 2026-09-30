@@ -346,7 +346,12 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
   les 12 heures qui suivent). Rien pour le titulaire qui cherchait, jamais
   « C'est bon, quelqu'un a pu prendre la place ».
 - **Conversations de l'imprévu** : lecture seule dès H (et dès qu'un Swend est
-  annulé). Historique conservé. Dans chaque conversation ayant eu une activité
+  annulé). Historique conservé et relisible : sur la fiche d'un Swend passé ou
+  annulé, « Relire une conversation » propose les seules conversations qui ont
+  eu une activité (message ou événement ; ouverte directement s'il n'y en a
+  qu'une, sinon choix) ; la personne de confiance qui garde le Swend (remplaçant
+  accepté) a « Relire la conversation ». Les fils vierges ne sont jamais
+  proposés. Dans chaque conversation ayant eu une activité
   (message ou événement), un dernier événement « Le Swend a commencé. Cette
   conversation est désormais terminée. » — jamais « non lu ». Une conversation
   vierge ne reçoit rien.

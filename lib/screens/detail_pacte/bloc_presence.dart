@@ -14,20 +14,15 @@ import 'mes_remplacants_screen.dart';
 /// personnes prévues, avec deux actions distinctes : "Modifier ma liste"
 /// (`MesRemplacantsScreen`, préparation uniquement) et "Discuter" (choix
 /// d'une conversation avec une personne de la liste déjà sur Swend).
-///
-/// [fige] (D-023a) : l'heure du Swend est passée — plus de gestion de la
-/// liste, seulement, s'il y en a, la relecture des conversations.
 class BlocPresence extends StatelessWidget {
   final Pacte pacte;
   final bool jeSuisInitiateur;
-  final bool fige;
   final VoidCallback onChanged;
 
   const BlocPresence({
     super.key,
     required this.pacte,
     required this.jeSuisInitiateur,
-    this.fige = false,
     required this.onChanged,
   });
 
@@ -44,7 +39,9 @@ class BlocPresence extends StatelessWidget {
     // Ceux qui peuvent encore être sollicités : ni refus, ni désistement,
     // ni demande clôturée, ni indisponibilité signalée par la personne
     // (la liste complète reste dans "Modifier ma liste").
-    final disponibles = remplacants.where((r) => !r.estIndisponible).toList();
+    final disponibles = remplacants
+        .where((r) => !r.estIndisponible)
+        .toList();
     Remplacant? designe;
     for (final r in remplacants) {
       if (r.selectionne) {
@@ -52,8 +49,6 @@ class BlocPresence extends StatelessWidget {
         break;
       }
     }
-
-    if (fige) return _blocFige(context, remplacants, designe);
 
     return Card(
       child: Padding(
@@ -125,10 +120,7 @@ class BlocPresence extends StatelessWidget {
                           .map((r) => r.prenom.trim())
                           .where((p) => p.isNotEmpty)
                           .join(', '),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
               ),
               const SizedBox(height: 4),
               Text(
@@ -187,56 +179,6 @@ class BlocPresence extends StatelessWidget {
     );
   }
 
-  /// Après l'heure du Swend : qui a pris la place (s'il y en a une) et la
-  /// relecture des conversations, sans aucune action de gestion. Rien du
-  /// tout s'il n'y a ni remplacement ni conversation possible.
-  Widget _blocFige(
-    BuildContext context,
-    List<Remplacant> remplacants,
-    Remplacant? designe,
-  ) {
-    final avecConversation = remplacants.any(
-      (r) => r.profilId != null && r.id != null,
-    );
-    if (designe == null && !avecConversation) return const SizedBox.shrink();
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "EN CAS D'IMPRÉVU",
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-                color: AppColors.texteAttenue,
-                letterSpacing: 0.06,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (designe != null) ...[
-              Text(
-                '${designe.prenom} a pris votre place',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(height: 8),
-            ],
-            if (avecConversation)
-              OutlinedButton.icon(
-                onPressed: () => _choisirConversation(context, remplacants),
-                icon: const Icon(Icons.forum_outlined, size: 16),
-                label: const Text('Relire une conversation'),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// Deux actions côte à côte : marges réduites pour tenir sur une ligne.
   static final _styleActionCompacte = OutlinedButton.styleFrom(
     padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -263,7 +205,7 @@ class BlocPresence extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                fige ? 'Relire la conversation avec…' : 'Discuter avec…',
+                'Discuter avec…',
                 style: Theme.of(feuille).textTheme.titleLarge,
               ),
               const SizedBox(height: 8),

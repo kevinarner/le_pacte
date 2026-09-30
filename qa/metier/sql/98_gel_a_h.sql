@@ -335,5 +335,43 @@ select verifier('K', 'rattrapage : aucune clôture, aucune push, aucun événeme
 select verifier('K', 'rattrapage : même un appel de l''app est refusé (swend_passe)',
   g_rpc(:'K', 'repondre_demande_remplacement', :'k11', 'true') like '%swend_passe%');
 
+-- ===================================================================
+-- L. Swend annulé : les conversations ayant eu une activité restent
+--    relisibles (lecture seule) par ceux qui y avaient accès
+-- ===================================================================
+select g_swend(now() + interval '1 day') as p12 \gset
+select ajouter_fiche(:'E', :'p12', 'initiateur', 'Kevin', '0600000003') as k12 \gset
+select ajouter_fiche(:'E', :'p12', 'initiateur', 'Camille', '0600000004') as c12 \gset
+select ajouter_fiche(:'E', :'p12', 'initiateur', 'Thomas', '0600000005') as t12 \gset
+select en_tant_que(:'E', format('select ajouter_et_demander_remplacement(%L, %L, %L, %L, %L)',
+  :'p12', 'initiateur', 'Tom', 'Sans Compte', '0700000011')) \gset
+select id as tom12 from remplacants where pacte_id = :'p12' and prenom = 'Tom' \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k12') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k12', 'true') \gset
+select g_ecrire(:'E', :'k12', 'Merci Kevin') \gset
+select g_ecrire(:'C', :'c12', 'Bon Swend !') \gset
+select g_rpc(:'E', 'annuler_swend', :'p12') \gset
+select verifier('L', 'Swend annulé', (select statut from pactes where id = :'p12') = 'annule');
+-- La requête de l'app (filsAvecActivite) : fiches ayant un message ou un
+-- événement, lues sous la RLS d'Eliot.
+select verifier('L', 'Eliot : conversations actives relisibles (Kevin, Camille, Tom sans compte), pas le fil vierge de Thomas',
+  compter_en_tant_que(:'E', format(
+    'select count(distinct remplacant_id)::int from (select remplacant_id from messages where remplacant_id in (%L, %L, %L, %L)
+     union all select remplacant_id from evenements_fil where remplacant_id in (%L, %L, %L, %L)) x',
+    :'k12', :'c12', :'t12', :'tom12', :'k12', :'c12', :'t12', :'tom12')) = 3);
+select verifier('L', 'Eliot relit le message à Kevin et les événements du fil de Tom',
+  g_lire(:'E', :'k12') = 1
+  and compter_en_tant_que(:'E', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'tom12')) >= 1);
+select verifier('L', 'Kevin (remplaçant accepté) relit sa conversation',
+  g_lire(:'K', :'k12') = 1
+  and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k12')) >= 1);
+select verifier('L', 'Camille (seulement prévue) relit aussi la sienne', g_lire(:'C', :'c12') = 1);
+select verifier('L', 'personne ne peut plus y écrire',
+  g_ecrire(:'E', :'k12', 'x') like '%row-level security%' and g_ecrire(:'K', :'k12', 'x') like '%row-level security%'
+  and g_ecrire(:'C', :'c12', 'x') like '%row-level security%');
+select verifier('L', 'David ne lit aucune de ces conversations',
+  compter_en_tant_que(:'D', format('select count(*)::int from messages where remplacant_id in (%L, %L)', :'k12', :'c12')) = 0
+  and compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id in (%L, %L, %L)', :'k12', :'c12', :'tom12')) = 0);
+
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;
