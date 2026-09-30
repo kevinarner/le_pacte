@@ -135,8 +135,8 @@ select verifier('B', 'rien n''a bougé (fiches, statut, aucune push)',
   and (select statut from pactes where id = :'p2') = 'confirme' and g_nb_push(:n0) = 0);
 select verifier('B', 'conversation : plus d''écriture après H (titulaire et personne de confiance)',
   g_ecrire(:'E', :'c2', 'Merci') like '%row-level security%' and g_ecrire(:'C', :'c2', 'Avec plaisir') like '%row-level security%');
-select verifier('B', 'conversation : l''historique reste lisible des deux côtés',
-  g_lire(:'C', :'c2') = 1 and g_lire(:'E', :'c2') = 1);
+select verifier('B', 'conversation : Eliot garde l''historique, Camille (seulement prévue) n''y a plus accès',
+  g_lire(:'E', :'c2') = 1 and g_lire(:'C', :'c2') = 0);
 select verifier('B', 'plus de modification ni suppression d''un message après H',
   en_tant_que(:'C', format('update messages set contenu = %L where remplacant_id = %L', 'x', :'c2')) = 'OK'
   and en_tant_que(:'C', format('delete from messages where remplacant_id = %L', :'c2')) = 'OK'
@@ -152,8 +152,8 @@ select verifier('C', 'le moteur traite le Swend passé (et lui seul)', :nb = 1 a
 select verifier('C', 'demande en attente clôturée', statut_fiche(:'k2') = 'cloturee');
 select verifier('C', 'Kevin : une seule push, texte validé',
   g_push(:n0, :'K') = 'La demande n’est plus d’actualité|L’heure du Swend est passée.', g_push(:n0, :'K'));
-select verifier('C', 'push de Kevin : ouvre sa conversation',
-  (select data->>'type' = 'chat' and data->>'remplacant_id' = :'k2' and data->>'nom_interlocuteur' = 'Eliot E'
+select verifier('C', 'push de Kevin : fiche du Swend (il n''y a plus accès : l''app reste sur l''accueil)',
+  (select data = jsonb_build_object('type', 'pacte', 'pacte_id', :'p2')
    from notifications_log where id > :n0 and profile_id = :'K'));
 select verifier('C', 'aucune autre push (titulaires, remplaçant accepté, « quelqu''un a pu prendre la place »)',
   g_nb_push(:n0) = 1 and not exists (select 1 from notifications_log where id > :n0 and corps like '%a pu prendre la place%'));
@@ -166,8 +166,11 @@ select verifier('C', 'événement de fin après une indisponibilité', g_codes(:
 select verifier('C', 'conversation vierge : aucun événement créé', g_codes(:'v2') = '', g_codes(:'v2'));
 select verifier('C', 'l''événement de fin est le dernier de la conversation',
   (select code from evenements_fil where remplacant_id = :'k2' order by created_at desc, id desc limit 1) = 'swend_commence');
-select verifier('C', 'Kevin lit l''événement de fin de sa conversation (RLS)',
-  compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'k2', 'swend_commence')) = 1);
+select verifier('C', 'Eliot lit l''événement de fin ; Kevin (sollicité, sans place) n''a plus accès',
+  compter_en_tant_que(:'E', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'k2', 'swend_commence')) = 1
+  and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2')) = 0);
+select verifier('C', 'Thomas (remplaçant sélectionné) lit l''événement de fin de sa conversation',
+  compter_en_tant_que(:'T', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'t2', 'swend_commence')) = 1);
 select verifier('C', 'David ne lit aucun événement côté Eliot',
   compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2')) = 0);
 select verifier('C', 'répondre après la clôture : toujours swend_passe', g_rpc(:'K', 'repondre_demande_remplacement', :'k2', 'true') like '%swend_passe%');
@@ -234,7 +237,8 @@ select verifier('G', 'avant l''annulation : on écrit', g_ecrire(:'E', :'k7', 'M
 select verifier('G', 'Eliot annule le Swend', g_rpc(:'E', 'annuler_swend', :'p7') = 'OK');
 select verifier('G', 'annulé : plus d''écriture, même avant l''heure',
   g_ecrire(:'E', :'k7', 'Dommage') like '%row-level security%' and g_ecrire(:'K', :'k7', 'Pas grave') like '%row-level security%');
-select verifier('G', 'annulé : historique lisible', g_lire(:'K', :'k7') = 2 and g_lire(:'E', :'k7') = 2);
+select verifier('G', 'annulé : Eliot relit l''historique ; Kevin (seulement prévu) n''y a plus accès',
+  g_lire(:'E', :'k7') = 2 and g_lire(:'K', :'k7') = 0);
 select g_dater(:'p7', now() - interval '1 second');
 select figer_swends_passes() \gset
 select verifier('G', 'annulé puis passé : pas traité par le moteur, aucun événement de fin',
@@ -365,13 +369,146 @@ select verifier('L', 'Eliot relit le message à Kevin et les événements du fil
 select verifier('L', 'Kevin (remplaçant accepté) relit sa conversation',
   g_lire(:'K', :'k12') = 1
   and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k12')) >= 1);
-select verifier('L', 'Camille (seulement prévue) relit aussi la sienne', g_lire(:'C', :'c12') = 1);
+select verifier('L', 'Camille (seulement prévue) n''a plus accès à sa conversation ni au Swend',
+  g_lire(:'C', :'c12') = 0
+  and compter_en_tant_que(:'C', format('select count(*)::int from pactes where id = %L', :'p12')) = 0
+  and compter_en_tant_que(:'C', format('select count(*)::int from remplacants where id = %L', :'c12')) = 0);
+select verifier('L', 'Eliot relit toujours la conversation avec Camille', g_lire(:'E', :'c12') = 1);
 select verifier('L', 'personne ne peut plus y écrire',
   g_ecrire(:'E', :'k12', 'x') like '%row-level security%' and g_ecrire(:'K', :'k12', 'x') like '%row-level security%'
   and g_ecrire(:'C', :'c12', 'x') like '%row-level security%');
 select verifier('L', 'David ne lit aucune de ces conversations',
   compter_en_tant_que(:'D', format('select count(*)::int from messages where remplacant_id in (%L, %L)', :'k12', :'c12')) = 0
   and compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id in (%L, %L, %L)', :'k12', :'c12', :'tom12')) = 0);
+
+-- ===================================================================
+-- M. Matrice d'accès (RLS, comme l'API) : Swend / fiche / messages /
+--    événements, par rôle, avant H, après H et après annulation
+-- ===================================================================
+\set W '00000000-0000-0000-0000-000000000077'
+\set Y '00000000-0000-0000-0000-000000000078'
+\set X '00000000-0000-0000-0000-000000000079'
+insert into profiles (id, prenom, nom, telephone) values
+  (:'W', 'Walter', 'W', '0600000007'), (:'Y', 'Yann', 'Y', '0600000008'),
+  (:'X', 'Xavier', 'X', '0600000009') on conflict do nothing;
+-- « swend/fiche/messages/événements » lus par p_user (RLS appliquée).
+create or replace function g_acces(p_user uuid, p_pacte uuid, p_fiche uuid) returns text language sql as $$
+  select compter_en_tant_que(p_user, format('select count(*)::int from pactes where id = %L', p_pacte)) || '/'
+      || compter_en_tant_que(p_user, format('select count(*)::int from remplacants where id = %L', p_fiche)) || '/'
+      || compter_en_tant_que(p_user, format('select count(*)::int from messages where remplacant_id = %L', p_fiche)) || '/'
+      || compter_en_tant_que(p_user, format('select count(*)::int from evenements_fil where remplacant_id = %L', p_fiche))
+$$;
+
+select g_swend(now() + interval '1 hour') as p13 \gset
+-- Côté David : Yann accepte puis se désiste, Walter refuse.
+select ajouter_fiche(:'D', :'p13', 'destinataire', 'Yann', '0600000008') as y13 \gset
+select ajouter_fiche(:'D', :'p13', 'destinataire', 'Walter', '0600000007') as w13 \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'y13') \gset
+select g_rpc(:'Y', 'repondre_demande_remplacement', :'y13', 'true') \gset
+select g_rpc(:'Y', 'se_desister_du_remplacement', :'y13') \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'w13') \gset
+select g_rpc(:'W', 'repondre_demande_remplacement', :'w13', 'false') \gset
+-- Xavier : demande en attente côté David.
+select ajouter_fiche(:'D', :'p13', 'destinataire', 'Xavier', '0600000009') as x13 \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'x13') \gset
+-- Côté Eliot : Thomas sollicité, puis Kevin accepte (sélectionné, la demande
+-- de Thomas est close), Camille prévue (a écrit).
+select ajouter_fiche(:'E', :'p13', 'initiateur', 'Kevin', '0600000003') as k13 \gset
+select ajouter_fiche(:'E', :'p13', 'initiateur', 'Camille', '0600000004') as c13 \gset
+select ajouter_fiche(:'E', :'p13', 'initiateur', 'Thomas', '0600000005') as t13 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'t13') \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k13') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k13', 'true') \gset
+select g_ecrire(:'C', :'c13', 'Je suis là si besoin') \gset
+select verifier('M', 'préparation : Kevin sélectionné, Thomas clos, Xavier en attente, Walter a refusé, Yann s''est désisté',
+  statut_fiche(:'k13') = 'acceptee+sel' and statut_fiche(:'t13') = 'cloturee' and statut_fiche(:'x13') = 'envoyee'
+  and statut_fiche(:'w13') = 'refusee' and statut_fiche(:'y13') = 'desistee'
+  and (select statut from pactes where id = :'p13') = 'confirme');
+
+-- Avant H : chacun garde les accès de son rôle.
+select verifier('M', 'avant H : Kevin (sélectionné) → Swend, fiche, conversation', g_acces(:'K', :'p13', :'k13') = '1/1/0/2', g_acces(:'K', :'p13', :'k13'));
+select verifier('M', 'avant H : Camille (prévue) → Swend, fiche, son message', g_acces(:'C', :'p13', :'c13') = '1/1/1/0', g_acces(:'C', :'p13', :'c13'));
+select verifier('M', 'avant H : Thomas (demande close) → Swend, fiche, événements', g_acces(:'T', :'p13', :'t13') = '1/1/0/2', g_acces(:'T', :'p13', :'t13'));
+select verifier('M', 'avant H : Xavier (sollicité) → Swend, fiche, demande', g_acces(:'X', :'p13', :'x13') = '1/1/0/1', g_acces(:'X', :'p13', :'x13'));
+select verifier('M', 'avant H : Walter (a refusé) → Swend, fiche', g_acces(:'W', :'p13', :'w13') = '1/1/0/2', g_acces(:'W', :'p13', :'w13'));
+select verifier('M', 'avant H : Yann (désisté) → Swend, fiche', g_acces(:'Y', :'p13', :'y13') = '1/1/0/3', g_acces(:'Y', :'p13', :'y13'));
+select verifier('M', 'avant H : Zoé (extérieure) → rien', g_acces(:'Z', :'p13', :'k13') = '0/0/0/0');
+select verifier('M', 'avant H : David ne voit rien du côté d''Eliot', g_acces(:'D', :'p13', :'c13') = '1/0/0/0', g_acces(:'D', :'p13', :'c13'));
+
+select g_dater(:'p13', now() - interval '1 second');
+select figer_swends_passes() \gset
+-- Après H : titulaires et remplaçant sélectionné seulement.
+select verifier('M', 'après H : Eliot garde le Swend et toutes les conversations de son côté',
+  g_acces(:'E', :'p13', :'k13') = '1/1/0/3' and g_acces(:'E', :'p13', :'c13') = '1/1/1/1' and g_acces(:'E', :'p13', :'t13') = '1/1/0/3',
+  g_acces(:'E', :'p13', :'k13') || ' ' || g_acces(:'E', :'p13', :'c13') || ' ' || g_acces(:'E', :'p13', :'t13'));
+select verifier('M', 'après H : David garde le Swend et ses conversations (Walter, Yann)',
+  g_acces(:'D', :'p13', :'w13') = '1/1/0/3' and g_acces(:'D', :'p13', :'y13') = '1/1/0/4',
+  g_acces(:'D', :'p13', :'w13') || ' ' || g_acces(:'D', :'p13', :'y13'));
+select verifier('M', 'après H : Kevin (sélectionné) garde Swend, fiche et conversation', g_acces(:'K', :'p13', :'k13') = '1/1/0/3', g_acces(:'K', :'p13', :'k13'));
+select verifier('M', 'après H : Camille (prévue) n''a plus accès', g_acces(:'C', :'p13', :'c13') = '0/0/0/0', g_acces(:'C', :'p13', :'c13'));
+select verifier('M', 'après H : Thomas (demande close) n''a plus accès', g_acces(:'T', :'p13', :'t13') = '0/0/0/0', g_acces(:'T', :'p13', :'t13'));
+select verifier('M', 'après H : Xavier (sollicité, demande close à H) n''a plus accès',
+  g_acces(:'X', :'p13', :'x13') = '0/0/0/0' and statut_fiche(:'x13') = 'cloturee', g_acces(:'X', :'p13', :'x13'));
+select verifier('M', 'après H : Walter (a refusé) n''a plus accès', g_acces(:'W', :'p13', :'w13') = '0/0/0/0', g_acces(:'W', :'p13', :'w13'));
+select verifier('M', 'après H : Yann (désisté) n''a plus accès', g_acces(:'Y', :'p13', :'y13') = '0/0/0/0', g_acces(:'Y', :'p13', :'y13'));
+select verifier('M', 'après H : Zoé (extérieure) → rien', g_acces(:'Z', :'p13', :'k13') = '0/0/0/0');
+select verifier('M', 'après H : les données restent en base (fiches et message)',
+  (select count(*) from remplacants where pacte_id = :'p13') = 6
+  and (select count(*) from messages where remplacant_id = :'c13') = 1);
+
+-- Même personne des deux côtés : Kevin sollicité par David, puis il prend la
+-- place d'Eliot. Après H : le Swend et sa fiche côté Eliot, pas l'autre.
+select g_swend(now() + interval '1 hour') as p15 \gset
+select ajouter_fiche(:'D', :'p15', 'destinataire', 'Kevin', '0600000003') as kd15 \gset
+select ajouter_fiche(:'E', :'p15', 'initiateur', 'Kevin', '0600000003') as ke15 \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'kd15') \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'ke15') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'ke15', 'true') \gset
+select g_dater(:'p15', now() - interval '1 second');
+select verifier('M', 'même personne des deux côtés, après H : fiche sélectionnée visible, l''autre non',
+  g_acces(:'K', :'p15', :'ke15') like '1/1/%' and g_acces(:'K', :'p15', :'kd15') = '1/0/0/0',
+  g_acces(:'K', :'p15', :'ke15') || ' ' || g_acces(:'K', :'p15', :'kd15'));
+
+-- Annulation (avant H) : même règle, immédiatement.
+select g_swend(now() + interval '1 day') as p14 \gset
+select ajouter_fiche(:'E', :'p14', 'initiateur', 'Kevin', '0600000003') as k14 \gset
+select ajouter_fiche(:'E', :'p14', 'initiateur', 'Camille', '0600000004') as c14 \gset
+select ajouter_fiche(:'D', :'p14', 'destinataire', 'Walter', '0600000007') as w14 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k14') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k14', 'true') \gset
+select g_ecrire(:'C', :'c14', 'Coucou') \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'w14') \gset
+select g_rpc(:'W', 'repondre_demande_remplacement', :'w14', 'false') \gset
+select g_rpc(:'D', 'annuler_swend', :'p14') \gset
+select verifier('M', 'annulé : Swend annulé par David', (select statut from pactes where id = :'p14') = 'annule');
+select verifier('M', 'annulé : Eliot garde le Swend et ses conversations',
+  g_acces(:'E', :'p14', :'k14') like '1/1/%' and g_acces(:'E', :'p14', :'c14') = '1/1/1/0',
+  g_acces(:'E', :'p14', :'c14'));
+select verifier('M', 'annulé : Kevin (sélectionné) garde Swend et conversation', g_acces(:'K', :'p14', :'k14') like '1/1/%', g_acces(:'K', :'p14', :'k14'));
+select verifier('M', 'annulé : Camille (prévue) et Walter (a refusé) n''ont plus accès',
+  g_acces(:'C', :'p14', :'c14') = '0/0/0/0' and g_acces(:'W', :'p14', :'w14') = '0/0/0/0',
+  g_acces(:'C', :'p14', :'c14') || ' ' || g_acces(:'W', :'p14', :'w14'));
+select verifier('M', 'annulé : David garde sa conversation avec Walter', g_acces(:'D', :'p14', :'w14') like '1/1/%');
+
+-- Double remplacement : les deux remplaçants sélectionnés gardent l'accès.
+select g_swend(now() + interval '1 day') as p16 \gset
+select ajouter_fiche(:'E', :'p16', 'initiateur', 'Kevin', '0600000003') as k16 \gset
+select ajouter_fiche(:'D', :'p16', 'destinataire', 'Walter', '0600000007') as w16 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k16') \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'w16') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'k16', 'true') \gset
+select g_rpc(:'W', 'repondre_demande_remplacement', :'w16', 'true') \gset
+select verifier('M', 'double remplacement : Swend annulé, les deux remplaçants sélectionnés gardent l''accès',
+  (select statut from pactes where id = :'p16') = 'annuleDoubleAbsence'
+  and g_acces(:'K', :'p16', :'k16') like '1/1/%' and g_acces(:'W', :'p16', :'w16') like '1/1/%'
+  and g_acces(:'K', :'p16', :'w16') = '1/0/0/0');
+
+-- Fonctions d'accès : jamais exécutables sans compte.
+select verifier('M', 'fonctions d''accès : exécutables par authenticated seulement',
+  has_function_privilege('authenticated', 'public.personne_de_confiance_a_acces(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.personne_de_confiance_a_acces(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.fiche_de_confiance_accessible(uuid)', 'execute')
+  and not has_function_privilege('anon', 'public.fil_lisible(uuid)', 'execute'));
 
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

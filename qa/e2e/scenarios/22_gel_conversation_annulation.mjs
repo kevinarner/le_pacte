@@ -1,7 +1,8 @@
 // D-023a — CONVERSATION FIGÉE À L'ANNULATION. Eliot et Kevin discutent ; Eliot
-// annule le Swend : la conversation reste lisible mais n'accepte plus aucun
-// message, même avant l'heure. Kevin avait la conversation ouverte : son
-// message est refusé proprement et la zone de saisie disparaît.
+// annule le Swend : la conversation reste lisible par Eliot mais n'accepte
+// plus aucun message, même avant l'heure. Kevin (seulement prévu) avait la
+// conversation ouverte : son message est refusé proprement et, comme il n'a
+// plus accès au Swend annulé, la conversation ne lui est plus accessible.
 import * as A from '../lib/actions.mjs';
 import { sql, FICHES, insererComme } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
@@ -35,8 +36,9 @@ export default {
       await kevin.saisir(champ, 'Oui bien sûr');
       await kevin.page.keyboard.press('Enter');
       await ex.verifierTexte(kevin, 'Cette conversation est terminée : le message n’a pas été envoyé.', 'Kevin : message refusé proprement');
-      await ex.verifierTexte(kevin, 'Cette conversation est terminée. Elle reste consultable.', 'Kevin : zone de saisie remplacée');
-      await ex.verifierTexte(kevin, 'Tu seras dispo ?', 'Kevin : historique toujours lisible');
+      await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin (seulement prévu) : plus d\'accès');
+      await ex.verifier('Kevin : aucune zone de saisie',
+        async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
       await ex.verifier('aucun message de Kevin en base', () => sql(`select count(*) from messages where expediteur_id = '${COMPTES.kevin.id}'`) === '0');
     });
 

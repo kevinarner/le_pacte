@@ -15,6 +15,14 @@
 --  2. Retirer une personne ne détruit plus rien : la fiche est archivée
 --     (remplacants.retire_le), sa conversation et ses événements restent en
 --     base ; elle disparaît des listes et la personne n'a plus accès au Swend.
+--  2 bis. Accès des personnes de confiance (fonctions versionnées et
+--     politiques RESTRICTIVES, sans toucher à est_remplacant_du_pacte(), qui
+--     existe en production sans être versionnée) : avant H, sur un Swend en
+--     cours, une personne de confiance non retirée garde les accès de son
+--     rôle ; une fois le Swend passé ou annulé, seul le remplaçant
+--     sélectionné garde l'accès au Swend, à sa fiche et à sa conversation ;
+--     une personne retirée n'a plus accès. Les titulaires gardent toujours le
+--     Swend et toutes les conversations de leur côté (données conservées).
 --  3. Conversations de l'imprévu en lecture seule : dès H, et dès qu'un
 --     Swend est annulé (ou annulé pour double remplacement). Lecture et
 --     historique conservés, aucun nouveau message.
@@ -51,17 +59,17 @@ create unique index remplacants_personne_unique_par_cote
   on public.remplacants (pacte_id, cote, telephone_e164)
   where telephone_e164 is not null and retire_le is null;
 
--- La personne retirée ne voit plus sa fiche (ni, par la RLS existante, les
--- messages et événements de cette conversation) ; le titulaire la garde en
--- base mais l'app ne l'affiche plus.
-drop policy if exists remplacants_tiers_non_retire on public.remplacants;
-create policy remplacants_tiers_non_retire on public.remplacants
-  as restrictive for select to authenticated
-  using (profil_id is null or profil_id <> auth.uid() or retire_le is null);
+-- 0 bis. Accès d'une personne de confiance ---------------------------------------
+-- Règle (D-023a) : une fiche donne accès à la personne elle-même si elle
+-- n'est pas retirée ET (le Swend est en cours — ni annulé, ni passé — OU
+-- elle est le remplaçant sélectionné). Donc après H ou après annulation,
+-- seul le remplaçant sélectionné garde l'accès ; les personnes seulement
+-- prévues, sollicitées, ayant refusé ou désistées le perdent (données
+-- conservées). La condition « Swend scellé » (D-019) reste appliquée par
+-- ailleurs. SECURITY DEFINER : lecture sans RLS, pour éviter toute récursion
+-- entre les politiques de pactes et de remplacants.
 
--- Utilisée par la politique SELECT de pactes : une fiche retirée ne donne
--- plus accès au Swend.
-create or replace function public.est_remplacant_du_pacte(p_pacte_id uuid)
+create or replace function public.fiche_de_confiance_accessible(p_remplacant_id uuid)
 returns boolean
 language sql
 stable
@@ -69,9 +77,72 @@ security definer
 set search_path = public
 as $$
   select exists (
-    select 1 from remplacants
-    where pacte_id = p_pacte_id and profil_id = auth.uid() and retire_le is null)
+    select 1 from remplacants r join pactes p on p.id = r.pacte_id
+    where r.id = p_remplacant_id
+      and r.retire_le is null
+      and (r.selectionne
+           or (p.statut not in ('annule', 'annuleDoubleAbsence', 'maintenu')
+               and (p.date_retenue is null or p.date_retenue > now()))))
 $$;
+
+-- L'utilisateur connecté a une fiche accessible sur ce Swend.
+create or replace function public.personne_de_confiance_a_acces(p_pacte_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null and exists (
+    select 1 from remplacants r
+    where r.pacte_id = p_pacte_id and r.profil_id = auth.uid()
+      and public.fiche_de_confiance_accessible(r.id))
+$$;
+
+-- Une conversation (fiche) est lisible par le titulaire de ce côté, ou par
+-- la personne de confiance elle-même si sa fiche lui est accessible.
+create or replace function public.fil_lisible(p_remplacant_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select auth.uid() is not null and exists (
+    select 1 from remplacants r join pactes p on p.id = r.pacte_id
+    where r.id = p_remplacant_id
+      and ((r.cote = 'initiateur' and p.initiateur_id = auth.uid())
+        or (r.cote = 'destinataire' and p.destinataire_id = auth.uid())
+        or (r.profil_id = auth.uid() and public.fiche_de_confiance_accessible(r.id))))
+$$;
+
+revoke execute on function public.fiche_de_confiance_accessible(uuid) from public, anon;
+revoke execute on function public.personne_de_confiance_a_acces(uuid) from public, anon;
+revoke execute on function public.fil_lisible(uuid) from public, anon;
+grant execute on function public.fiche_de_confiance_accessible(uuid) to authenticated;
+grant execute on function public.personne_de_confiance_a_acces(uuid) to authenticated;
+grant execute on function public.fil_lisible(uuid) to authenticated;
+
+-- Politiques RESTRICTIVES (combinées en ET avec les politiques existantes,
+-- quelles qu'elles soient, sans dépendre de leur nom ni de leur définition).
+-- Les titulaires ne sont jamais concernés.
+drop policy if exists pactes_acces_personne_de_confiance on public.pactes;
+create policy pactes_acces_personne_de_confiance on public.pactes
+  as restrictive for select to authenticated
+  using (initiateur_id = auth.uid() or destinataire_id = auth.uid()
+         or public.personne_de_confiance_a_acces(id));
+
+drop policy if exists remplacants_tiers_non_retire on public.remplacants;
+drop policy if exists remplacants_acces_personne_de_confiance on public.remplacants;
+create policy remplacants_acces_personne_de_confiance on public.remplacants
+  as restrictive for select to authenticated
+  using (profil_id is null or profil_id <> auth.uid()
+         or public.fiche_de_confiance_accessible(id));
+
+drop policy if exists evenements_fil_lecture_autorisee on public.evenements_fil;
+create policy evenements_fil_lecture_autorisee on public.evenements_fil
+  as restrictive for select to authenticated
+  using (public.fil_lisible(remplacant_id));
 
 -- État d'un côté pour les rappels (D-021) : une fiche retirée ne compte plus
 -- (comme avant, quand elle était supprimée).
@@ -582,7 +653,8 @@ end;
 $$;
 
 -- 3. Conversations de l'imprévu : lecture seule après H ou annulation ------------
--- Lecture : inchangée (Swend scellé, fil_est_actif). Écriture (nouveau
+-- Lecture : Swend scellé (fil_est_actif, D-019) et conversation lisible par
+-- l'appelant (fil_lisible, voir 0 bis). Écriture (nouveau
 -- message, et toute modification) : seulement tant que le Swend est scellé,
 -- toujours `confirme`, avant son heure, et la fiche active. Le contrôle se
 -- fait dans la transaction du message : un message commencé avant H passe,
@@ -614,7 +686,7 @@ drop policy if exists messages_suppression_ouverte on public.messages;
 
 create policy messages_lecture_apres_scellage on public.messages
   as restrictive for select to authenticated
-  using (public.fil_est_actif(remplacant_id));
+  using (public.fil_est_actif(remplacant_id) and public.fil_lisible(remplacant_id));
 create policy messages_ecriture_ouverte on public.messages
   as restrictive for insert to authenticated
   with check (public.fil_ecriture_ouverte(remplacant_id));
@@ -854,11 +926,12 @@ begin
         where r.id = any (v_cloturees) and r.profil_id is not null
         order by r.profil_id, r.id
       loop
+        -- Au clic : la fiche du Swend si la personne y a encore accès (jamais
+        -- après H pour une personne seulement sollicitée : l'app reste alors
+        -- sur l'accueil).
         perform notifier(v_fiche.profil_id, 'La demande n’est plus d’actualité',
           'L’heure du Swend est passée.',
-          jsonb_build_object('type', 'chat', 'remplacant_id', v_fiche.id,
-            'nom_interlocuteur', coalesce(case when v_fiche.cote = 'initiateur'
-              then v_initiateur_nom else v_destinataire_nom end, '')));
+          jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
       end loop;
     end if;
 
@@ -963,6 +1036,14 @@ select 'Actions d''imprévu refusées après H (8 fonctions + ajout d''une perso
         'ajouter_et_demander_remplacement', 'signaler_indisponibilite', 'signaler_disponibilite',
         'normaliser_nouveau_remplacant')) = 9)::text
 union all
+select 'Accès des personnes de confiance : Swend, fiche, événements (politiques restrictives)',
+  ((select count(*) from pg_policies where schemaname = 'public' and permissive = 'RESTRICTIVE'
+      and policyname in ('pactes_acces_personne_de_confiance', 'remplacants_acces_personne_de_confiance',
+                         'evenements_fil_lecture_autorisee')) = 3
+   and to_regprocedure('public.personne_de_confiance_a_acces(uuid)') is not null
+   and to_regprocedure('public.fiche_de_confiance_accessible(uuid)') is not null
+   and to_regprocedure('public.fil_lisible(uuid)') is not null)::text
+union all
 select 'Retirer une personne ne supprime plus rien',
   (select prosrc not like '%delete from%' and prosrc like '%retire_le = clock_timestamp()%'
    from pg_proc where oid = 'public.retirer_remplacant(uuid)'::regprocedure)::text
@@ -973,7 +1054,9 @@ select 'Conversations : écriture fermée après H ou annulation (politiques res
       and policyname in ('messages_lecture_apres_scellage', 'messages_ecriture_ouverte',
                          'messages_modification_ouverte', 'messages_suppression_ouverte')) = 4
    and not exists (select 1 from pg_policies where schemaname = 'public'
-                   and policyname = 'messages_apres_scellage'))::text
+                   and policyname = 'messages_apres_scellage')
+   and (select qual like '%fil_lisible%' from pg_policies where schemaname = 'public'
+        and policyname = 'messages_lecture_apres_scellage'))::text
 union all
 select 'Moteur du gel en place, réservé au serveur',
   (to_regprocedure('public.figer_swends_passes(timestamptz)') is not null

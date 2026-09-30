@@ -67,12 +67,15 @@ class _ChatScreenState extends State<ChatScreen> {
   /// la conversation est terminée (lecture seule, D-023a).
   Pacte? _pacteDuFil;
 
+  /// Vrai si la base ne me laisse plus accéder à cette conversation.
+  bool _inaccessible = false;
+
   /// Vrai si la base a refusé un message parce que la conversation est
   /// terminée (l'appareil n'était pas encore à l'heure).
   bool _refuseParLaBase = false;
 
   bool get _lectureSeule {
-    if (_refuseParLaBase) return true;
+    if (_refuseParLaBase || _inaccessible) return true;
     final pacte = _pacteDuFil;
     return pacte != null && conversationEnLectureSeule(pacte, DateTime.now());
   }
@@ -143,7 +146,21 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       final fiche = await PacteRepository.remplacantParId(widget.remplacantId);
       if (fiche != null && mounted) setState(() => _fiche = fiche);
-      if (fiche == null) return;
+      if (fiche == null) {
+        // La base ne me laisse plus lire cette conversation (personne de
+        // confiance sans place une fois le Swend passé ou annulé, D-023a ;
+        // personne retirée) : ouverte depuis une ancienne notification.
+        if (mounted) {
+          setState(() {
+            _inaccessible = true;
+            _fiche = null;
+            _maFiche = null;
+            _pacte = null;
+            _pacteDuFil = null;
+          });
+        }
+        return;
+      }
       final pacte = await PacteRepository.pacteDuRemplacant(
         widget.remplacantId,
       );
@@ -214,47 +231,60 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           ?bandeau,
           Expanded(
-            child: StreamBuilder<List<Message>>(
-              stream: _messages,
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final messages = snapshot.data!;
-                _marquerLuSiNouveau(messages);
-                final fiche = _fiche;
-                final elements = <Object>[
-                  ...messages,
-                  if (fiche != null) ..._evenements,
-                ]..sort((a, b) => _dateDe(a).compareTo(_dateDe(b)));
-                if (elements.isEmpty) {
-                  return const Center(
+            child: _inaccessible
+                ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(24),
                       child: Text(
-                        "Aucun message pour l'instant. Dis bonjour :)",
+                        "Cette conversation n'est plus accessible.",
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.black54),
                       ),
                     ),
-                  );
-                }
-                _defilerVersLeBas();
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.all(12),
-                  itemCount: elements.length,
-                  itemBuilder: (context, i) {
-                    final e = elements[i];
-                    return e is Message
-                        ? _bulle(e)
-                        : _evenement(e as EvenementFil, fiche!);
-                  },
-                );
-              },
-            ),
+                  )
+                : StreamBuilder<List<Message>>(
+                    stream: _messages,
+                    builder: (context, snapshot) {
+                      if (!snapshot.hasData) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final messages = snapshot.data!;
+                      _marquerLuSiNouveau(messages);
+                      final fiche = _fiche;
+                      final elements = <Object>[
+                        ...messages,
+                        if (fiche != null) ..._evenements,
+                      ]..sort((a, b) => _dateDe(a).compareTo(_dateDe(b)));
+                      if (elements.isEmpty) {
+                        return const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: Text(
+                              "Aucun message pour l'instant. Dis bonjour :)",
+                              textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.black54),
+                            ),
+                          ),
+                        );
+                      }
+                      _defilerVersLeBas();
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.all(12),
+                        itemCount: elements.length,
+                        itemBuilder: (context, i) {
+                          final e = elements[i];
+                          return e is Message
+                              ? _bulle(e)
+                              : _evenement(e as EvenementFil, fiche!);
+                        },
+                      );
+                    },
+                  ),
           ),
-          if (_lectureSeule)
+          if (_inaccessible)
+            const SizedBox.shrink()
+          else if (_lectureSeule)
             SafeArea(
               top: false,
               child: Container(

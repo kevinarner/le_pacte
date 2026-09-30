@@ -173,7 +173,7 @@ Le Swend est annulé immédiatement, en une seule opération côté serveur (sta
 - Une personne seulement prévue, jamais sollicitée, ne reçoit rien ; le Swend disparaît de `On compte sur toi`.
 - Une demande en attente est clôturée (événement « La demande n’est plus d’actualité » dans le fil).
 - L’identité d’un remplaçant n’est jamais révélée à l’autre titulaire.
-- Les conversations existantes (titulaire ↔ personnes de confiance) restent accessibles et lisibles après l’annulation, mais passent immédiatement en lecture seule (D-023a) : il n’y a plus de raison d’y écrire. Il n’existe pas de chat entre les deux titulaires.
+- Les conversations existantes (titulaire ↔ personnes de confiance) passent immédiatement en lecture seule (D-023a). Elles restent lisibles par les titulaires (toutes celles de leur côté) et par le remplaçant sélectionné (la sienne) ; les autres personnes de confiance n’y ont plus accès (voir 3.6). Il n’existe pas de chat entre les deux titulaires.
 
 #### Réservation
 
@@ -244,6 +244,15 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Il rejoint automatiquement `Passés et annulés`, sans confirmation ni badge particulier (`Réalisé`, `Terminé`, `En attente`…).
 - Il reste dans l’historique des deux titulaires et du remplaçant sélectionné encore actif à l’heure du Swend.
 - Il disparaît pour les personnes seulement prévues, sollicitées, ayant refusé ou s’étant désistées (`Mes Swends`, `On compte sur toi`, `Une demande t’attend`, box de l’accueil).
+
+#### Accès une fois le Swend passé ou annulé
+
+- Les deux titulaires gardent le Swend et peuvent relire toutes les conversations de leur côté qui ont eu une activité, y compris avec une personne qui n’a finalement pas participé.
+- Le remplaçant effectivement sélectionné garde le Swend dans son historique et peut relire sa propre conversation (en cas de double remplacement, chacun des deux).
+- Une personne seulement prévue, sollicitée, ayant refusé ou s’étant désistée n’a plus accès au Swend ni à sa conversation. Les données restent conservées ; seul son accès disparaît.
+- Une personne retirée de la liste n’a plus accès, à aucun moment ; un utilisateur extérieur n’a jamais accès.
+- Avant l’heure du Swend, sur un Swend en cours, chaque personne de confiance non retirée garde les accès de son rôle.
+- Garanti par la base (RLS), pas seulement par l’écran.
 - Un rappel cliqué après l’heure du Swend ouvre la fiche, jamais `Un imprévu ?`.
 
 #### Invariants

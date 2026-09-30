@@ -78,7 +78,8 @@ select verifier('X', 'scellé : Kevin peut se déclarer indisponible puis dispon
 -- testé dans 97_annulation_manuelle.sql).
 update pactes set statut = 'annule' where id = :'p';
 select verifier('X', 'la date de scellage ne bouge plus (annulation ultérieure)', (select scelle_le from pactes where id = :'p') is not null);
-select verifier('X', 'Swend scellé puis annulé : Kevin garde l''accès (inchangé)', vu_par_kevin(:'p') = '1/1/1', vu_par_kevin(:'p'));
+-- D-023a : Kevin, seulement prévu, perd l'accès une fois le Swend annulé.
+select verifier('X', 'Swend scellé puis annulé : Kevin (seulement prévu) n''a plus accès (D-023a)', vu_par_kevin(:'p') = '0/0/0', vu_par_kevin(:'p'));
 
 -- Refus : Kevin ne voit jamais rien.
 select swend_en_negociation() as p \gset

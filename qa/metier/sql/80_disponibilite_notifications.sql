@@ -118,8 +118,9 @@ select verifier('S', 'David ne lit ni la fiche ni son drapeau côté Eliot',
   compter_en_tant_que(:'D', format('select count(*) from remplacants where pacte_id = %L and cote = %L', :'p', 'initiateur')) = 0);
 select verifier('S', 'David ne lit aucun événement côté Eliot',
   compter_en_tant_que(:'D', format('select count(*) from evenements_fil e join remplacants r on r.id = e.remplacant_id where r.pacte_id = %L and r.cote = %L', :'p', 'initiateur')) = 0);
-select verifier('S', 'Kevin lit son propre drapeau',
-  compter_en_tant_que(:'K', format('select count(*) from remplacants where id = %L and indisponible_spontanement is not null', :'k')) = 1);
+-- D-023a : le Swend est annulé ; Kevin, seulement prévu, n'y a plus accès.
+select verifier('S', 'Swend annulé : Kevin (seulement prévu) ne lit plus sa fiche (D-023a)',
+  compter_en_tant_que(:'K', format('select count(*) from remplacants where id = %L', :'k')) = 0);
 
 -- ===================================================================
 -- N. Notifications des actions directes (D-015)

@@ -44,7 +44,10 @@ export default {
       await ex.verifier('Kevin n\'a pas pris la place', () => demande(FICHES.kevin) === 'envoyee|f', { obtenu: () => demande(FICHES.kevin) });
       await ex.verifier('Kevin : plus de bouton Accepter / Refuser', async () =>
         (await kevin.nombreDeBoutons('Accepter')) === 0 && (await kevin.nombreDeBoutons('Refuser')) === 0);
-      await ex.verifierTexte(kevin, 'L’heure de ce Swend est passée.', 'Kevin : bandeau « L’heure de ce Swend est passée. »');
+      // Seulement sollicité : après H, il n'a plus accès à la conversation.
+      await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin : conversation plus accessible');
+      await ex.verifier('Kevin : aucune zone de saisie',
+        async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
     });
 
     await ex.etape('Kevin : plus rien d\'actif (Home, Mes Swends, API)', async () => {
@@ -55,6 +58,9 @@ export default {
       await ex.verifierAbsent(kevin, /Swend d'Eliot avec David/, 'Kevin (seulement sollicité) : Swend absent de Mes Swends');
       const r = await appelerComme('kevin', 'repondre_demande_remplacement', { p_remplacant_id: FICHES.kevin, p_accepte: false });
       await ex.verifier('API : refuser après H → swend_passe', () => !r.ok && r.corps.includes('swend_passe'), { obtenu: () => r.corps });
+      const [sw, fi] = [await lireComme('kevin', 'pactes'), await lireComme('kevin', 'remplacants')];
+      await ex.verifier('API : Kevin (sollicité) ne lit plus ni le Swend ni sa fiche', () => sw.length === 0 && fi.length === 0,
+        { obtenu: () => `${sw.length} Swend, ${fi.length} fiche` });
     });
 
     await ex.etape('Eliot : Swend passé, plus aucune action d\'imprévu', async () => {

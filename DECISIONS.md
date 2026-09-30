@@ -479,6 +479,8 @@ Laisser un titulaire mettre fin proprement à un Swend, en l’orientant d’abo
 - Invariants : jamais de scellement d’un Swend dont la date est passée ; date d’un Swend scellé non modifiable par l’app ; retirer une personne ne détruit plus sa conversation (fiche archivée) ; un ancien rappel cliqué après H n’ouvre plus « Un imprévu ? ».
 - Rattrapage : les Swends déjà passés à la mise en place sont considérés comme traités (aucune push, aucun événement rétroactif).
 
+- Accès (précisé le 30/09) : une fois le Swend passé ou annulé, seuls les deux titulaires (toutes les conversations actives de leur côté) et le remplaçant effectivement sélectionné (sa conversation) gardent l’accès ; les personnes seulement prévues, sollicitées, ayant refusé ou désistées le perdent, données conservées ; une personne retirée n’a plus accès ; avant H, chaque personne de confiance non retirée garde les accès de son rôle. Garanti par des fonctions et politiques RLS versionnées ; `est_remplacant_du_pacte()` (non versionnée en production) n’est pas modifiée.
+
 D-023b (chat post-Swend) et D-023c (« Faire un nouveau Swend ») sont décidés à part et **non implémentés** à ce stade.
 
 Textes détaillés : `PRODUCT_RULES.md` §3.6.

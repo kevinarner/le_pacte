@@ -351,7 +351,15 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
   eu une activité (message ou événement ; ouverte directement s'il n'y en a
   qu'une, sinon choix) ; la personne de confiance qui garde le Swend (remplaçant
   accepté) a « Relire la conversation ». Les fils vierges ne sont jamais
-  proposés. Dans chaque conversation ayant eu une activité
+  proposés.
+- **Accès après H ou annulation** (garanti par la base) : les titulaires
+  gardent le Swend et toutes les conversations de leur côté ; le remplaçant
+  sélectionné garde le Swend et sa conversation ; les personnes seulement
+  prévues, sollicitées, ayant refusé ou désistées perdent tout accès (données
+  conservées) ; une conversation ouverte sans accès (ancienne notification)
+  affiche « Cette conversation n'est plus accessible. ». Avant H, rien ne
+  change. `est_remplacant_du_pacte()` n'est pas modifiée : la règle passe par
+  des fonctions et politiques restrictives versionnées. Dans chaque conversation ayant eu une activité
   (message ou événement), un dernier événement « Le Swend a commencé. Cette
   conversation est désormais terminée. » — jamais « non lu ». Une conversation
   vierge ne reçoit rien.
