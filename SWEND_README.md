@@ -414,11 +414,11 @@ nouveau Swend » (D-023c) n'est **pas** implémenté.
   `?chat_apres=<id>`) ; sans accès : « Cette conversation n'est plus
   accessible. ».
 - Entièrement séparé des conversations d'imprévu (tables, lecture,
-  notifications). **Pas encore actif** : migration
-  `20260930010000_chat_apres_swend.sql` exécutée et app déployée le 30/09 ;
-  restent l'Edge Function `send-notification` (lien web) et la
-  planification `supabase/planification/chat_apres_swend_pg_cron.sql` (non
-  activée : aucun chat ne s'ouvre).
+  notifications). **Techniquement en production depuis le 30/09** :
+  migration `20260930010000_chat_apres_swend.sql` exécutée (6/6), Edge
+  Function `send-notification` et app déployées, planification
+  `swend-chat-apres` active (chaque minute, exécutions `succeeded`). Test
+  réel humain à faire.
 
 ---
 

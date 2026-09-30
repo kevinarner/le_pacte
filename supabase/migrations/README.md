@@ -33,12 +33,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   production, puis seulement la migration (une ancienne version de l'app
   verrait ses lectures de Swends refusées).
   `20260930010000_chat_apres_swend.sql` : **exécutée le 30/09** (chat après
-  le Swend, D-023b) : 6 vérifications à true. App déployée le 30/09 ;
-  restent l'Edge Function `send-notification` (lien web du chat), puis la
-  planification.
+  le Swend, D-023b) : 6 vérifications à true. Edge Function
+  `send-notification` et app déployées le 30/09, planification active.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
-  migration : `supabase/planification/chat_apres_swend_pg_cron.sql`, **non
-  activée** (job `swend-chat-apres`, chaque minute). Le fichier repositionne
+  migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
+  **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque
+  minute, exécutions vérifiées : `succeeded`). Le fichier repositionne
   la borne de mise en service à `now()` et crée le job dans la même
   exécution : aucun rattrapage avant l'activation réelle.
 - La planification du gel à H (pg_cron, D-023a) n'est pas une migration :

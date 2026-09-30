@@ -1,4 +1,6 @@
--- Planification du chat après le Swend (D-023b) — PAS ENCORE ACTIVÉE EN PRODUCTION.
+-- Planification du chat après le Swend (D-023b) — ACTIVE EN PRODUCTION DEPUIS LE 30/09
+-- (job swend-chat-apres, exécutions vérifiées : succeeded). Ré-exécuter ce
+-- fichier repositionne la borne de mise en service à l'instant de l'exécution.
 -- À exécuter à la main dans le SQL Editor de Supabase (tout le fichier, sans
 -- rien sélectionner), UNIQUEMENT après :
 --   1. la migration 20260930010000_chat_apres_swend.sql ;

@@ -262,7 +262,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Retirer une personne de confiance ne détruit jamais sa conversation : elle est archivée avec son historique.
 - Les Swends déjà passés au moment de la mise en place de cette règle sont considérés comme déjà traités : aucune push, aucun événement rétroactif.
 
-L’après-Swend : chat après le Swend (D-023b, §3.7, implémenté, pas encore en production) ; « Faire un nouveau Swend » (D-023c) décidé, non implémenté.
+L’après-Swend : chat après le Swend (D-023b, §3.7, en production depuis le 30/09) ; « Faire un nouveau Swend » (D-023c) décidé, non implémenté.
 
 ### 3.7 Chat après le Swend (D-023b)
 
