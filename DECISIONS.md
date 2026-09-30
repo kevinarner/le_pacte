@@ -554,7 +554,7 @@ Un Swend réellement vécu mérite un débrief ; le mystère du remplacement n�
 D-023a (Swend figé à H), D-001 (confidentialité jusqu’à l’ouverture), D-024 (aucun numéro).
 
 ### Mise en production
-Implémenté et testé en local ; **rien déployé ni exécuté**. Ordre : migration `20260930010000_chat_apres_swend.sql`, app et Edge Function `send-notification`, puis planification `supabase/planification/chat_apres_swend_pg_cron.sql`, après feu vert.
+Migration `20260930010000_chat_apres_swend.sql` exécutée en production le 30/09/2026 (6/6 vérifications). App déployée le 30/09/2026 (gh-pages `7834b5f`). Restent : déploiement de l’Edge Function `send-notification` (lien web du chat), puis activation de `supabase/planification/chat_apres_swend_pg_cron.sql` (borne repositionnée à l’activation), après feu vert. Test réel humain à faire.
 
 ---
 
