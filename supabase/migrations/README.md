@@ -26,7 +26,7 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `supabase/controles/gel_a_h_controle.sql` (lecture seule) : 7 lignes à
   true. App correspondante déployée le 30/09.
   `20260930000000_confidentialite_telephones.sql` : **préparée, NON
-  exécutée** (D-024, confidentialité des numéros : l'app ne lit plus
+  exécutée** (app correspondante déployée le 30/09, gh-pages `80b4739`) (D-024, confidentialité des numéros : l'app ne lit plus
   `pactes.destinataire_telephone`). Ordre obligatoire : tests, déploiement de
   l'app qui ne relit plus cette colonne, vérification de cette app en
   production, et **seulement ensuite** la migration (sinon une ancienne

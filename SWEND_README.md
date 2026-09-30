@@ -473,9 +473,9 @@ message au support).
   seulement par `telephone_titulaire_accessible()`, tant qu'elle a accès au
   Swend. Un titulaire voit les numéros des personnes qu'il a ajoutées. Le
   numéro saisi pour le destinataire est écrit à la création mais jamais
-  relu par l'app. Aucun numéro dans les push. Migration
-  `confidentialite_telephones.sql` préparée, **non exécutée** (après
-  déploiement et vérification de l'app).
+  relu par l'app. Aucun numéro dans les push. App déployée le
+  30/09 ; migration `confidentialite_telephones.sql` préparée, **non
+  exécutée** (après vérification de l'app en production).
 
 ---
 
