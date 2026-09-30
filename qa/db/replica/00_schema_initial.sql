@@ -222,3 +222,18 @@ language sql security definer set search_path = public as $$
   where r.id = p_remplacant_id and r.profil_id = auth.uid()
 $$;
 grant execute on function telephone_titulaire_du_pacte(uuid) to authenticated;
+
+-- 3. Privilèges colonne par colonne sur pactes, comme en production ----------
+-- En production, l'app ne lit pactes que colonne par colonne (GRANT SELECT
+-- (colonnes) ; ARCHITECTURE.md section 4) : les colonnes d'historique
+-- (*_remplacant_N_*), puis celles ajoutées plus tard par les migrations
+-- (destinataire_telephone_e164, scelle_le, annule_par, annule_le) ne sont
+-- pas lisibles. La réplique reproduit ce SELECT par colonne pour que le banc
+-- détecte toute lecture d'une colonne non accordée (y compris « select * »).
+-- INSERT / UPDATE / DELETE restent accordés au niveau de la table (les
+-- règles d'écriture sont portées par la RLS et les déclencheurs).
+revoke select on pactes from anon, authenticated;
+grant select (id, type, statut, dates_proposees, date_retenue, nombre_echanges_date,
+              restaurant_id, initiateur_id, initiateur_nom, destinataire_id,
+              destinataire_nom, destinataire_telephone, created_at)
+  on pactes to authenticated;

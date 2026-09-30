@@ -11,6 +11,7 @@ export class Acteur {
     this.compte = COMPTES[nom];
     this.journal = [];      // console, erreurs de page, liens ouverts
     this.liensOuverts = []; // URL passées à window.open (sms:, wa.me…)
+    this.reponsesApi = [];  // réponses de l'API reçues par l'app (D-024 : numéros)
     this.enVol = 0;         // requêtes API en cours
     this.dernierMouvement = Date.now();
   }
@@ -42,6 +43,18 @@ export class Acteur {
     const fin = (r) => { if (estApi(r)) { this.enVol = Math.max(0, this.enVol - 1); this.dernierMouvement = Date.now(); } };
     this.page.on('requestfinished', fin);
     this.page.on('requestfailed', fin);
+    // Tout ce que l'API renvoie à l'app (corps des réponses, messages temps
+    // réel) : permet de vérifier qu'aucun numéro inutile ne lui parvient.
+    this.page.on('response', async (r) => {
+      if (!estApi(r)) return;
+      let corps = '';
+      try { corps = await r.text(); } catch { /* pas de corps (redirection, requête annulée) */ }
+      this.reponsesApi.push({ methode: r.request().method(), url: r.url(), corps });
+      if (this.reponsesApi.length > 5000) this.reponsesApi.shift();
+    });
+    this.page.on('websocket', (ws) => ws.on('framereceived', (f) => {
+      this.reponsesApi.push({ methode: 'WS', url: ws.url(), corps: String(f.payload) });
+    }));
     this.page.on('console', (m) => {
       const t = m.text();
       if (t.startsWith('QA_OUVERT:')) { const u = t.slice(10); this.liensOuverts.push(u); this.noter(`LIEN ${u}`); }

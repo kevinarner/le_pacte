@@ -20,10 +20,13 @@ import '../models/type_repas.dart';
 class PacteRepository {
   static SupabaseClient get _client => Supabase.instance.client;
 
-  static const _colonnesPacte =
+  /// Colonnes d'un Swend relues par l'app. Jamais `destinataire_telephone`
+  /// (D-024) : l'app l'écrit à la création mais ne le relit pas — sinon
+  /// chaque personne de confiance recevrait le numéro de l'autre titulaire.
+  static const colonnesPacte =
       'id, type, statut, dates_proposees, date_retenue, '
       'nombre_echanges_date, restaurant_id, initiateur_id, initiateur_nom, '
-      'destinataire_id, destinataire_nom, destinataire_telephone, created_at';
+      'destinataire_id, destinataire_nom, created_at';
 
   static Restaurant? _restaurantCache;
 
@@ -86,7 +89,7 @@ class PacteRepository {
   static Future<List<Pacte>> mesPactes() async {
     final rows = await _client
         .from('pactes')
-        .select(_colonnesPacte)
+        .select(colonnesPacte)
         .order('created_at', ascending: false);
     final restau = await restaurant();
     final pactes = <Pacte>[];
@@ -122,7 +125,7 @@ class PacteRepository {
   static Future<Pacte?> pacteParId(String id) async {
     final rows = await _client
         .from('pactes')
-        .select(_colonnesPacte)
+        .select(colonnesPacte)
         .eq('id', id)
         .limit(1);
     if (rows.isEmpty) return null;
@@ -250,7 +253,7 @@ class PacteRepository {
           'destinataire_nom': destinataireNom,
           'destinataire_telephone': destinataireTelephone,
         })
-        .select(_colonnesPacte)
+        .select(colonnesPacte)
         .single();
 
     final pacteId = row['id'] as String;

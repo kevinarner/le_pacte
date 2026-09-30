@@ -924,6 +924,18 @@ Le numéro canonique E.164 est utilisé pour construire les liens techniques né
 
 `Copier le message` est prévu pour plus tard.
 
+### 10.10 Confidentialité des numéros (D-024)
+
+Un numéro de téléphone n’est jamais accessible simplement parce qu’on peut lire un Swend.
+
+- Une personne de confiance n’obtient jamais le numéro de l’autre titulaire.
+- Elle obtient le numéro de son propre titulaire seulement pour l’appeler depuis leur conversation, et seulement tant qu’elle a accès au Swend (règles de §3.6).
+- Un titulaire voit les numéros des personnes de confiance qu’il a lui-même ajoutées.
+- Le numéro saisi pour l’autre participant sert à le retrouver et à le rattacher ; l’app ne le relit pas.
+- Aucun numéro dans les notifications.
+
+Risque résiduel accepté en V1 : un titulaire peut confirmer qu’un numéro qu’il devine est celui de l’autre participant (l’ajout de ce numéro comme personne de confiance est refusé).
+
 ---
 
 ## 11. Réservation du restaurant

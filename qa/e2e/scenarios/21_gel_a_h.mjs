@@ -67,7 +67,7 @@ export default {
       await ex.verifierAbsent(kevin, /Swend d'Eliot avec David/, 'Kevin (seulement sollicité) : Swend absent de Mes Swends');
       const r = await appelerComme('kevin', 'repondre_demande_remplacement', { p_remplacant_id: FICHES.kevin, p_accepte: false });
       await ex.verifier('API : refuser après H → swend_passe', () => !r.ok && r.corps.includes('swend_passe'), { obtenu: () => r.corps });
-      const [sw, fi] = [await lireComme('kevin', 'pactes'), await lireComme('kevin', 'remplacants')];
+      const [sw, fi] = [await lireComme('kevin', 'pactes', 'select=id'), await lireComme('kevin', 'remplacants')];
       await ex.verifier('API : Kevin (sollicité) ne lit plus ni le Swend ni sa fiche', () => sw.length === 0 && fi.length === 0,
         { obtenu: () => `${sw.length} Swend, ${fi.length} fiche` });
     });

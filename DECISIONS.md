@@ -496,6 +496,39 @@ Techniquement en production depuis le 30/09/2026 : migration `20260929000000_gel
 
 ---
 
+## D-024 — Confidentialité des numéros de téléphone
+
+**Statut : Validée**  
+**Décidée : 30/09/2026**
+
+### Décision
+Un numéro de téléphone n’est jamais accessible simplement parce qu’un utilisateur peut lire un Swend.
+
+- Une personne de confiance n’obtient jamais le numéro de l’autre titulaire.
+- Le numéro de son propre titulaire ne lui parvient que par `telephone_titulaire_accessible()`, selon ses droits du moment (D-023a).
+- La ligne `pactes` ne donne plus aucun numéro à l’app : `destinataire_telephone` reste écrit à la création (rattachement du destinataire par la base) mais n’est plus relu, ni par les personnes de confiance ni par les titulaires (aucun écran ne l’utilisait). `destinataire_telephone_e164` reste illisible.
+- Aucun numéro dans les notifications ni dans les journaux de l’app (le log d’ouverture d’une notification ne contient plus que son type).
+- Règles entre les deux titulaires inchangées en pratique : l’initiateur ne revoyait déjà ce numéro nulle part, le destinataire n’a jamais obtenu celui de l’initiateur.
+
+Correction minimale : l’app ne demande plus la colonne ; une migration courte retire le `SELECT` de l’app sur `pactes.destinataire_telephone` (et réaffirme l’absence de `SELECT` sur `destinataire_telephone_e164`), garde l’écriture à la création ; aucune politique RLS ni fonction modifiée.
+
+Ordre de production obligatoire : tests, déploiement de l’app, vérification de la nouvelle app en production, puis seulement la migration.
+
+### Risques résiduels acceptés (V1)
+- Un titulaire peut confirmer qu’un numéro qu’il devine est celui de l’autre titulaire : l’ajout de ce numéro comme personne de confiance est refusé (`personne_est_participant`). Confirmation d’une hypothèse seulement ; accepté pour la V1.
+- Hors D-024 : nettoyage des tables internes `sauvegarde.*` (fermées à l’app) ; commentaire obsolète de `notifier_nouveau_message()` (non versionnée) qui mentionne encore `telephone_titulaire_du_pacte()` — signalé, fonction non réécrite pour cela.
+
+### Raison
+Audit du 30/09 : toute personne de confiance ayant accès à un Swend lisait `pactes.destinataire_telephone`, donc le numéro de l’autre titulaire côté initiateur, et celui de son titulaire sans passer par la fonction dédiée côté destinataire. L’app le téléchargeait à chaque chargement de l’accueil, sans l’afficher.
+
+### Précise
+D-001 (confidentialité du remplacement), D-023a (numéro du titulaire soumis à la règle d’accès).
+
+### Mise en production
+App et migration `20260930000000_confidentialite_telephones.sql` prêtes, QA OK ; **rien de déployé ni d’exécuté** à ce stade.
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

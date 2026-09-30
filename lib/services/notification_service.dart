@@ -65,7 +65,7 @@ class NotificationService {
 
   static Future<void> _gererClicNotification(RemoteMessage message) async {
     // ignore: avoid_print
-    print('[Swend] Notification ouverte : ${message.data}');
+    print('[Swend] Notification ouverte : ${message.data['type']}');
     final data = message.data;
     switch (data['type']) {
       case 'pacte':

@@ -25,6 +25,13 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   10 vérifications à true, et contrôle
   `supabase/controles/gel_a_h_controle.sql` (lecture seule) : 7 lignes à
   true. App correspondante déployée le 30/09.
+  `20260930000000_confidentialite_telephones.sql` : **préparée, NON
+  exécutée** (D-024, confidentialité des numéros : l'app ne lit plus
+  `pactes.destinataire_telephone`). Ordre obligatoire : tests, déploiement de
+  l'app qui ne relit plus cette colonne, vérification de cette app en
+  production, et **seulement ensuite** la migration (sinon une ancienne
+  version de l'app verrait ses lectures de Swends refusées). 6 vérifications
+  à true attendues.
 - La planification du gel à H (pg_cron, D-023a) n'est pas une migration :
   `supabase/planification/gel_a_h_pg_cron.sql`. **Active en production
   depuis le 30/09** (job `swend-gel-a-h`, toutes les 5 minutes, exécutions

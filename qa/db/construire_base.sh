@@ -23,7 +23,7 @@ appliquer() {
 appliquer "$QA_ROOT/db/replica/00_schema_initial.sql"
 for f in "$REPO_ROOT"/supabase/migrations/*.sql; do appliquer "$f"; done
 if [ "$REJOUER" = "--rejouer" ]; then
-  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h}.sql; do
+  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h,confidentialite_telephones}.sql; do
     appliquer "$f"
   done
 fi

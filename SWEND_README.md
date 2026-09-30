@@ -467,6 +467,15 @@ message au support).
 - L'app **ne peut pas chercher un compte par numéro**, sauf un oui / non limité
   (20 numéros par 24 h) pour afficher « est déjà sur Swend » sur une personne
   qu'on est en train d'ajouter.
+- **Confidentialité des numéros (D-024)** : lire un Swend ne donne aucun
+  numéro. Une personne de confiance n'obtient jamais le numéro de l'autre
+  titulaire ; celui de son titulaire (bouton « Appeler » de la conversation)
+  seulement par `telephone_titulaire_accessible()`, tant qu'elle a accès au
+  Swend. Un titulaire voit les numéros des personnes qu'il a ajoutées. Le
+  numéro saisi pour le destinataire est écrit à la création mais jamais
+  relu par l'app. Aucun numéro dans les push. Migration
+  `confidentialite_telephones.sql` préparée, **non exécutée** (après
+  déploiement et vérification de l'app).
 
 ---
 
@@ -553,6 +562,11 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   concurrentes sont sérialisées par verrou.
 - Un historique « qui a remplacé qui » est conservé dans des colonnes
   invisibles pour l'app.
+- Numéros (D-024, après la migration `confidentialite_telephones.sql`) :
+  l'app ne peut plus lire `pactes.destinataire_telephone` (écriture à la
+  création conservée) ; les seuls numéros lisibles sont ceux des fiches de
+  son côté (RLS), le sien, et celui de son titulaire via
+  `telephone_titulaire_accessible()`.
 
 ---
 

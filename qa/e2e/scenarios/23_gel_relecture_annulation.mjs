@@ -60,12 +60,12 @@ export default {
     });
 
     await ex.etape('Sylvain (seulement prévu) n\'a plus accès ; David ne voit rien', async () => {
-      const [sw, fi, s] = [await lireComme('sylvain', 'pactes'), await lireComme('sylvain', 'remplacants'), await lireComme('sylvain', 'messages')];
+      const [sw, fi, s] = [await lireComme('sylvain', 'pactes', 'select=id'), await lireComme('sylvain', 'remplacants'), await lireComme('sylvain', 'messages')];
       await ex.verifier('API : Sylvain ne lit plus ni le Swend, ni sa fiche, ni la conversation',
         () => sw.length === 0 && fi.length === 0 && s.length === 0, { obtenu: () => `${sw.length}/${fi.length}/${s.length}` });
       await ex.verifier('le message à Sylvain reste en base',
         () => sql(`select count(*) from messages where contenu = 'Et toi Sylvain ?'`) === '1');
-      const k = await lireComme('kevin', 'pactes');
+      const k = await lireComme('kevin', 'pactes', 'select=id');
       await ex.verifier('API : Kevin (sélectionné) lit toujours le Swend annulé', () => k.length === 1, { obtenu: () => `${k.length}` });
       const tk = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
       const ts = await appelerComme('sylvain', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.sylvain });

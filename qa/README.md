@@ -65,7 +65,8 @@ qa/
   metier/rattrapage.sh     migration téléphone sur des données existantes "sales"
   e2e/run.mjs              lanceur E2E (suites smoke / full, --scenario, --liste)
   e2e/lib/                 acteur (session navigateur isolée), actions métier,
-                           vérifications, confidentialité de David, rapport
+                           vérifications, confidentialité de David, rapport,
+                           numeros.mjs (numéros reçus dans les réponses réseau, D-024)
   e2e/scenarios/*.mjs      un fichier par scénario
   artifacts/               rapports et artefacts d'échec (non versionné)
 ```
@@ -137,6 +138,18 @@ Règles :
 Ajouter un test SQL : un fichier `qa/metier/sql/NN_nom.sql` qui utilise
 `verifier(scenario, libellé, condition)` (défini dans `10_imprevu.sql`).
 
+Numéros de téléphone (D-024) : chaque acteur garde tout ce que l'API lui a
+renvoyé (`acteur.reponsesApi` : corps des réponses et messages temps réel).
+`numerosNonAutorises(acteur, { kevin: true, eliot: /rpc\/telephone_titulaire_accessible/ })`
+(`e2e/lib/numeros.mjs`) liste les numéros connus reçus hors de ce qui est
+autorisé, quel que soit leur format. Scénario `24_confidentialite_telephones`,
+tests SQL `96_confidentialite_telephones.sql` (matrice rôles × états, listes
+blanches des colonnes et fonctions qui exposent un numéro, push).
+
+Lectures API « en tant que » sur `pactes` : toujours avec des colonnes
+explicites (`lireComme('kevin', 'pactes', 'select=id')`) — comme en
+production, `select=*` y est refusé (privilèges colonne par colonne).
+
 ## Lire un échec
 
 Le rapport indique le scénario, l'étape, l'attendu et l'obtenu :
@@ -188,6 +201,9 @@ Le banc refuse de démarrer si quoi que ce soit ressemble à la production :
 - La base locale est une **réplique reconstruite** du schéma de production
   (d'après les migrations et le schéma documenté), pas une copie : un écart
   avec la production reste possible sur ce qui n'est pas versionné.
+  Privilèges : sur `pactes`, la lecture est accordée colonne par colonne
+  comme en production (depuis D-024 ; les colonnes ajoutées ensuite ne sont
+  pas lisibles) ; les écritures restent accordées au niveau de la table.
 - Auth simulée : connexion par mot de passe des 4 comptes seulement
   (l'inscription et la connexion par passkey ne sont pas couvertes).
 - Realtime simulé : les changements sont relus toutes les 300 ms sous le
