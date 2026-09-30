@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/chat_apres_swend.dart';
 import '../../models/demande_statut.dart';
 import '../../models/fil_de_discussion.dart';
 import '../../models/gel_swend.dart';
@@ -7,6 +8,7 @@ import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/app_store.dart';
+import '../../services/chat_apres_swend_repository.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
@@ -14,6 +16,7 @@ import '../../utils/noms.dart';
 import '../../widgets/action_disponibilite.dart';
 import '../accueil/accueil_screen.dart';
 import '../creer_pacte/creer_pacte_screen.dart';
+import '../detail_pacte/chat_apres_swend_screen.dart';
 import '../detail_pacte/chat_screen.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 import '../profil/profil_screen.dart';
@@ -42,6 +45,9 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   List<Pacte>? mesPactes;
   List<FilDeDiscussion>? mesFils;
 
+  /// Chats après le Swend ouverts (D-023b).
+  List<ChatApresSwend>? mesChatsApres;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +66,13 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
       final fils = await PacteRepository.mesFilsDeDiscussion();
       if (!mounted) return;
       setState(() => mesFils = fils);
+    } catch (_) {
+      // Idem.
+    }
+    try {
+      final chats = await ChatApresSwendRepository.mesChats();
+      if (!mounted) return;
+      setState(() => mesChatsApres = chats);
     } catch (_) {
       // Idem.
     }
@@ -206,6 +219,10 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     final nonLus = _filsNonLus;
     final demandes = _demandesTiers;
     final onCompteSurMoi = _onCompteSurMoi;
+    // Après le Swend (D-023b) : au plus 2 cartes, après les urgences des
+    // Swends en cours (demandes, conversations d'imprévu non lues) et avant
+    // le prochain Swend.
+    final apresSwend = cartesAccueilApresSwend(mesChatsApres ?? const []);
 
     return Scaffold(
       body: SafeArea(
@@ -227,12 +244,16 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                 _carteDemande(p, v),
                 const SizedBox(height: 12),
               ],
-              if (prochain != null) ...[
-                _cartePlusProche(prochain),
-                const SizedBox(height: 12),
-              ],
               for (final fil in nonLus) ...[
                 _carteMessage(fil),
+                const SizedBox(height: 12),
+              ],
+              for (final chat in apresSwend) ...[
+                _carteApresSwend(chat),
+                const SizedBox(height: 12),
+              ],
+              if (prochain != null) ...[
+                _cartePlusProche(prochain),
                 const SizedBox(height: 12),
               ],
               FilledButton.icon(
@@ -514,6 +535,52 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                         fontSize: 12,
                         color: AppColors.texteAttenue,
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right, color: Colors.black38),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// « Alors, ce Swend ? / Le silence est levé. » tant que je n'ai jamais
+  /// ouvert le chat, puis « David vous a écrit / Après le Swend · Au Père
+  /// Lapin · 13 octobre » s'il y a des messages non lus. Jamais le contenu.
+  Widget _carteApresSwend(ChatApresSwend chat) {
+    final pacte = mesPactes?.where((p) => p.id == chat.pacteId).firstOrNull;
+    return Card(
+      color: AppColors.pecheClair,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(radiusLg),
+        onTap: () => _ouvrir(ChatApresSwendScreen(chatId: chat.id)),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
+              Icon(
+                chat.nonLus > 0 ? Icons.mail_outline : Icons.forum_outlined,
+                color: AppColors.peche,
+                size: 22,
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      chat.titreCarteAccueil,
+                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14),
+                    ),
+                    Text(
+                      chat.sousTitreCarteAccueil(
+                        restaurant: pacte?.restaurantRetenu?.nom,
+                        date: pacte?.dateRetenue,
+                      ),
+                      style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue),
                     ),
                   ],
                 ),

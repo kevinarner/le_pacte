@@ -381,8 +381,43 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
 `20260929000000_gel_a_h.sql` exécutée (10/10 vérifications, contrôle 7/7),
 app déployée, planification (job pg_cron `swend-gel-a-h`, toutes les
 5 minutes) active, exécutions vérifiées (`succeeded`). Test réel humain à
-faire. Le chat post-Swend
-(D-023b) et « Faire un nouveau Swend » (D-023c) ne sont **pas** implémentés.
+faire. Le chat après le Swend (D-023b) est décrit en 5.12 ; « Faire un
+nouveau Swend » (D-023c) n'est **pas** implémenté.
+
+### 5.12 Chat après le Swend (D-023b)
+
+- **Ouverture automatique** : H+3 si c'est au plus tard 23:00 (heure de
+  Paris) le jour du Swend, sinon 10:00 le lendemain (20h → 23h ; 20h30 →
+  lendemain 10h). Moteur `ouvrir_chats_apres_swend()` chaque minute (pg_cron
+  `swend-chat-apres`), seulement pour un Swend confirmé, scellé et figé par
+  D-023a ; jamais pour un Swend annulé ; pas de rattrapage avant la mise en
+  service. Push « Alors, ce Swend ? / Le silence est levé. Vous pouvez
+  maintenant en reparler dans le chat. » à chaque participant (sauf retard
+  de plus de 12 h : chat ouvert sans push).
+- **Participants** figés à l'ouverture : Eliot, David, et le remplaçant final
+  (Kevin) s'il existe. Jamais Sylvain sollicité non choisi, ni une personne
+  prévue, ayant refusé, désistée ou retirée.
+- **Révélation** à l'ouverture seulement : Eliot « Kevin a pris votre
+  place. », David « Kevin a pris la place d'Eliot. », Kevin « Tu as pris la
+  place d'Eliot. ».
+- **Fiche** d'un Swend passé : bloc « APRÈS LE SWEND » (Discuter / David vous
+  a écrit ; Avec David et Kevin). **Mes Swends** : Discuter / ● David vous a
+  écrit. **Accueil** : « Alors, ce Swend ? » tant que le chat n'a jamais été
+  ouvert, puis « David vous a écrit » / « Après le Swend · Au Père Lapin ·
+  13 octobre » (2 cartes au plus, jamais le contenu), après les urgences des
+  Swends en cours et avant le prochain Swend.
+- **Chat** : « Swend au Père Lapin / Après le Swend / Eliot · David · Kevin »,
+  « À vous de débriefer. » tant qu'il est vide, texte et emoji (2 000
+  caractères), prénom sur les bulles seulement à 3. Chaque message :
+  « Kevin vous a écrit / Après le Swend · Au Père Lapin » aux autres, sans
+  contenu. Lecture individuelle. Le clic sur une push ouvre le chat (web :
+  `?chat_apres=<id>`) ; sans accès : « Cette conversation n'est plus
+  accessible. ».
+- Entièrement séparé des conversations d'imprévu (tables, lecture,
+  notifications). **Pas encore en production** : migration
+  `20260930010000_chat_apres_swend.sql`, app, Edge Function
+  `send-notification` (lien web) et planification
+  `supabase/planification/chat_apres_swend_pg_cron.sql`.
 
 ---
 
@@ -585,8 +620,8 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
 - Statut `maintenu` (« Rendez-vous maintenu ») : il existe dans le modèle, mais
   rien ne le déclenche automatiquement aujourd'hui (volontairement : un Swend
   passé reste `confirme`, D-023a).
-- Après-Swend : chat post-Swend (D-023b) et « Faire un nouveau Swend »
-  (D-023c) — décidés, **non implémentés**.
+- « Faire un nouveau Swend » et fermeture du chat après le Swend (D-023c) —
+  décidés, **non implémentés** (le modèle du chat le permet déjà).
 
 ---
 

@@ -26,11 +26,16 @@ class BlocTiers extends StatefulWidget {
   final PerspectivePacte perspective;
   final Future<void> Function() onRecharger;
 
+  /// Swend passé, chat après le Swend ouvert (D-023b) : bloc placé au-dessus
+  /// de la relecture de l'imprévu ; il porte alors « Tu as pris la place… ».
+  final Widget? blocApresSwend;
+
   const BlocTiers({
     super.key,
     required this.pacte,
     required this.perspective,
     required this.onRecharger,
+    this.blocApresSwend,
   });
 
   @override
@@ -72,7 +77,15 @@ class _BlocTiersState extends State<BlocTiers> {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: [_carteInfos(), const SizedBox(height: 16), _carteEtat()],
+      children: [
+        _carteInfos(),
+        const SizedBox(height: 16),
+        if (widget.blocApresSwend case final bloc?) ...[
+          bloc,
+          const SizedBox(height: 16),
+        ],
+        _carteEtat(),
+      ],
     );
   }
 
@@ -162,8 +175,11 @@ class _BlocTiersState extends State<BlocTiers> {
       // Gel à H (D-023a) : plus aucune action (ni réponse, ni désistement,
       // ni disponibilité) ; la conversation reste lisible.
       contenu = [
-        if (_fiche.selectionne)
+        // Chat après le Swend ouvert : la révélation est dans son bloc.
+        if (_fiche.selectionne && widget.blocApresSwend == null)
           _titre('Tu as pris la place ${deNom(_titulaire)}')
+        else if (_fiche.selectionne)
+          _texte("L’heure de ce Swend est passée.")
         else
           _texte("L’heure de ce Swend est passée."),
         if (_filActif) ...[

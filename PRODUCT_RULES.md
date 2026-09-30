@@ -262,7 +262,58 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Retirer une personne de confiance ne détruit jamais sa conversation : elle est archivée avec son historique.
 - Les Swends déjà passés au moment de la mise en place de cette règle sont considérés comme déjà traités : aucune push, aucun événement rétroactif.
 
-L’après-Swend (chat post-Swend, D-023b ; « Faire un nouveau Swend », D-023c) est décidé mais pas encore implémenté.
+L’après-Swend : chat après le Swend (D-023b, §3.7, implémenté, pas encore en production) ; « Faire un nouveau Swend » (D-023c) décidé, non implémenté.
+
+### 3.7 Chat après le Swend (D-023b)
+
+Après un Swend qui a eu lieu, le silence est levé : un chat s’ouvre automatiquement.
+
+#### Ouverture
+
+- H+3 si H+3 tombe au plus tard à 23:00 (heure de Paris) le jour du Swend ; sinon 10:00 le lendemain. Exemples : 12h → 15h ; 20h → 23h ; 20h01, 20h30, 22h → lendemain 10h.
+- Le chat et sa notification deviennent disponibles au même moment ; rien n’existe avant.
+- Jamais de chat pour un Swend annulé (y compris annulation pour double remplacement).
+- Pas de rattrapage : un Swend dont l’ouverture tombe avant la mise en service de D-023b n’a pas de chat.
+- Si l’ouverture est traitée en retard, le chat s’ouvre quand même ; la notification seulement si le retard ne dépasse pas 12 heures.
+
+Notification (une par participant, sans rappel) :
+
+> Alors, ce Swend ?
+> Le silence est levé. Vous pouvez maintenant en reparler dans le chat.
+
+#### Participants (3 au plus)
+
+- Les deux titulaires d’origine, et le remplaçant sélectionné à l’heure du Swend s’il existe. Le titulaire remplacé reste membre.
+- Jamais : une personne seulement prévue, sollicitée non choisie, ayant refusé, désistée ou retirée ; si quelqu’un a accepté puis s’est désisté, seul le remplaçant final participe.
+- Prénom du compte, figé à l’ouverture ; compte supprimé plus tard : « Compte supprimé », historique conservé.
+
+#### Révélation (à partir de l’ouverture seulement)
+
+- Titulaire remplacé : `Kevin a pris votre place.`
+- Autre titulaire : `Kevin a pris la place d’Eliot.`
+- Remplaçant (tutoyé, comme toute personne de confiance) : `Tu as pris la place d’Eliot.`
+- Le Swend reste nommé d’après ses titulaires d’origine.
+
+#### Placement
+
+Pas d’onglet ni de liste de conversations : accès depuis le Swend.
+
+- Fiche d’un Swend passé : bloc `APRÈS LE SWEND` (au-dessus de la relecture de l’imprévu), seulement une fois le chat ouvert : `Discuter` / `David vous a écrit` (plus tard `Conversation terminée`), puis `Avec David` / `Avec David et Kevin`.
+- Mes Swends : `Discuter`, `● David vous a écrit`, (plus tard `Conversation terminée`), `Annulé`. Aucun statut `Réalisé` / `Terminé` ; ordre chronologique inchangé.
+- Accueil : tant que je n’ai jamais ouvert le chat, `Alors, ce Swend ?` / `Le silence est levé.` ; ensuite, s’il y a des messages non lus, `David vous a écrit` (ou `4 nouveaux messages` dans un chat à 2 ; dernier expéditeur dans un chat à 3) / `Après le Swend · Au Père Lapin · 13 octobre`. Jamais le contenu. 2 cartes au plus, triées par dernier message. Priorité : urgences des Swends en cours (y compris l’imprévu), puis après le Swend, puis prochain Swend.
+- Entre l’heure du Swend et l’ouverture : aucun nouveau libellé, aucun bloc.
+
+#### Chat
+
+- En-tête : `Swend au Père Lapin` / `Après le Swend`, puis `Eliot · David` ou `Eliot · David · Kevin`.
+- Premier affichage sans message : `À vous de débriefer.` (aucun message système d’ouverture).
+- Texte et emoji, 2 000 caractères au plus. Pas d’image, GIF, réaction, pièce jointe, vocal, modification, suppression, « Quitter », « Vu à… », « en train d’écrire », présence.
+- Prénom au-dessus des bulles seulement à 3 ; aucun badge « remplaçant ».
+- Lecture strictement individuelle.
+- Nouveau message : `[Prénom] vous a écrit` / `Après le Swend · [Restaurant]`, à chacun des autres ; jamais le contenu, jamais de numéro. Le clic ouvre directement le chat (mobile et web) ; sans accès : `Cette conversation n’est plus accessible.`
+- Sans limite de temps côté produit ; historique conservé avec le Swend.
+
+D-023c (non implémenté) pourra fermer un chat en lecture seule avec : `Un nouveau Swend a été scellé. Le chat est désormais fermé pour préserver le silence.`
 
 ---
 
@@ -1059,7 +1110,7 @@ Le cœur de Swend comprend notamment :
 
 #### Après le Swend
 
-- chat post-Swend (D-023b, décidé, non implémenté) ;
+- chat après le Swend (D-023b, implémenté, voir §3.7) ;
 - `Faire un nouveau Swend` depuis ce chat (D-023c, décidé, non implémenté) ;
 - historique détaillé.
 

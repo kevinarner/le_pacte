@@ -2,18 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/annulation_swend.dart';
+import '../../models/chat_apres_swend.dart';
 import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/chat_apres_swend_repository.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
 import 'annulation_swend_dialogues.dart';
+import 'bloc_apres_swend.dart';
 import 'bloc_attente.dart';
 import 'bloc_choix_date.dart';
 import 'bloc_conversations_terminees.dart';
@@ -21,6 +24,7 @@ import 'bloc_epilogue.dart';
 import 'bloc_presence.dart';
 import 'bloc_reponse.dart';
 import 'bloc_tiers.dart';
+import 'chat_apres_swend_screen.dart';
 import 'imprevu_screen.dart';
 
 class DetailPacteScreen extends StatefulWidget {
@@ -33,6 +37,37 @@ class DetailPacteScreen extends StatefulWidget {
 
 class _DetailPacteScreenState extends State<DetailPacteScreen> {
   late Pacte _pacte = widget.pacte;
+
+  /// Chat après le Swend (D-023b), s'il est ouvert et que j'y participe.
+  ChatApresSwend? _chat;
+
+  @override
+  void initState() {
+    super.initState();
+    _chargerChat();
+  }
+
+  /// Seulement pour un Swend passé, non annulé : la base n'ouvre un chat que
+  /// dans ce cas (et seulement à l'heure prévue).
+  Future<void> _chargerChat() async {
+    final p = _pacte;
+    if (p.statut != StatutPacte.confirme || !estPasse(p, DateTime.now())) return;
+    try {
+      final chat = await ChatApresSwendRepository.chatDuPacte(p.id);
+      if (!mounted) return;
+      setState(() => _chat = chat);
+    } catch (_) {
+      // Sans chat : la fiche reste celle d'un Swend passé.
+    }
+  }
+
+  Future<void> _ouvrirChat(ChatApresSwend chat) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ChatApresSwendScreen(chatId: chat.id)),
+    );
+    await _chargerChat();
+  }
 
   Future<void> _recharger() async {
     try {
@@ -217,12 +252,18 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           // aucune action d'imprévu — seules les conversations restent
           // lisibles.
           if (pacte.statut == StatutPacte.confirme &&
-              estPasse(pacte, DateTime.now()))
+              estPasse(pacte, DateTime.now())) ...[
+            // Après le Swend (D-023b) : au-dessus de la relecture de
+            // l'imprévu ; il porte alors la révélation du remplacement.
+            if (_chat case final chat?) ...[
+              BlocApresSwend(chat: chat, onOuvrir: () => _ouvrirChat(chat)),
+              const SizedBox(height: 12),
+            ],
             BlocConversationsTerminees(
               monCote: jeSuisInitiateur ? pacte.initiateur : pacte.destinataire,
-              rappelerRemplacement: true,
-            )
-          else if (pacte.statut == StatutPacte.confirme) ...[
+              rappelerRemplacement: _chat == null,
+            ),
+          ] else if (pacte.statut == StatutPacte.confirme) ...[
             BlocPresence(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,
@@ -304,6 +345,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           pacte: pacte,
           perspective: perspective,
           onRecharger: _recharger,
+          blocApresSwend: _chat == null
+              ? null
+              : BlocApresSwend(chat: _chat!, onOuvrir: () => _ouvrirChat(_chat!)),
         ),
       ),
     );

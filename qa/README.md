@@ -146,6 +146,13 @@ autorisé, quel que soit leur format. Scénario `24_confidentialite_telephones`,
 tests SQL `96_confidentialite_telephones.sql` (matrice rôles × états, listes
 blanches des colonnes et fonctions qui exposent un numéro, push).
 
+Chat après le Swend (D-023b) : tests SQL `99b_chat_apres_swend.sql` (heures
+d'ouverture et changements d'heure, rattrapage, retard, participants, accès,
+non-lus, messages, push, fermeture D-023c), concurrence (3 moteurs
+simultanés), scénario E2E `25_chat_apres_swend`. Dans les scénarios, la
+fixture vide `chat_apres_swend_service` : poser la mise en service avant
+d'appeler `ouvrir_chats_apres_swend(<instant>)`.
+
 Lectures API « en tant que » sur `pactes` : toujours avec des colonnes
 explicites (`lireComme('kevin', 'pactes', 'select=id')`) — comme en
 production, `select=*` y est refusé (privilèges colonne par colonne).

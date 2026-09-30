@@ -28,6 +28,10 @@ function lienWeb(data?: Record<string, string>): string {
   if (data?.type === 'rappel' && data.pacte_id) {
     return `${LIEN_APP}?rappel=${encodeURIComponent(data.pacte_id)}`;
   }
+  // Chat après le Swend (D-023b) : le clic ouvre directement le chat.
+  if (data?.type === 'chat_apres_swend' && data.chat_id) {
+    return `${LIEN_APP}?chat_apres=${encodeURIComponent(data.chat_id)}`;
+  }
   return LIEN_APP;
 }
 

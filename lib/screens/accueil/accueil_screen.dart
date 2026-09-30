@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/annulation_swend.dart';
+import '../../models/chat_apres_swend.dart';
 import '../../models/demande_statut.dart';
 import '../../models/gel_swend.dart';
 import '../../models/pacte.dart';
@@ -8,6 +9,7 @@ import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../models/type_repas.dart';
 import '../../services/app_store.dart';
+import '../../services/chat_apres_swend_repository.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
@@ -31,6 +33,9 @@ class _AccueilScreenState extends State<AccueilScreen> {
   /// dans l'historique. Null si la liste n'a pas pu être chargée : on ne
   /// propose alors la suppression que pendant la négociation.
   Set<String>? _scelles;
+
+  /// Chats après le Swend ouverts (D-023b), par Swend.
+  Map<String, ChatApresSwend> _chats = const {};
 
   @override
   void initState() {
@@ -56,10 +61,19 @@ class _AccueilScreenState extends State<AccueilScreen> {
       } catch (_) {
         scelles = null;
       }
+      var chats = const <String, ChatApresSwend>{};
+      try {
+        chats = {
+          for (final c in await ChatApresSwendRepository.mesChats()) c.pacteId: c,
+        };
+      } catch (_) {
+        // Sans chats : les cartes restent celles d'avant.
+      }
       if (!mounted) return;
       setState(() {
         pactes = resultat;
         _scelles = scelles;
+        _chats = chats;
       });
     } catch (e) {
       if (!mounted) return;
@@ -250,6 +264,22 @@ class _AccueilScreenState extends State<AccueilScreen> {
     );
   }
 
+  /// Swend passé dont le chat après le Swend est ouvert (D-023b) :
+  /// « Discuter », « ● David vous a écrit », plus tard « Conversation
+  /// terminée » (D-023c). Simple libellé : la carte ouvre la fiche, d'où
+  /// l'on rejoint le chat ; l'ordre des cartes ne change pas.
+  Widget _ligneChat(ChatApresSwend chat) {
+    final nonLu = chat.etat == EtatChatApres.nonLu;
+    return Text(
+      chat.libelleMesSwends,
+      style: TextStyle(
+        fontSize: 13,
+        fontWeight: nonLu ? FontWeight.w800 : FontWeight.w600,
+        color: chat.ferme ? AppColors.texteAttenue : AppColors.accentFonce,
+      ),
+    );
+  }
+
   Widget _titreSection(String titre) => Padding(
     padding: const EdgeInsets.fromLTRB(4, 4, 4, 10),
     child: Text(
@@ -389,6 +419,10 @@ class _AccueilScreenState extends State<AccueilScreen> {
                         fontSize: 13,
                       ),
                     ),
+                  if (!annule && _chats[pacte.id] != null) ...[
+                    const SizedBox(height: 8),
+                    _ligneChat(_chats[pacte.id]!),
+                  ],
                   if (pacte.dateRetenue != null && !annule) ...[
                     const SizedBox(height: 6),
                     Row(

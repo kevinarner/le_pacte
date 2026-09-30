@@ -8,7 +8,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app.dart';
 import '../constants.dart';
+import '../models/chat_apres_swend.dart';
 import '../models/destination_rappel.dart';
+import '../screens/detail_pacte/chat_apres_swend_screen.dart';
 import '../screens/detail_pacte/chat_screen.dart';
 import '../screens/detail_pacte/detail_pacte_screen.dart';
 import '../screens/detail_pacte/imprevu_screen.dart';
@@ -79,6 +81,12 @@ class NotificationService {
         final pacteId = data['pacte_id'] as String?;
         if (pacteId == null) return;
         await _ouvrirRappel(pacteId);
+      case 'chat_apres_swend':
+        // Chat après le Swend (D-023b) : l'écran lui-même affiche « Cette
+        // conversation n'est plus accessible. » si l'accès a disparu.
+        final chatId = data['chat_id'] as String?;
+        if (chatId == null) return;
+        _ouvrirChatApresSwend(chatId);
       case 'chat':
         final remplacantId = data['remplacant_id'] as String?;
         if (remplacantId == null) return;
@@ -114,7 +122,14 @@ class NotificationService {
     }
   }
 
+  static void _ouvrirChatApresSwend(String chatId) {
+    navigatorKey.currentState?.push(MaterialPageRoute(
+      builder: (_) => ChatApresSwendScreen(chatId: chatId),
+    ));
+  }
+
   static String? _rappelDuLien;
+  static String? _chatDuLien;
 
   /// Web : le clic sur un rappel ouvre l'app avec `?rappel=<pacte_id>` (le
   /// service worker Firebase ne transmet pas le clic à l'app). À appeler
@@ -122,15 +137,18 @@ class NotificationService {
   /// l'adresse avant que Flutter ne manipule l'historique du navigateur (un
   /// rechargement ne rouvre pas le rappel). callMethodVarArgs : callMethod
   /// traite un premier argument null comme « aucun argument ».
+  /// Même principe pour le chat après le Swend (D-023b) : `?chat_apres=<id>`.
   static void lireLienRappel() {
     if (!kIsWeb) return;
     _rappelDuLien = pacteDuLienRappel(Uri.base);
-    if (_rappelDuLien == null) return;
+    _chatDuLien = chatDuLien(Uri.base);
+    if (_rappelDuLien == null && _chatDuLien == null) return;
     try {
+      final propre = adresseSansChat(Uri.parse(adresseSansRappel(Uri.base)));
       (globalContext['history'] as JSObject).callMethodVarArgs(
-          'replaceState'.toJS, [null, ''.toJS, adresseSansRappel(Uri.base).toJS]);
+          'replaceState'.toJS, [null, ''.toJS, propre.toJS]);
     } catch (_) {
-      // Adresse non nettoyée : un rechargement rouvrirait le rappel, sans gravité.
+      // Adresse non nettoyée : un rechargement rouvrirait le lien, sans gravité.
     }
   }
 
@@ -138,9 +156,15 @@ class NotificationService {
   /// par [lireLienRappel] (une seule fois), même destination que sur mobile.
   static void ouvrirRappelDuLien() {
     final pacteId = _rappelDuLien;
+    final chatId = _chatDuLien;
     _rappelDuLien = null;
-    if (pacteId == null) return;
-    WidgetsBinding.instance.addPostFrameCallback((_) => _ouvrirRappel(pacteId));
+    _chatDuLien = null;
+    if (pacteId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ouvrirRappel(pacteId));
+    }
+    if (chatId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ouvrirChatApresSwend(chatId));
+    }
   }
 
   static Future<void> _enregistrerToken({bool reessaieDeja = false}) async {

@@ -166,3 +166,26 @@ SQL
   if [ "$push" = 1 ] && [ "$codes" = "demande_envoyee,demande_cloturee,swend_commence" ]; then ok=$((ok+1)); else detail="essai $i : push=$push événements=$codes"; fi
 done
 resultat "gel à H : 3 exécutions simultanées du moteur, jamais de doublon" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 9. Chat après le Swend (D-023b) : trois exécutions simultanées du moteur à
+#    l'heure d'ouverture → un seul chat, trois participants, trois push.
+#    (Outils de sql/99b_chat_apres_swend.sql ; Swends datés en 2032.)
+T=00000000-0000-0000-0000-00000000000b
+ok=0; detail=""
+for i in $(seq 1 10); do
+  h="2032-01-01 12:00 Europe/Paris"
+  p=$(P <<SQL | tail -1
+select cs_swend('$h'::timestamptz + interval '$i days') as p \gset
+select cs_fiche(:'p', 'initiateur', 'Thomas', '0600000005', 'selectionne') \gset
+select figer_swends_passes('$h'::timestamptz + interval '$i days 1 minute');
+select :'p';
+SQL
+)
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  for j in 1 2 3; do P -c "select ouvrir_chats_apres_swend('$h'::timestamptz + interval '$i days 3 hours')" >/dev/null 2>&1 & done; wait
+  chats=$(P -c "select count(*) from chats_apres_swend where pacte_id = '$p'")
+  parts=$(P -c "select count(*) from participants_chat_apres_swend a join chats_apres_swend c on c.id = a.chat_id where c.pacte_id = '$p'")
+  push=$(P -c "select count(*) from notifications_log where id > $n0 and data->>'pacte_id' = '$p'")
+  if [ "$chats" = 1 ] && [ "$parts" = 3 ] && [ "$push" = 3 ]; then ok=$((ok+1)); else detail="essai $i : chats=$chats participants=$parts push=$push"; fi
+done
+resultat "chat après le Swend : 3 moteurs simultanés, un seul chat, une seule ouverture" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"

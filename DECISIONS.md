@@ -481,7 +481,7 @@ Laisser un titulaire mettre fin proprement à un Swend, en l’orientant d’abo
 
 - Accès (précisé le 30/09) : une fois le Swend passé ou annulé, seuls les deux titulaires (toutes les conversations actives de leur côté) et le remplaçant effectivement sélectionné (sa conversation) gardent l’accès ; les personnes seulement prévues, sollicitées, ayant refusé ou désistées le perdent, données conservées ; une personne retirée n’a plus accès ; avant H, chaque personne de confiance non retirée garde les accès de son rôle. Garanti par des fonctions et politiques RLS versionnées ; `est_remplacant_du_pacte()` (non versionnée en production) n’est pas modifiée. Même règle pour le numéro du titulaire : nouvelle fonction versionnée, l’ancienne `telephone_titulaire_du_pacte()` n’est plus exécutable par l’app (non réécrite).
 
-D-023b (chat post-Swend) et D-023c (« Faire un nouveau Swend ») sont décidés à part et **non implémentés** à ce stade.
+D-023b (chat après le Swend) est décrit ci-dessous ; D-023c (« Faire un nouveau Swend ») est décidé à part et **non implémenté**.
 
 Textes détaillés : `PRODUCT_RULES.md` §3.6.
 
@@ -526,6 +526,35 @@ D-001 (confidentialité du remplacement), D-023a (numéro du titulaire soumis à
 
 ### Mise en production
 QA OK (métier 776/0, E2E 598/0). App déployée le 30/09/2026 (gh-pages `80b4739`, source `07e1fa2`) : elle ne relit plus le numéro. Migration `20260930000000_confidentialite_telephones.sql` exécutée en production le 30/09/2026 après vérification de l’app (6/6 vérifications à true). D-024 techniquement en production ; test réel humain à faire.
+
+---
+
+## D-023b — Chat après le Swend
+
+**Statut : Validée**  
+**Décidée : 30/09/2026**
+
+### Décision
+Après un Swend qui a eu lieu, le silence est levé : un chat s’ouvre automatiquement entre les deux titulaires d’origine et, s’il existe, le remplaçant sélectionné à l’heure du Swend (3 personnes au plus). Détails : `PRODUCT_RULES.md` §3.7.
+
+- Ouverture : H+3 si H+3 ≤ 23:00 (Europe/Paris) le jour du Swend, sinon 10:00 le lendemain ; calcul serveur, changements d’heure compris. Seulement pour un Swend `confirme`, scellé et figé par D-023a ; jamais annulé, double remplacement, `maintenu`.
+- Pas de rattrapage : borne de mise en service explicite (`chat_apres_swend_service`).
+- Moteur `ouvrir_chats_apres_swend()` chaque minute (pg_cron) ; chat, participants et état visibles dans une seule transaction ; push « Alors, ce Swend ? » seulement si le retard est ≤ 12 h (la livraison FCM n’est pas nécessaire à l’ouverture).
+- Participants figés à l’ouverture (prénom du compte) ; plus d’un remplaçant actif : chat non ouvert, anomalie enregistrée.
+- Révélation seulement à partir de l’ouverture ; tutoiement conservé pour le remplaçant.
+- Accueil : carte persistante « Alors, ce Swend ? » jusqu’à la première ouverture, puis non-lus (2 cartes au plus) ; priorité : urgences des Swends en cours, puis après le Swend, puis prochain Swend.
+- Messages : texte et emoji, 2 000 caractères ; une push par message aux autres participants, sans contenu ni numéro ; lecture individuelle ; clic → chat (mobile et web, Edge Function `lienWeb()`).
+- Séparation technique complète avec les conversations d’imprévu (aucune table ni fonction partagée) ; accès uniquement par la liste des participants ; l’app n’écrit que par des fonctions serveur.
+- Préparé pour D-023c (non implémenté) : `ferme_le`, `motif_fermeture`, messages système, lecture seule.
+
+### Raison
+Un Swend réellement vécu mérite un débrief ; le mystère du remplacement n’a plus de raison d’être une fois le rendez-vous passé.
+
+### Précise
+D-023a (Swend figé à H), D-001 (confidentialité jusqu’à l’ouverture), D-024 (aucun numéro).
+
+### Mise en production
+Implémenté et testé en local ; **rien déployé ni exécuté**. Ordre : migration `20260930010000_chat_apres_swend.sql`, app et Edge Function `send-notification`, puis planification `supabase/planification/chat_apres_swend_pg_cron.sql`, après feu vert.
 
 ---
 
