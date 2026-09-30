@@ -1,4 +1,5 @@
--- Planification du gel à H (D-023a) — PAS ENCORE ACTIVÉE EN PRODUCTION.
+-- Planification du gel à H (D-023a) — ACTIVE EN PRODUCTION DEPUIS LE 30/09
+-- (job swend-gel-a-h, exécutions vérifiées : succeeded).
 -- À exécuter à la main dans le SQL Editor de Supabase, UNIQUEMENT après :
 --   1. la migration 20260929000000_gel_a_h.sql (fonction figer_swends_passes) ;
 --   2. le déploiement de l'app qui sait afficher l'événement « Le Swend a

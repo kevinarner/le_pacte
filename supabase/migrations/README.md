@@ -26,8 +26,9 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `supabase/controles/gel_a_h_controle.sql` (lecture seule) : 7 lignes à
   true. App correspondante déployée le 30/09.
 - La planification du gel à H (pg_cron, D-023a) n'est pas une migration :
-  `supabase/planification/gel_a_h_pg_cron.sql`, **pas encore activée** (à
-  activer après validation).
+  `supabase/planification/gel_a_h_pg_cron.sql`. **Active en production
+  depuis le 30/09** (job `swend-gel-a-h`, toutes les 5 minutes, exécutions
+  vérifiées : `succeeded`).
 - La planification des rappels (pg_cron) n'est pas une migration :
   `supabase/planification/rappels_pg_cron.sql`. **Active en production
   depuis le 28/09** (job `swend-rappels`, toutes les 5 minutes, exécutions

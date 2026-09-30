@@ -491,6 +491,9 @@ Socle de l’après-Swend : l’existant laissait presque toutes les actions d�
 ### Précise
 D-022 (annulation jusqu’à l’heure du rendez-vous ; conversations d’un Swend annulé désormais en lecture seule), D-021 (clic sur un rappel), D-003 et D-004 (plus d’acceptation ni de désistement après H).
 
+### Mise en production
+Techniquement en production depuis le 30/09/2026 : migration `20260929000000_gel_a_h.sql` exécutée (10/10 vérifications, contrôle `gel_a_h_controle.sql` 7/7), app déployée, planification pg_cron `swend-gel-a-h` active (toutes les 5 minutes, premières exécutions `succeeded`). Test réel humain à faire. D-023b et D-023c ne sont pas implémentées.
+
 ---
 
 ## Ajouter une décision
