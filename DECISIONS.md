@@ -585,7 +585,7 @@ Laisser le temps d’organiser le Swend (réservation manuelle, personnes de con
 D-011 (négociation de date), D-020 (réservation manuelle), D-024 (lecture colonne par colonne de `pactes`).
 
 ### Mise en production
-Préparée, **non exécutée**. Ordre : vérification (lecture seule) des 3 comptes fondateurs dans `auth.users`, puis migration `20261001000000_delai_minimum_swend.sql` (5 vérifications), puis déploiement de l’app (qui lit `date_minimale` : elle ne doit pas précéder la migration).
+QA OK le 01/10 (métier 895/0, E2E 677/0, 28/28 scénarios). Préparée, **non exécutée**. Ordre : vérification (lecture seule) des 3 comptes fondateurs dans `auth.users`, puis migration `20261001000000_delai_minimum_swend.sql` (5 vérifications), puis déploiement de l’app (qui lit `date_minimale` : elle ne doit pas précéder la migration).
 
 ---
 
