@@ -35,14 +35,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20260930010000_chat_apres_swend.sql` : **exécutée le 30/09** (chat après
   le Swend, D-023b) : 6 vérifications à true. Edge Function
   `send-notification` et app déployées le 30/09, planification active.
-  `20261001000000_delai_minimum_swend.sql` : **préparée, NON exécutée**
-  (délai minimum de 15 jours, comptes fondateurs, D-025) : 5 vérifications.
-  Ordre : contrôle en lecture seule des 3 comptes fondateurs dans
-  `auth.users`, migration, puis seulement l'app qui lit `date_minimale`
-  (une app qui la demande avant la migration verrait ses lectures de Swends
-  refusées). Entre la migration et l'app, l'ancienne app reste utilisable
-  (dates par défaut à +60 jours) ; une date choisie avant J+15 serait refusée
-  avec un message générique.
+  `20261001000000_delai_minimum_swend.sql` : **exécutée le 01/10** (délai
+  minimum de 15 jours, comptes fondateurs, D-025) : 5 vérifications à true.
+  Ordre respecté : migration d'abord, puis l'app qui lit `date_minimale`
+  (gh-pages `34629e7`, déployée le 01/10 ; une app qui la demande avant la
+  migration verrait ses lectures de Swends refusées). Contrôle en lecture
+  seule des 3 comptes fondateurs (email confirmé) : résultat à confirmer.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

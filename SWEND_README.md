@@ -99,7 +99,7 @@ notifications).
    les contacts). On voit tout de suite « David est déjà sur Swend », ou
    « David n'a pas encore Swend » avec un bouton « Envoyer l'invitation ».
 2. **« Quand et où ? »** : déjeuner ou dîner, une ou plusieurs dates proposées,
-   au restaurant. Délai minimum (D-025, **pas encore en production**) : rien
+   au restaurant. Délai minimum (D-025, en production depuis le 01/10) : rien
    avant le jour de création (Paris) + 15 jours — le calendrier commence à la
    première date possible ; refus : « Choisissez une date au moins 15 jours à
    l’avance. Première date possible : 16 octobre. ». Comptes fondateurs
@@ -611,8 +611,8 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   création conservée) ; les seuls numéros lisibles sont ceux des fiches de
   son côté (RLS), le sien, et celui de son titulaire via
   `telephone_titulaire_accessible()`.
-- Délai minimum (D-025, migration `delai_minimum_swend.sql` **préparée, non
-  exécutée**) : `pactes.date_minimale` posée par la base à la création
+- Délai minimum (D-025, migration `delai_minimum_swend.sql` exécutée le
+  01/10, app déployée le 01/10) : `pactes.date_minimale` posée par la base à la création
   (jour de Paris + 15, null pour un compte fondateur à email confirmé),
   jamais modifiable par l'app ; refus `date_trop_proche` (première date
   possible dans le détail) pour toute date proposée ou retenue plus tôt.
