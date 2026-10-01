@@ -40,7 +40,7 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   Ordre respecté : migration d'abord, puis l'app qui lit `date_minimale`
   (gh-pages `34629e7`, déployée le 01/10 ; une app qui la demande avant la
   migration verrait ses lectures de Swends refusées). Contrôle en lecture
-  seule des 3 comptes fondateurs (email confirmé) : résultat à confirmer.
+  seule des 3 comptes fondateurs : 1 compte chacun, email confirmé.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque
