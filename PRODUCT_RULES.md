@@ -100,6 +100,14 @@ Si aucun accord n’est trouvé après les 2 contre-propositions autorisées :
 - le Swend est annulé ;
 - il faut créer un nouveau Swend pour recommencer une négociation.
 
+**Délai minimum (D-025).** Pour un Swend créé par un utilisateur standard, aucune date proposée (création ou contre-proposition) ni la date retenue ne peut tomber avant le jour de création, en heure de Paris, + 15 jours (créé le 1er octobre → première date possible le 16 octobre, à toute heure).
+
+- Le calendrier ne propose rien avant la première date possible.
+- Refus (par la base) : « Choisissez une date au moins 15 jours à l’avance. Première date possible : 16 octobre. »
+- Comptes fondateurs (email confirmé du compte) : exemptés. L’exemption suit le Swend : un Swend créé par un fondateur l’est pour toute sa négociation ; un Swend créé par un utilisateur standard garde sa limite, même si le destinataire est fondateur.
+- Pas de rétroactivité : les Swends créés avant la règle n’ont pas de limite.
+- La date retenue doit aujourd’hui seulement respecter ce délai ; qu’elle soit l’une des dates proposées sera garanti par la base dans un lot ultérieur (D-025b).
+
 ### 3.3 Scellement
 
 Une fois l’accord des deux titulaires obtenu, le Swend devient **Scellé**.

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../models/delai_minimum.dart';
 import '../utils/date_fr.dart';
 
 /// Formulaire de saisie d'une liste de dates (avec horaire) proposées
@@ -13,12 +14,17 @@ class DatesForm extends StatefulWidget {
   final List<TimeOfDay> creneaux;
   final int minimum;
 
+  /// Première date possible (D-025) : rien de plus tôt n'est proposé dans le
+  /// calendrier. Null : pas de limite au-delà d'aujourd'hui.
+  final DateTime? dateMinimale;
+
   const DatesForm({
     super.key,
     required this.dates,
     required this.onChanged,
     required this.creneaux,
     this.minimum = 1,
+    this.dateMinimale,
   });
 
   @override
@@ -128,12 +134,15 @@ class _DatesFormState extends State<DatesForm> {
   }
 
   Future<DateTime?> _choisirDate({DateTime? initial}) {
+    final premier = premierJourSelectionnable(DateTime.now(), widget.dateMinimale);
+    var depart =
+        initial ??
+        prochainJourAutorise(DateTime.now().add(const Duration(days: 60)));
+    if (depart.isBefore(premier)) depart = prochainJourAutorise(premier);
     return showDatePicker(
       context: context,
-      initialDate:
-          initial ??
-          prochainJourAutorise(DateTime.now().add(const Duration(days: 60))),
-      firstDate: DateTime.now(),
+      initialDate: depart,
+      firstDate: premier,
       lastDate: DateTime.now().add(const Duration(days: 365)),
       locale: const Locale('fr', 'FR'),
       selectableDayPredicate: estJourAutorise,

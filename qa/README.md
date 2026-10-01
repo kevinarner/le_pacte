@@ -153,6 +153,17 @@ simultanés), scénario E2E `25_chat_apres_swend`. Dans les scénarios, la
 fixture vide `chat_apres_swend_service` : poser la mise en service avant
 d'appeler `ouvrir_chats_apres_swend(<instant>)`.
 
+Délai minimum (D-025) : tests SQL `99c_delai_minimum.sql` (J+14 / J+15 aux
+bornes du jour de Paris, valeur envoyée ignorée, fondateurs : email confirmé
+de `auth.users` seulement, exemption par Swend, date retenue, immuabilité,
+pas de rétroactivité, ordre des erreurs), scénario E2E `26_delai_minimum`
+(API, calendrier, message de refus, fondateur). La réplique contient une
+table `auth.users` minimale (id, email, email_confirmed_at) remplie par
+`qa.reinitialiser()` avec les 4 comptes (emails confirmés) ; aucun compte de
+test n'est fondateur (`comptes_fondateurs`, vidée à chaque fixture) : un
+scénario qui en a besoin l'ajoute lui-même. `modifierComme()` (PATCH en tant
+qu'un compte) ne relit rien (`return=minimal`, D-024).
+
 Lectures API « en tant que » sur `pactes` : toujours avec des colonnes
 explicites (`lireComme('kevin', 'pactes', 'select=id')`) — comme en
 production, `select=*` y est refusé (privilèges colonne par colonne).

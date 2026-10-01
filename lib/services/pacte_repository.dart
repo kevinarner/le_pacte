@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/cote_pacte.dart';
+import '../models/delai_minimum.dart';
 import '../models/demande_statut.dart';
 import '../models/evenement_fil.dart';
 import '../models/fil_de_discussion.dart';
@@ -26,7 +27,7 @@ class PacteRepository {
   static const colonnesPacte =
       'id, type, statut, dates_proposees, date_retenue, '
       'nombre_echanges_date, restaurant_id, initiateur_id, initiateur_nom, '
-      'destinataire_id, destinataire_nom, created_at';
+      'destinataire_id, destinataire_nom, date_minimale, created_at';
 
   static Restaurant? _restaurantCache;
 
@@ -69,6 +70,12 @@ class PacteRepository {
         'destinataire_a_un_compte',
         params: {'p_telephone': telephone},
       );
+
+  /// Première date possible pour un Swend que je créerais maintenant
+  /// (D-025) : calculée par la base (heure de Paris + 15 jours) ; null si
+  /// mon compte en est exempté.
+  static Future<DateTime?> dateMinimaleNouveauSwend() async =>
+      dateMinimaleDepuis(await _client.rpc('date_minimale_nouveau_swend'));
 
   /// Le téléphone du titulaire d'un pacte, du point de vue de son
   /// remplaçant (pour pouvoir l'appeler) — ne renvoie quelque chose que
@@ -165,6 +172,7 @@ class PacteRepository {
           ? DateTime.parse(row['date_retenue'] as String)
           : null,
       nombreEchangesDate: row['nombre_echanges_date'] as int,
+      dateMinimale: dateMinimaleDepuis(row['date_minimale']),
       restaurantsProposes: [restau],
       statut: statut,
       initiateur: CotePacte(
@@ -404,12 +412,18 @@ class PacteRepository {
       'telephone_fige',
       'modification_interdite',
       'swend_passe',
+      'date_trop_proche',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;
     }
     return null;
   }
+
+  /// Refus `date_trop_proche` (D-025) : la première date possible, telle que
+  /// la base l'a calculée (détail de l'erreur), ou null.
+  static DateTime? dateMinimaleDeErreur(Object erreur) =>
+      erreur is PostgrestException ? dateMinimaleDepuis(erreur.details) : null;
 
   /// Répond à une demande reçue — appelé par la personne sollicitée
   /// elle-même. Passe par une fonction serveur car elle doit, en cas

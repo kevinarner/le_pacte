@@ -558,6 +558,37 @@ Migration `20260930010000_chat_apres_swend.sql` exécutée en production le 30/0
 
 ---
 
+## D-025 — Délai minimum de 15 jours avant un Swend
+
+**Statut : Validée**  
+**Décidée : 01/10/2026**
+
+### Décision
+Pour un Swend créé par un utilisateur standard, aucune date ne peut tomber avant le jour de création (heure de Paris) + 15 jours. Exemple : créé le 1er octobre → première date possible le 16 octobre, à toute heure. Détails : `PRODUCT_RULES.md` §3.2.
+
+- S’applique aux dates proposées à la création, aux contre-propositions et à la date retenue.
+- Calcul exclusivement serveur : `pactes.date_minimale` (date) est posée par la base à la création, jamais par l’app ni modifiable par elle. Toute valeur envoyée par l’app est ignorée.
+- Comptes fondateurs (`kevinarner@hotmail.com`, `eliotschlang@gmail.com`, `eliotschlang@icloud.com`) : exemptés. Reconnus par l’email **confirmé** de leur compte Supabase Auth, jamais par `profiles.email` ni par une valeur de l’app. Table interne `comptes_fondateurs`, illisible par l’app.
+- L’exemption suit le Swend : un Swend créé par un fondateur est exempté pour toute sa négociation (contre-propositions de l’autre titulaire comprises) ; un Swend créé par un utilisateur standard garde sa limite, même si le destinataire est fondateur.
+- Pas de rétroactivité : les Swends existants gardent `date_minimale = null` (pas de limite).
+- L’app n’utilise la date que pour le calendrier (rien avant la première date possible) et pour le message de refus : « Choisissez une date au moins 15 jours à l’avance. Première date possible : 16 octobre. » (date donnée par la base dans le refus `date_trop_proche`).
+- La fonction utilisée par l’app, `date_minimale_nouveau_swend()`, n’a aucun paramètre : elle s’appuie sur `auth.uid()` (impossible de tester l’exemption d’un autre compte) et ne renvoie qu’une date ou null.
+- Aucune autre règle modifiée (2 contre-propositions au plus, jours, créneaux, statuts).
+
+### Hors D-025
+- D-025b (petit lot à venir) : la date retenue doit être l’une des dates proposées. Aujourd’hui, D-025 ne contrôle que le délai de 15 jours pour la date retenue.
+
+### Raison
+Laisser le temps d’organiser le Swend (réservation manuelle, personnes de confiance) ; les fondateurs gardent la souplesse nécessaire aux tests et aux démonstrations.
+
+### Précise
+D-011 (négociation de date), D-020 (réservation manuelle), D-024 (lecture colonne par colonne de `pactes`).
+
+### Mise en production
+Préparée, **non exécutée**. Ordre : vérification (lecture seule) des 3 comptes fondateurs dans `auth.users`, puis migration `20261001000000_delai_minimum_swend.sql` (5 vérifications), puis déploiement de l’app (qui lit `date_minimale` : elle ne doit pas précéder la migration).
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/delai_minimum.dart';
 import '../../models/remplacant.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
@@ -42,6 +43,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
 
   Restaurant? restaurant;
 
+  /// Première date possible pour ce Swend (D-025), donnée par la base ; null :
+  /// pas de limite (compte fondateur) ou pas encore connue (la base contrôle
+  /// de toute façon).
+  DateTime? dateMinimale;
+
   bool enCours = false;
   String? erreur;
   String? erreurChargement;
@@ -50,6 +56,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   void initState() {
     super.initState();
     _chargerRestaurant();
+    _chargerDateMinimale();
+  }
+
+  Future<void> _chargerDateMinimale() async {
+    try {
+      final d = await PacteRepository.dateMinimaleNouveauSwend();
+      if (!mounted) return;
+      setState(() => dateMinimale = d);
+    } catch (_) {
+      // Sans réponse : le calendrier n'est pas limité, la base refusera
+      // une date trop proche avec un message clair.
+    }
   }
 
   Future<void> _chargerRestaurant() async {
@@ -328,6 +346,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       DatesForm(
         dates: datesProposees,
         minimum: 1,
+        dateMinimale: dateMinimale,
         creneaux: restau.creneaux(type),
         onChanged: () => setState(() {}),
       ),
@@ -499,7 +518,19 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
+  /// Repli si la base n'a pas pu donner la date : aujourd'hui + 15 jours.
+  DateTime _dansQuinzeJours() {
+    final n = DateTime.now();
+    return DateTime(n.year, n.month, n.day + 15);
+  }
+
   Future<void> _creerPacte(Restaurant restau) async {
+    final minimale = dateMinimale;
+    if (minimale != null &&
+        datesProposees.any((d) => !respecteDateMinimale(d, minimale))) {
+      setState(() => erreur = messageDateTropProche(minimale));
+      return;
+    }
     setState(() {
       enCours = true;
       erreur = null;
@@ -529,6 +560,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             "$_prenomDestinataire ne peut pas être une de tes personnes de confiance.",
           'personne_deja_prevue' =>
             'Une même personne apparaît deux fois dans ta liste.',
+          'date_trop_proche' => messageDateTropProche(
+            PacteRepository.dateMinimaleDeErreur(e) ??
+                dateMinimale ??
+                _dansQuinzeJours(),
+          ),
           _ => "Impossible d'envoyer le Swend pour le moment.\n$e",
         };
       });

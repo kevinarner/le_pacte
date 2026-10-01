@@ -35,6 +35,11 @@ begin
   insert into restaurants (id, nom, lien, creneaux_dejeuner, creneaux_diner)
   values (qa.id('restaurant'), 'Au père Lapin', 'https://example.com',
           array['12:00','12:30','13:00'], array['19:30','20:00','20:30']);
+  -- Comptes Auth (emails confirmés), comme Supabase.
+  insert into auth.users (id, email, email_confirmed_at) values
+    (qa.id('eliot'), 'eliot@swend.test', now()), (qa.id('david'), 'david@swend.test', now()),
+    (qa.id('kevin'), 'kevin@swend.test', now()), (qa.id('sylvain'), 'sylvain@swend.test', now())
+  on conflict (id) do nothing;
   insert into profiles (id, prenom, nom, telephone, email) values
     (qa.id('eliot'),   'Eliot',   'Martin',   '06 01 02 03 04',    'eliot@swend.test'),
     (qa.id('david'),   'David',   'Schlang',  '+33 6 02 03 04 05', 'david@swend.test'),

@@ -88,3 +88,14 @@ export async function insererComme(nom, table, ligne) {
   });
   return { ok: r.ok, statut: r.status, corps: await r.text() };
 }
+// Modification directe en tant qu'un compte (la RLS s'applique) ; renvoie
+// { ok, statut, corps } (corps : l'erreur ; rien n'est relu, D-024).
+export async function modifierComme(nom, table, filtre, valeurs) {
+  const r = await fetch(`${config.apiUrl}/rest/v1/${table}?${filtre}`, {
+    method: 'PATCH',
+    headers: { apikey: await anon(), authorization: `Bearer ${await jeton(nom)}`, 'content-type': 'application/json',
+      prefer: 'return=minimal' },
+    body: JSON.stringify(valeurs),
+  });
+  return { ok: r.ok, statut: r.status, corps: await r.text() };
+}

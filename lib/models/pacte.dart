@@ -9,6 +9,11 @@ class Pacte {
   List<DateTime> datesProposees;
   DateTime? dateRetenue;
   int nombreEchangesDate;
+
+  /// Première date possible pour ce Swend (D-025), fixée par la base à la
+  /// création ; null : pas de limite (créé par un compte fondateur, ou
+  /// antérieur à la règle).
+  final DateTime? dateMinimale;
   final List<Restaurant> restaurantsProposes;
   Restaurant? restaurantRetenu;
   StatutPacte statut;
@@ -21,6 +26,7 @@ class Pacte {
     required this.datesProposees,
     this.dateRetenue,
     this.nombreEchangesDate = 0,
+    this.dateMinimale,
     required this.restaurantsProposes,
     required this.initiateur,
     required this.destinataire,

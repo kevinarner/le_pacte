@@ -27,6 +27,7 @@ void main() {
       'initiateur_nom',
       'destinataire_id',
       'destinataire_nom',
+      'date_minimale',
       'created_at',
     ]);
   });

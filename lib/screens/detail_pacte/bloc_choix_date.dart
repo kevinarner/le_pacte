@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../models/delai_minimum.dart';
 import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/pacte_repository.dart';
@@ -130,6 +131,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
         const SizedBox(height: 8),
         DatesForm(
           dates: nouvellesDates,
+          dateMinimale: widget.pacte.dateMinimale,
           creneaux: _creneaux,
           onChanged: () => setState(() {}),
         ),
@@ -152,8 +154,26 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     );
   }
 
+  /// Refus de la base pour une date trop proche (D-025) : message clair,
+  /// rien n'est modifié à l'écran. Toute autre erreur est relancée.
+  bool _dateTropProche(Object e) {
+    if (PacteRepository.codeErreurMetier(e) != 'date_trop_proche') return false;
+    final minimale =
+        PacteRepository.dateMinimaleDeErreur(e) ?? widget.pacte.dateMinimale;
+    if (minimale == null) return false;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(messageDateTropProche(minimale))),
+    );
+    return true;
+  }
+
   Future<void> _choisirDate(DateTime date) async {
-    await PacteRepository.choisirDate(widget.pacte.id, date);
+    try {
+      await PacteRepository.choisirDate(widget.pacte.id, date);
+    } catch (e) {
+      if (_dateTropProche(e)) return;
+      rethrow;
+    }
     widget.pacte.dateRetenue = date;
     widget.pacte.statut = StatutPacte.enAttenteReponse;
     widget.onChanged();
@@ -161,12 +181,25 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
 
   Future<void> _validerContreProposition() async {
     final nombreEchanges = widget.pacte.nombreEchangesDate + 1;
-    await PacteRepository.contreProposerDates(
-      widget.pacte.id,
-      nouvellesDates,
-      nombreEchanges,
-      widget.jeSuisInitiateur,
-    );
+    final minimale = widget.pacte.dateMinimale;
+    if (minimale != null &&
+        nouvellesDates.any((d) => !respecteDateMinimale(d, minimale))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(messageDateTropProche(minimale))),
+      );
+      return;
+    }
+    try {
+      await PacteRepository.contreProposerDates(
+        widget.pacte.id,
+        nouvellesDates,
+        nombreEchanges,
+        widget.jeSuisInitiateur,
+      );
+    } catch (e) {
+      if (_dateTropProche(e)) return;
+      rethrow;
+    }
     widget.pacte.datesProposees = List.of(nouvellesDates);
     widget.pacte.nombreEchangesDate = nombreEchanges;
     widget.pacte.statut = widget.jeSuisInitiateur

@@ -22,6 +22,10 @@ grant usage on schema public to anon, authenticated;
 
 create schema auth;
 grant usage on schema auth to anon, authenticated;
+-- Comptes Supabase Auth (version minimale : identité, email, confirmation).
+-- Lue seulement par des fonctions serveur (D-025) ; jamais par l'app.
+create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz);
+
 create function auth.uid() returns uuid language sql stable as $$
   select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
 $$;

@@ -99,7 +99,11 @@ notifications).
    les contacts). On voit tout de suite « David est déjà sur Swend », ou
    « David n'a pas encore Swend » avec un bouton « Envoyer l'invitation ».
 2. **« Quand et où ? »** : déjeuner ou dîner, une ou plusieurs dates proposées,
-   au restaurant.
+   au restaurant. Délai minimum (D-025, **pas encore en production**) : rien
+   avant le jour de création (Paris) + 15 jours — le calendrier commence à la
+   première date possible ; refus : « Choisissez une date au moins 15 jours à
+   l’avance. Première date possible : 16 octobre. ». Comptes fondateurs
+   exemptés pour les Swends qu'ils créent.
 3. **« En cas d'imprévu »** : au moins 2 personnes de confiance (5 au plus en
    une seule saisie ; on peut en ajouter d'autres plus tard, sans plafond global).
 
@@ -124,7 +128,10 @@ d'envoyer (« Envoyer l'invitation »).
   n°2). Ensuite il ne reste qu'à accepter une date proposée ou à annuler le
   Swend (« Dernière proposition : si aucune de ces dates ne convient, le Swend
   sera annulé. »). La base refuse toute contre-proposition de plus. Pour
-  renégocier, il faut créer un nouveau Swend.
+  renégocier, il faut créer un nouveau Swend. Les contre-propositions et la
+  date retenue respectent le délai minimum du Swend (D-025), fixé à sa
+  création : un Swend créé par un fondateur en est exempté jusqu'au bout,
+  un Swend créé par un utilisateur standard jamais.
 - Pour **accepter**, il renseigne à son tour ses propres personnes de
   confiance (au moins 2), puis « Accepter le Swend ». Le Swend est alors
   **Scellé**.
@@ -604,6 +611,13 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   création conservée) ; les seuls numéros lisibles sont ceux des fiches de
   son côté (RLS), le sien, et celui de son titulaire via
   `telephone_titulaire_accessible()`.
+- Délai minimum (D-025, migration `delai_minimum_swend.sql` **préparée, non
+  exécutée**) : `pactes.date_minimale` posée par la base à la création
+  (jour de Paris + 15, null pour un compte fondateur à email confirmé),
+  jamais modifiable par l'app ; refus `date_trop_proche` (première date
+  possible dans le détail) pour toute date proposée ou retenue plus tôt.
+  Swends existants : pas de limite. Table `comptes_fondateurs` illisible par
+  l'app ; `date_minimale_nouveau_swend()` sans paramètre (`auth.uid()`).
 
 ---
 
