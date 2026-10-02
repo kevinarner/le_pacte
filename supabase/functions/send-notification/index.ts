@@ -2,12 +2,13 @@
 // enregistrés d'un profil. Appelée en interne seulement, par
 // public.notifier() en base (via pg_net).
 //
-// R1b : la passerelle laisse passer la clé anon (Verify JWT), donc chaque
-// appel doit présenter un jeton à usage unique dans l'en-tête
-// « x-swend-jeton ». notifier() le crée en base (table
-// notification_jetons) ; il est consommé ici par
-// consommer_jeton_notification() avec la clé service_role : inconnu, déjà
-// utilisé ou expiré → 403, avant toute lecture de la requête.
+// R1b : la passerelle laisse passer la clé anon (Verify JWT), et notifier()
+// l'utilise elle-même. L'autorisation réelle est un jeton à usage unique
+// (en-tête « x-swend-jeton ») lié au contenu exact de la notification :
+// notifier() enregistre en base l'empreinte du jeton et celle du corps.
+// Avant tout traitement, consommer_jeton_notification() (clé service_role)
+// vérifie les deux sur le corps brut reçu : jeton inconnu, déjà utilisé,
+// expiré, ou corps différent (autre profil, autre texte) → 403.
 //
 // Requête attendue : POST { profile_id: string, title: string, body: string,
 // data?: Record<string, string> }
@@ -128,20 +129,23 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
-    // R1b : jeton à usage unique émis par notifier(), sinon refus.
+    // R1b : jeton à usage unique émis par notifier() pour CE corps, sinon refus.
+    // Le corps est transmis brut : son empreinte est calculée en base, sur la
+    // même forme canonique que dans notifier().
     const jeton = req.headers.get('x-swend-jeton') ?? '';
     if (!FORMAT_JETON.test(jeton)) return nonAutorise();
+    const corpsBrut = await req.text();
     const { data: autorise, error: erreurJeton } = await client.rpc(
       'consommer_jeton_notification',
-      { p_jeton: jeton },
+      { p_jeton: jeton, p_charge: corpsBrut },
     );
     if (erreurJeton) {
-      console.error('Erreur Supabase (jeton) :', JSON.stringify(erreurJeton));
+      console.error('Erreur Supabase (jeton) :', erreurJeton.code ?? 'inconnue');
       return nonAutorise();
     }
     if (autorise !== true) return nonAutorise();
 
-    const { profile_id, title, body, data } = await req.json();
+    const { profile_id, title, body, data } = JSON.parse(corpsBrut);
     if (!profile_id || !title || !body) {
       return new Response(
         JSON.stringify({ error: 'profile_id, title et body sont requis' }),

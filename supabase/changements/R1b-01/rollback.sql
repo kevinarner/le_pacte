@@ -46,7 +46,7 @@ $function$
 
 ;
 
-drop function if exists public.consommer_jeton_notification(uuid);
+drop function if exists public.consommer_jeton_notification(uuid, text);
 drop table if exists public.notification_jetons;
 
 do $$

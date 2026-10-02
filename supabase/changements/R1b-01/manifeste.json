@@ -2,7 +2,7 @@
   "id": "R1b-01",
   "niveau": 1,
   "projet": "ssciqjpaibdorvnkkhsk",
-  "objectif": "Refuser les appels directs à send-notification (clé anon ou jeton utilisateur) ; seuls les appels de public.notifier(), porteurs d un jeton à usage unique, sont servis.",
+  "objectif": "Refuser tout appel à send-notification qui n est pas émis par public.notifier() pour la notification exacte qu elle a préparée (jeton à usage unique lié au contenu) ; notifier() n envoie plus la clé service_role.",
   "sauvegardes": [],
   "sauvegarde_justification": "Niveau 1, aucune donnée modifiée : états d origine conservés dans rollback.sql et send-notification.precedente.ts.",
   "etapes": [
@@ -10,20 +10,20 @@
       "nom": "appliquer",
       "type": "sql_ecriture",
       "fichier": "appliquer.sql",
-      "sha256": "78a8dcb655c8d2afcae2f238a4bc0c8e534a978da7b7e3179d53c6239766a6d5"
+      "sha256": "f46f3692ddf357c12dca0e570ce112c01b41890c0c4e5d4dc1bd723d87b6b0ad"
     },
     {
       "nom": "verifier",
       "type": "sql_lecture",
       "fichier": "verifier.sql",
-      "sha256": "6832fab82fca735847338b8e3256181b1a902457ee1abf8d087fcd63ecc613f9"
+      "sha256": "802190abd60259afe45fc469fc2df9c5741ddf7855063f485bb4fd672c8c7868"
     },
     {
       "nom": "deployer",
       "type": "edge_function",
       "fonction": "send-notification",
       "fichier": "send-notification.ts",
-      "sha256": "1efce8c4b2e905935dbae7afbf8d67c5c9433184e2f290b4e25d6e3fda4b01e2",
+      "sha256": "4719ba7c9d7da64f296c91068d2c87ff85e36d4dda61f7e4aebd319d00e51909",
       "verify_jwt": true
     },
     {
@@ -46,7 +46,7 @@
       "nom": "rollback_sql",
       "type": "sql_ecriture",
       "fichier": "rollback.sql",
-      "sha256": "66107c10f08c973344ab554f35e14642cdf7a28e11a6c57b60384e93fe3769de"
+      "sha256": "4818e862a8a8a6377a4dde4ac433f977efcd0cac2c4692f6b9e121cfc610a4b2"
     }
   ]
 }

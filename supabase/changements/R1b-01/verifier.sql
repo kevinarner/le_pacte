@@ -5,8 +5,12 @@ do $$
 begin
   if (select md5(regexp_replace(prosrc, '\s+', ' ', 'g')) from pg_proc
       where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure)
-     <> 'cb331a844d5b2a5d155adeb6a948e558' then
+     <> 'cfb0159e1a33d7f77bd390baaf66a2f3' then
     raise exception 'R1b-01 vérification : corps de notifier() inattendu';
+  end if;
+  if (select position('vault' in prosrc) from pg_proc
+      where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure) <> 0 then
+    raise exception 'R1b-01 vérification : notifier() lit encore un secret Vault';
   end if;
   if (select proacl::text from pg_proc
       where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure)
@@ -15,9 +19,9 @@ begin
      or has_function_privilege('authenticated', 'public.notifier(uuid,text,text,jsonb)', 'execute') then
     raise exception 'R1b-01 vérification : droits de notifier() incorrects';
   end if;
-  if not has_function_privilege('service_role', 'public.consommer_jeton_notification(uuid)', 'execute')
-     or has_function_privilege('anon', 'public.consommer_jeton_notification(uuid)', 'execute')
-     or has_function_privilege('authenticated', 'public.consommer_jeton_notification(uuid)', 'execute') then
+  if not has_function_privilege('service_role', 'public.consommer_jeton_notification(uuid,text)', 'execute')
+     or has_function_privilege('anon', 'public.consommer_jeton_notification(uuid,text)', 'execute')
+     or has_function_privilege('authenticated', 'public.consommer_jeton_notification(uuid,text)', 'execute') then
     raise exception 'R1b-01 vérification : droits de consommer_jeton_notification() incorrects';
   end if;
   if has_table_privilege('anon', 'public.notification_jetons', 'select,insert,update,delete,truncate')
@@ -26,13 +30,13 @@ begin
   end if;
   if (select string_agg(attname || ':' || format_type(atttypid, atttypmod), ',' order by attnum)
       from pg_attribute where attrelid = 'public.notification_jetons'::regclass and attnum > 0 and not attisdropped)
-     <> 'empreinte:bytea,cree_le:timestamp with time zone' then
-    raise exception 'R1b-01 vérification : notification_jetons contient autre chose que empreinte et cree_le';
+     <> 'empreinte:bytea,charge_empreinte:bytea,cree_le:timestamp with time zone' then
+    raise exception 'R1b-01 vérification : notification_jetons contient autre chose que des empreintes et cree_le';
   end if;
 end $$;
 
 select
   (select proacl::text from pg_proc where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure) as notifier_acl,
-  (select proacl::text from pg_proc where oid = 'public.consommer_jeton_notification(uuid)'::regprocedure) as consommer_acl,
+  (select proacl::text from pg_proc where oid = 'public.consommer_jeton_notification(uuid,text)'::regprocedure) as consommer_acl,
   (select relrowsecurity from pg_class where oid = 'public.notification_jetons'::regclass) as jetons_rls,
   (select count(*) from public.notification_jetons) as jetons_en_attente;
