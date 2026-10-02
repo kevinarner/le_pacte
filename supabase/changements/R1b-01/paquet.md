@@ -14,11 +14,16 @@ seuls les appels émis par `public.notifier()` sont servis ; tout autre appel
 reçoit 403, avant toute lecture de la requête.
 
 **Mécanisme : un jeton à usage unique, sans aucun secret.**
-1. `notifier()` crée un jeton aléatoire en base (`notification_jetons`) et
-   l'envoie dans l'en-tête `x-swend-jeton`.
+1. `notifier()` tire un jeton aléatoire (`gen_random_uuid()`, 122 bits) et
+   l'envoie brut dans l'en-tête `x-swend-jeton`. Elle n'enregistre en base
+   (`notification_jetons`) que son **empreinte SHA-256**, jamais le jeton
+   brut : lire la table, y compris avec l'accès en lecture seule, ne donne
+   aucun jeton utilisable.
 2. `send-notification` le consomme par la fonction
-   `consommer_jeton_notification()` avec sa clé service_role : vrai une seule
-   fois, si le jeton a été émis il y a moins de 15 minutes.
+   `consommer_jeton_notification()` avec sa clé service_role. Celle-ci
+   recalcule l'empreinte et fait un `delete … returning` atomique sur la clé
+   primaire : vrai une seule fois, si le jeton a été émis il y a moins de
+   15 minutes.
 
 Pourquoi ce mécanisme plutôt que contrôler le rôle du jeton
 d'authentification :
@@ -33,7 +38,8 @@ secret à créer, lire ou recopier.
 ## Fichiers concernés
 
 Production :
-- table `public.notification_jetons` (nouvelle) ;
+- table `public.notification_jetons` (nouvelle) : `empreinte` (SHA-256,
+  32 octets) et `cree_le` seulement ;
 - fonction `public.consommer_jeton_notification(uuid)` (nouvelle) ;
 - fonction `public.notifier()` : même corps, plus le jeton ;
 - Edge Function `send-notification`.
@@ -93,7 +99,7 @@ ce paquet validé.
 
 Par la porte, dans l'ordre (elle s'arrête au premier échec) :
 1. **`appliquer.sql`** : assertions en fin de transaction — nouveau corps
-   `174a0a458ccc3dbec8ddbfb844691902`, droits R1 conservés,
+   `cb331a844d5b2a5d155adeb6a948e558`, droits R1 conservés,
    `consommer_jeton_notification` réservée à `service_role`, table
    inaccessible à l'app et sous RLS, propriétaire `postgres`.
 2. **`verifier.sql`** (lecture seule) : mêmes contrôles.
@@ -112,8 +118,12 @@ l'exécution :
 - Kevin confirme la réception de « Test technique R1b ».
 
 Tests locaux faits avant le Go :
-- **SQL** (28 cas) : sur une base qui reproduit exactement la `notifier()` de
-  production (même empreinte), avec `net.http_post` et Vault simulés ;
+- **SQL** (36 cas) : sur une base qui reproduit exactement la `notifier()` de
+  production (même empreinte), avec `net.http_post` et Vault simulés.
+  Couvre : rejeu, jeton expiré, jeton inventé, empreinte présentée à la place
+  du jeton, absence du jeton brut en base, et concurrence (entrelacement
+  forcé, annulation, rafale de 30 consommations simultanées : une seule
+  acceptée) ;
 - **Edge Function** (7 cas) : exécutée sous Deno avec client Supabase et
   réseau simulés. L'ancienne version laisse passer la clé anon dans 5 des 7
   cas, la nouvelle aucun.

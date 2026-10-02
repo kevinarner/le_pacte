@@ -5,7 +5,7 @@ do $$
 begin
   if (select md5(regexp_replace(prosrc, '\s+', ' ', 'g')) from pg_proc
       where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure)
-     <> '174a0a458ccc3dbec8ddbfb844691902' then
+     <> 'cb331a844d5b2a5d155adeb6a948e558' then
     raise exception 'R1b-01 vérification : corps de notifier() inattendu';
   end if;
   if (select proacl::text from pg_proc
@@ -23,6 +23,11 @@ begin
   if has_table_privilege('anon', 'public.notification_jetons', 'select,insert,update,delete,truncate')
      or has_table_privilege('authenticated', 'public.notification_jetons', 'select,insert,update,delete,truncate') then
     raise exception 'R1b-01 vérification : notification_jetons accessible à l''app';
+  end if;
+  if (select string_agg(attname || ':' || format_type(atttypid, atttypmod), ',' order by attnum)
+      from pg_attribute where attrelid = 'public.notification_jetons'::regclass and attnum > 0 and not attisdropped)
+     <> 'empreinte:bytea,cree_le:timestamp with time zone' then
+    raise exception 'R1b-01 vérification : notification_jetons contient autre chose que empreinte et cree_le';
   end if;
 end $$;
 

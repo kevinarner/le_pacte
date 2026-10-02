@@ -23,16 +23,20 @@ begin
 end $$;
 
 -- 2. Jetons à usage unique (aucun accès pour l'app, ni direct pour service_role).
+--    Seule l'empreinte SHA-256 du jeton est stockée, jamais le jeton brut :
+--    lire la table ne permet pas de présenter un jeton valide.
 create table public.notification_jetons (
-  jeton   uuid primary key default gen_random_uuid(),
-  cree_le timestamptz not null default now()
+  empreinte bytea primary key check (octet_length(empreinte) = 32),
+  cree_le   timestamptz not null default now()
 );
 alter table public.notification_jetons owner to postgres;
 alter table public.notification_jetons enable row level security;
 revoke all on table public.notification_jetons from public, anon, authenticated, service_role;
 
 -- 3. Consommation par send-notification (clé service_role) : vrai une seule
---    fois, pour un jeton émis il y a moins de 15 minutes.
+--    fois, pour un jeton émis il y a moins de 15 minutes. L'empreinte est
+--    calculée sur la forme canonique (uuid::text, minuscules), comme dans
+--    notifier() ; le delete … returning sur la clé primaire est atomique.
 create function public.consommer_jeton_notification(p_jeton uuid)
 returns boolean
 language sql
@@ -41,7 +45,8 @@ set search_path = public
 as $$
   with consomme as (
     delete from public.notification_jetons
-    where jeton = p_jeton and cree_le > now() - interval '15 minutes'
+    where empreinte = sha256(convert_to(p_jeton::text, 'UTF8'))
+      and cree_le > now() - interval '15 minutes'
     returning 1
   )
   select exists (select 1 from consomme)
@@ -73,9 +78,12 @@ begin
       return;
     end if;
 
-    -- R1b : jeton à usage unique, consommé par send-notification.
+    -- R1b : jeton à usage unique, consommé par send-notification. Le jeton
+    -- brut part dans l'en-tête ; seule son empreinte SHA-256 est stockée.
     delete from public.notification_jetons where cree_le < now() - interval '1 day';
-    insert into public.notification_jetons default values returning jeton into v_jeton;
+    v_jeton := gen_random_uuid();
+    insert into public.notification_jetons (empreinte)
+    values (sha256(convert_to(v_jeton::text, 'UTF8')));
 
     perform net.http_post(
       url := 'https://ssciqjpaibdorvnkkhsk.supabase.co/functions/v1/send-notification',
@@ -102,7 +110,7 @@ do $$
 begin
   if (select md5(regexp_replace(prosrc, '\s+', ' ', 'g')) from pg_proc
       where oid = 'public.notifier(uuid,text,text,jsonb)'::regprocedure)
-     <> '174a0a458ccc3dbec8ddbfb844691902' then
+     <> 'cb331a844d5b2a5d155adeb6a948e558' then
     raise exception 'R1b-01 : corps de notifier() inattendu après remplacement';
   end if;
   if (select proacl::text from pg_proc
@@ -119,6 +127,11 @@ begin
      or has_table_privilege('authenticated', 'public.notification_jetons', 'select,insert,update,delete,truncate')
      or not (select relrowsecurity from pg_class where oid = 'public.notification_jetons'::regclass) then
     raise exception 'R1b-01 : notification_jetons accessible à l''app ou sans RLS';
+  end if;
+  if (select string_agg(attname || ':' || format_type(atttypid, atttypmod), ',' order by attnum)
+      from pg_attribute where attrelid = 'public.notification_jetons'::regclass and attnum > 0 and not attisdropped)
+     <> 'empreinte:bytea,cree_le:timestamp with time zone' then
+    raise exception 'R1b-01 : notification_jetons doit contenir seulement empreinte et cree_le (jamais le jeton brut)';
   end if;
   if (select pg_get_userbyid(relowner) from pg_class where oid = 'public.notification_jetons'::regclass) <> 'postgres'
      or (select pg_get_userbyid(proowner) from pg_proc where oid = 'public.consommer_jeton_notification(uuid)'::regprocedure) <> 'postgres'
