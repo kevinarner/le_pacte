@@ -1,0 +1,30 @@
+PAQUET: R1b-01
+MODE: appliquer
+NIVEAU: 1
+EMPREINTE: 85819e728b923364dd93578572b9a6c0abdb167018b4f4e42ac4408a9be9fdea
+VALIDATION: {"go":"Go R1b-01","valide_par":["Eliot"],"valide_le":"2026-10-02T17:07:13Z"}
+COMMIT: 9e5a314470ea88b03ff383124f0fe99441ee60d7
+DEBUT: 2026-10-02T17:58:29Z
+PLAN:
+  1. 
+  2. 
+  3. 
+  4. 
+ETAPE 1: appliquer (sql_ecriture, appliquer.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: []
+ETAPE 2: verifier (sql_lecture, verifier.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only
+  HTTP: 201
+  REPONSE: [{"notifier_acl":"{postgres=X/postgres}","consommer_acl":"{postgres=X/postgres,service_role=X/postgres}","jetons_rls":true,"jetons_en_attente":0}]
+ETAPE 3: deployer (edge_function send-notification, send-notification.ts, sha256 4719ba7c9d7da64f296c91068d2c87ff85e36d4dda61f7e4aebd319d00e51909, verify_jwt true) -> /v1/projects/ssciqjpaibdorvnkkhsk/functions/deploy?slug=send-notification
+  HTTP: 201
+  REPONSE: {"id":"78fc3ac3-8c1b-4715-8a17-62ff382aa78c","slug":"send-notification","name":"send-notification","status":"ACTIVE","version":5,"created_at":1787911251885,"updated_at":1790963913021,"verify_jwt":true,"import_map":false,"entrypoint_path":"file:///tmp/user_fn_ssciqjpaibdorvnkkhsk_78fc3ac3-8c1b-4715-8a17-62ff382aa78c_5/source/index.ts","ezbr_sha256":"8e28f606998380c632779755d55facca2d7a2ea2097939e47d537db9b97a75b8"}
+CONTROLE 3: état de send-notification -> /v1/projects/ssciqjpaibdorvnkkhsk/functions/send-notification
+  HTTP: 200
+  REPONSE: {"id":"78fc3ac3-8c1b-4715-8a17-62ff382aa78c","slug":"send-notification","name":"send-notification","status":"ACTIVE","version":5,"created_at":1787911251885,"updated_at":1790963913021,"verify_jwt":true,"import_map":false,"entrypoint_path":"file:///tmp/user_fn_ssciqjpaibdorvnkkhsk_78fc3ac3-8c1b-4715-8a17-62ff382aa78c_5/source/index.ts","ezbr_sha256":"8e28f606998380c632779755d55facca2d7a2ea2097939e47d537db9b97a75b8"}
+  DEPLOYE: version 5, ezbr_sha256 8e28f606998380c632779755d55facca2d7a2ea2097939e47d537db9b97a75b8
+ETAPE 4: tests_fonctionnels (sql_ecriture, tests_fonctionnels.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: [{"requete_anon_sans_jeton":50,"requete_anon_jeton_invente":51}]
+RESULTAT: SUCCES
+FIN: 2026-10-02T17:58:35Z
