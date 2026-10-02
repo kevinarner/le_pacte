@@ -1,13 +1,7 @@
 // Envoie une notification push (FCM, API v1) à tous les appareils
-// enregistrés d'un profil. Appelée en interne seulement, par
-// public.notifier() en base (via pg_net).
-//
-// R1b : la passerelle laisse passer la clé anon (Verify JWT), donc chaque
-// appel doit présenter un jeton à usage unique dans l'en-tête
-// « x-swend-jeton ». notifier() le crée en base (table
-// notification_jetons) ; il est consommé ici par
-// consommer_jeton_notification() avec la clé service_role : inconnu, déjà
-// utilisé ou expiré → 403, avant toute lecture de la requête.
+// enregistrés d'un profil. Appelée en interne — par les déclencheurs
+// Postgres (via pg_net) sur les événements du pacte, jamais exposée
+// publiquement sans vérification.
 //
 // Requête attendue : POST { profile_id: string, title: string, body: string,
 // data?: Record<string, string> }
@@ -112,35 +106,8 @@ async function obtenirAccessToken(compte: CompteDeService): Promise<string> {
   return access_token as string;
 }
 
-const FORMAT_JETON = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-function nonAutorise(): Response {
-  return new Response(JSON.stringify({ error: 'non_autorise' }), {
-    status: 403,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
 Deno.serve(async (req) => {
   try {
-    const client = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-    );
-
-    // R1b : jeton à usage unique émis par notifier(), sinon refus.
-    const jeton = req.headers.get('x-swend-jeton') ?? '';
-    if (!FORMAT_JETON.test(jeton)) return nonAutorise();
-    const { data: autorise, error: erreurJeton } = await client.rpc(
-      'consommer_jeton_notification',
-      { p_jeton: jeton },
-    );
-    if (erreurJeton) {
-      console.error('Erreur Supabase (jeton) :', JSON.stringify(erreurJeton));
-      return nonAutorise();
-    }
-    if (autorise !== true) return nonAutorise();
-
     const { profile_id, title, body, data } = await req.json();
     if (!profile_id || !title || !body) {
       return new Response(
@@ -153,6 +120,11 @@ Deno.serve(async (req) => {
     console.log('Compte de service chargé pour le projet :', compte.project_id);
     const accessToken = await obtenirAccessToken(compte);
     console.log('Access token OAuth2 obtenu.');
+
+    const client = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
 
     const { data: appareils, error } = await client
       .from('device_tokens')
