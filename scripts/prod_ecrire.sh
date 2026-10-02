@@ -79,6 +79,10 @@ else
   FILTRE='[.rollback[]]'
 fi
 NB="$(jq "$FILTRE | length" "$M")"
+# Plan rendu avant tout envoi : un reçu sans plan complet est refusé.
+PLAN="$(paquet_plan "$M" "$FILTRE")" || paquet_refus "rendu du plan impossible (manifeste.json)"
+[ "$(grep -c '^  [0-9]*\. [^ ]' <<<"$PLAN")" = "$NB" ] \
+  || paquet_refus "plan incomplet : $NB étape(s) attendue(s)"
 
 journal "PAQUET: $ID"
 journal "MODE: $MODE"
@@ -88,9 +92,7 @@ journal "VALIDATION: $(jq -c '{go, valide_par, valide_le}' "$PAQUET_DIR/validati
 journal "COMMIT: $(git -C "$RACINE" rev-parse HEAD)"
 journal "DEBUT: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 journal "PLAN:"
-for ((i = 0; i < NB; i++)); do
-  journal "  $((i + 1)). $(jq -r "$FILTRE[$i] | \"\(.nom) — \(.type)\(if .fonction then " " + .fonction else "" end) — \(.fichier) — sha256 \(.sha256)\"" "$M")"
-done
+journal "$PLAN"
 
 echec() {
   journal "RESULTAT: ECHEC"

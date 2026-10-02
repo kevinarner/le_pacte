@@ -17,7 +17,7 @@ rate()   { KO=$((KO + 1)); printf '  ÉCHEC %s\n        %s\n' "$1" "$2"; }
 # --- Dépôt temporaire : copie des garde-fous ------------------------------
 R="$T/depot"
 mkdir -p "$R/supabase/changements"
-cp -r "$SOURCE/scripts" "$SOURCE/.claude" "$SOURCE/CLAUDE.md" "$R/"
+cp -r "$SOURCE/scripts" "$SOURCE/.claude" "$SOURCE/CLAUDE.md" "$SOURCE/.gitignore" "$R/"
 git -C "$R" init -q
 git -C "$R" config user.email test@example.invalid
 git -C "$R" config user.name test
@@ -149,6 +149,18 @@ else rate "chemins des requêtes" "$(jq -r .chemin "$T/requetes.jsonl" | tr '\n'
 J="$(ls "$R"/supabase/changements/TEST-01/journal/*-appliquer.log)"
 grep -q '^RESULTAT: SUCCES$' "$J" && grep -q "^EMPREINTE: " "$J" && grep -q '^PLAN:' "$J" && grep -q '^COMMIT: ' "$J" \
   && reussi "reçu : plan, empreinte, commit, résultat" || rate "reçu" "champs manquants"
+# Non-régression R1b-01 : lignes PLAN vides (programme jq coupé par le shell).
+M1="$R/supabase/changements/TEST-01/manifeste.json"
+PLAN_ATTENDU="$(printf '  1. appliquer — sql_ecriture — appliquer.sql — sha256 %s\n  2. verifier — sql_lecture — verifier.sql — sha256 %s' \
+  "$(jq -r '.etapes[0].sha256' "$M1")" "$(jq -r '.etapes[1].sha256' "$M1")")"
+[ "$(sed -n '/^PLAN:$/,/^ETAPE /p' "$J" | sed '1d;$d')" = "$PLAN_ATTENDU" ] \
+  && reussi "reçu : PLAN contient chaque étape du manifeste (nom, type, fichier, sha256)" \
+  || rate "reçu : PLAN" "$(sed -n '/^PLAN:$/,/^ETAPE /p' "$J" | tr '\n' '|')"
+if ! git -C "$R" check-ignore -q "$J" && [ "$(git -C "$R" status --porcelain -- "$J")" = "?? ${J#"$R"/}" ]; then
+  reussi "reçu journal/*.log : non ignoré, ajoutable sans git add -f"
+else rate "reçu journal/*.log" "ignoré par .gitignore"; fi
+git -C "$R" add "$J" && git -C "$R" commit -qm "reçu TEST-01" \
+  && reussi "reçu : git add normal puis commit" || rate "reçu : git add" "refusé"
 if grep -qi -e authorization -e bearer -e apikey "$J" || jq -e 'select(.entetes.authorization or .entetes.apikey)' "$T/requetes.jsonl" >/dev/null; then
   rate "aucun identifiant envoyé ni journalisé" "un en-tête d'authentification est présent"
 else reussi "aucun identifiant envoyé ni journalisé par la porte"; fi
@@ -159,6 +171,9 @@ attendre "rollback validé → exécuté" 0 "SUCCÈS : 1 étape" -- \
   env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-01 "$E1" --rollback
 [ "$(head -n1 "$T/requetes.jsonl" | jq -r '.corps | fromjson | .query')" = "$(cat "$R/supabase/changements/TEST-01/rollback.sql")" ] \
   && reussi "rollback : envoie exactement rollback.sql" || rate "rollback" "SQL différent"
+grep -qx "  1. rollback — sql_ecriture — rollback.sql — sha256 $(jq -r '.rollback[0].sha256' "$M1")" \
+  "$R"/supabase/changements/TEST-01/journal/*-rollback.log \
+  && reussi "reçu de rollback : PLAN contient l'étape de rollback" || rate "PLAN du rollback" "ligne absente"
 
 creer_paquet TEST-02 1; valider TEST-02 Kevin; E2="$(empreinte TEST-02)"
 demarrer_serveur echec
@@ -268,6 +283,9 @@ if grep -qF "version approuvee (v2)" <<<"$CORPS" && grep -qF 'filename="index.ts
 else rate "contenu du déploiement" "source ou métadonnées absentes"; fi
 grep -q "DEPLOYE: version 7" "$R"/supabase/changements/TEST-40/journal/*-appliquer.log \
   && reussi "reçu : version déployée journalisée" || rate "reçu de déploiement" "version absente"
+grep -qx "  1. deployer — edge_function fn-test — fonction.ts — sha256 $(jq -r '.etapes[0].sha256' "$R/supabase/changements/TEST-40/manifeste.json")" \
+  "$R"/supabase/changements/TEST-40/journal/*-appliquer.log \
+  && reussi "reçu : PLAN d'une étape edge_function (avec le nom de la fonction)" || rate "PLAN edge_function" "ligne absente"
 attendre "double déploiement → refus" 1 "déjà appliqué" -- \
   env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-40 "$E40"
 : > "$T/requetes.jsonl"
@@ -313,6 +331,27 @@ creer_paquet_fn TEST-50 fn-test; valider TEST-50 Kevin; E50="$(empreinte TEST-50
 printf "// nouvelle version poussée après le Go\n" >> "$R/supabase/functions/fn-test/index.ts"
 git -C "$R" commit -qam "source de fn-test modifiée après le Go"
 attendre "source de la fonction modifiée après le Go → refus" 1 "ne correspond pas à la source versionnée" -- "$PORTE" TEST-50 "$E50"
+
+echo
+echo "== Dépôt réel : .gitignore des reçus et plan d'un vrai manifeste"
+for f in supabase/changements/R1b-01/journal/20261002T175829Z-appliquer.log \
+         supabase/changements/XX-01/journal/20990101T000000Z-rollback.log; do
+  git -C "$SOURCE" check-ignore -q --no-index "$f" && rate "reçu non ignoré : $f" "ignoré par .gitignore" \
+    || reussi "reçu non ignoré : $f"
+done
+for f in app.log supabase/x.log supabase/changements/XX-01/autre.log supabase/changements/XX-01/journal/sous/x.log; do
+  git -C "$SOURCE" check-ignore -q --no-index "$f" && reussi "autre *.log toujours ignoré : $f" \
+    || rate "autre *.log toujours ignoré : $f" "n'est plus ignoré"
+done
+git -C "$SOURCE" ls-files --error-unmatch supabase/changements/R1b-01/journal/20261002T175829Z-appliquer.log >/dev/null 2>&1 \
+  && reussi "reçu R1b-01 versionné" || rate "reçu R1b-01 versionné" "absent du dépôt"
+PLAN_R1B="$(. "$R/scripts/lib/paquet.sh" && paquet_plan "$SOURCE/supabase/changements/R1b-01/manifeste.json" '[.sauvegardes[]?, .etapes[]]')"
+if [ "$(sed -E 's/ — sha256 [0-9a-f]{64}$//' <<<"$PLAN_R1B")" = "$(printf '%s\n' \
+     '  1. appliquer — sql_ecriture — appliquer.sql' '  2. verifier — sql_lecture — verifier.sql' \
+     '  3. deployer — edge_function send-notification — send-notification.ts' \
+     '  4. tests_fonctionnels — sql_ecriture — tests_fonctionnels.sql')" ]; then
+  reussi "plan du manifeste R1b-01 : 4 étapes rendues, avec sha256"
+else rate "plan du manifeste R1b-01" "$(tr '\n' '|' <<<"$PLAN_R1B")"; fi
 
 echo
 echo "== Hook PreToolUse (cas de scripts/tests/cas_hook.tsv)"

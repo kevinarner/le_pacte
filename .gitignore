@@ -1,6 +1,9 @@
 # Miscellaneous
 *.class
 *.log
+# Exception : reçus d'exécution des change packets, à versionner
+# (voir le README des change packets). Testé par scripts/tests/test_garde_prod.sh.
+!/supabase/changements/*/journal/*.log
 *.pyc
 *.swp
 .DS_Store

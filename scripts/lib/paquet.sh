@@ -189,3 +189,12 @@ paquet_controler() {
   fi
   return 0
 }
+
+# Plan d'exécution lisible, une ligne par étape : « N. nom — type [fonction] —
+# fichier — sha256 … ». <filtre> = étapes à exécuter (jq), comme dans la porte.
+# Le programme jq est entre apostrophes : ses guillemets internes ne doivent
+# jamais passer par le shell (cause des lignes PLAN vides du reçu R1b-01).
+paquet_plan() {  # paquet_plan <manifeste.json> <filtre jq>
+  jq -r "$2"' | to_entries[]
+    | "  \(.key + 1). \(.value.nom) — \(.value.type)\(if .value.fonction then " " + .value.fonction else "" end) — \(.value.fichier) — sha256 \(.value.sha256)"' "$1"
+}
