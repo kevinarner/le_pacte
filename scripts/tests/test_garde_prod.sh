@@ -80,15 +80,27 @@ cat > "$T/serveur.py" <<'PY'
 import http.server, json, os, sys
 journal, mode = sys.argv[1], sys.argv[2]
 class H(http.server.BaseHTTPRequestHandler):
-    def do_POST(self):
-        corps = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode()
+    def noter(self, corps):
         with open(journal, "a") as f:
-            f.write(json.dumps({"chemin": self.path, "corps": corps,
+            f.write(json.dumps({"methode": self.command, "chemin": self.path, "corps": corps,
                                 "entetes": {k.lower(): v for k, v in self.headers.items()}}) + "\n")
-        n = sum(1 for _ in open(journal))
-        code = 400 if (mode == "echec" and n == 1) else 201
+        return sum(1 for _ in open(journal))
+    def repondre(self, code, corps):
         self.send_response(code); self.send_header("Content-Type", "application/json"); self.end_headers()
-        self.wfile.write(b'[{"ok":1}]' if code == 201 else b'{"message":"erreur simulee"}')
+        self.wfile.write(json.dumps(corps).encode())
+    def do_POST(self):
+        corps = self.rfile.read(int(self.headers.get("Content-Length", 0))).decode("utf-8", "replace")
+        n = self.noter(corps)
+        if mode == "echec" and n == 1:
+            return self.repondre(400, {"message": "erreur simulee"})
+        if "/functions/deploy" in self.path:
+            return self.repondre(201, {"id": "f1", "slug": self.path.split("slug=")[-1], "status": "ACTIVE", "version": 7})
+        self.repondre(201, [{"ok": 1}])
+    def do_GET(self):
+        self.noter("")
+        slug = self.path.rstrip("/").split("/")[-1]
+        self.repondre(200, {"id": "f1", "slug": slug, "name": slug, "status": "ACTIVE", "version": 7,
+                            "verify_jwt": mode != "jwt_faux", "ezbr_sha256": "e" * 64})
     def log_message(self, *a): pass
 s = http.server.HTTPServer(("127.0.0.1", 0), H)
 print(s.server_port, flush=True)
@@ -186,7 +198,7 @@ casser TEST-08 "section absente de paquet.md → refus" "Rollback" 'sed -i "/^##
 casser TEST-09 "chemin dans un nom d'artefact → refus" "nom de fichier interdit" 'jq ".etapes[0].fichier = \"../x.sql\"" manifeste.json > m && mv m manifeste.json'
 casser TEST-10 "fichier inattendu dans le paquet → refus" "fichier inattendu" 'echo x > notes.txt'
 casser TEST-11 "écriture sans transaction → refus" "begin;" 'printf "select 1;\n" > appliquer.sql && jq --arg s "$(sha256sum appliquer.sql | cut -d" " -f1)" ".etapes[0].sha256 = \$s" manifeste.json > m && mv m manifeste.json'
-casser TEST-12 "type edge_function → refus explicite" "pas encore pris en charge" 'jq ".etapes[0].type = \"edge_function\"" manifeste.json > m && mv m manifeste.json'
+casser TEST-12 "étape edge_function sans champ fonction → refus" "champ « fonction » manquant" 'jq ".etapes[0].type = \"edge_function\"" manifeste.json > m && mv m manifeste.json'
 casser TEST-13 "projet inattendu → refus" "projet inattendu" 'jq ".projet = \"autreprojet\"" manifeste.json > m && mv m manifeste.json'
 casser TEST-14 "sha256 absent → refus" "sha256 manquant" 'jq "del(.etapes[0].sha256)" manifeste.json > m && mv m manifeste.json'
 
@@ -212,6 +224,95 @@ git -C "$R" checkout -q -- scripts/prod_ecrire.sh
 echo '{}' > "$R/.claude/settings.local.json"
 attendre ".claude/ modifié → refus" 1 "modifications non commitées" -- "$PORTE" TEST-21 "$(empreinte TEST-21)"
 rm "$R/.claude/settings.local.json"
+
+echo
+echo "== Edge Functions (même porte)"
+mkdir -p "$R/supabase/functions/fn-test" "$R/supabase/functions/fn-multi"
+printf "// version precedente (v1)\nDeno.serve(() => new Response('v1'));\n" > "$T/v1.ts"
+printf "// version approuvee (v2)\nDeno.serve(() => new Response('v2'));\n" > "$R/supabase/functions/fn-test/index.ts"
+printf "export {};\n" > "$R/supabase/functions/fn-multi/index.ts"; printf "export {};\n" > "$R/supabase/functions/fn-multi/util.ts"
+git -C "$R" add -A && git -C "$R" commit -qm "fonctions de test"
+
+# creer_paquet_fn <ID> <fonction> [filtre jq appliqué au manifeste] : déploie la
+# source du dépôt (fonction.ts), rollback vers v1 (precedente.ts).
+creer_paquet_fn() {
+  local id="$1" fonction="$2" filtre="${3:-.}" d="$R/supabase/changements/$1"
+  mkdir -p "$d"
+  if [ -f "$R/supabase/functions/$fonction/index.ts" ]; then cp "$R/supabase/functions/$fonction/index.ts" "$d/fonction.ts"
+  else cp "$R/supabase/functions/fn-test/index.ts" "$d/fonction.ts"; fi
+  cp "$T/v1.ts" "$d/precedente.ts"
+  { echo "# $id"; for s in "Objectif" "Fichiers concernés" "Préconditions" "Impact attendu" \
+      "Vérifications après exécution" "Rollback" "Sauvegardes"; do printf '\n## %s\n\nTexte.\n' "$s"; done; } > "$d/paquet.md"
+  jq -n --arg id "$id" --arg f "$fonction" --arg a "$(sha "$d/fonction.ts")" --arg p "$(sha "$d/precedente.ts")" '{
+      id: $id, niveau: 1, projet: "ssciqjpaibdorvnkkhsk", objectif: "Test Edge Function.", sauvegardes: [],
+      etapes:   [{nom: "deployer", type: "edge_function", fonction: $f, fichier: "fonction.ts",   sha256: $a, verify_jwt: true}],
+      rollback: [{nom: "revenir",  type: "edge_function", fonction: $f, fichier: "precedente.ts", sha256: $p, verify_jwt: true}]
+    }' | jq "$filtre" > "$d/manifeste.json"
+  git -C "$R" add -A && git -C "$R" commit -qm "paquet $id"
+}
+
+creer_paquet_fn TEST-40 fn-test
+attendre "edge_function conforme : contrôle avant Go" 0 "contrôles OK" -- "$CTRL" TEST-40 --avant-go
+valider TEST-40 Kevin; E40="$(empreinte TEST-40)"
+attendre "edge_function hors session d'écriture → arrêt avant envoi" 3 "absent" -- "$PORTE" TEST-40 "$E40"
+demarrer_serveur ok
+attendre "edge_function conforme en session d'écriture → déployée et contrôlée" 0 "SUCCÈS : 1 étape" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-40 "$E40"
+if [ "$(jq -r '.methode + " " + .chemin' "$T/requetes.jsonl" | tr '\n' '|')" = "POST /v1/projects/ssciqjpaibdorvnkkhsk/functions/deploy?slug=fn-test|GET /v1/projects/ssciqjpaibdorvnkkhsk/functions/fn-test|" ]; then
+  reussi "déploiement …/functions/deploy?slug=fn-test puis contrôle de l'état déployé"
+else rate "requêtes de déploiement" "$(jq -r '.methode + " " + .chemin' "$T/requetes.jsonl" | tr '\n' '|')"; fi
+CORPS="$(head -n1 "$T/requetes.jsonl" | jq -r .corps)"
+if grep -qF "version approuvee (v2)" <<<"$CORPS" && grep -qF 'filename="index.ts"' <<<"$CORPS" \
+   && grep -qF '"verify_jwt":true' <<<"$CORPS" && grep -qF '"entrypoint_path":"index.ts"' <<<"$CORPS"; then
+  reussi "envoie exactement la source approuvée (index.ts) avec verify_jwt=true"
+else rate "contenu du déploiement" "source ou métadonnées absentes"; fi
+grep -q "DEPLOYE: version 7" "$R"/supabase/changements/TEST-40/journal/*-appliquer.log \
+  && reussi "reçu : version déployée journalisée" || rate "reçu de déploiement" "version absente"
+attendre "double déploiement → refus" 1 "déjà appliqué" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-40 "$E40"
+: > "$T/requetes.jsonl"
+attendre "rollback vers la version précédente → déployé" 0 "SUCCÈS : 1 étape" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-40 "$E40" --rollback
+CORPS="$(head -n1 "$T/requetes.jsonl" | jq -r .corps)"
+grep -qF "version precedente (v1)" <<<"$CORPS" && ! grep -qF "version approuvee (v2)" <<<"$CORPS" \
+  && reussi "rollback : envoie exactement la version précédente" || rate "rollback Edge Function" "mauvais contenu"
+
+creer_paquet_fn TEST-41 fn-test; valider TEST-41 Kevin; E41="$(empreinte TEST-41)"
+demarrer_serveur echec
+attendre "erreur de déploiement → arrêt" 1 "HTTP 400" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-41 "$E41"
+[ "$(wc -l < "$T/requetes.jsonl")" = 1 ] && reussi "après l'échec du déploiement : aucun contrôle ni étape suivante" \
+  || rate "arrêt après échec de déploiement" "$(wc -l < "$T/requetes.jsonl") requêtes"
+
+creer_paquet_fn TEST-42 fn-test; valider TEST-42 Kevin; E42="$(empreinte TEST-42)"
+demarrer_serveur jwt_faux
+attendre "verify_jwt non confirmé après déploiement → échec" 1 "non confirmés" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-42 "$E42"
+
+creer_paquet_fn TEST-43 fn-test
+D43="$R/supabase/changements/TEST-43"
+printf "// autre contenu\n" >> "$D43/fonction.ts"
+jq --arg s "$(sha "$D43/fonction.ts")" '.etapes[0].sha256 = $s' "$D43/manifeste.json" > "$T/m" && mv "$T/m" "$D43/manifeste.json"
+git -C "$R" commit -qam "TEST-43 artefact différent de la source"
+attendre "hash de l'artefact ≠ source versionnée de la fonction → refus" 1 "ne correspond pas à la source versionnée" -- "$CTRL" TEST-43 --avant-go
+creer_paquet_fn TEST-44 fn-test; valider TEST-44 Kevin; E44="$(empreinte TEST-44)"
+attendre "artefact Edge Function modifié après le Go → refus" 1 "" -- bash -c "
+  printf '// ajout\n' >> '$R/supabase/changements/TEST-44/fonction.ts' && git -C '$R' commit -qam modif &&
+  '$PORTE' TEST-44 '$E44'"
+creer_paquet_fn TEST-45 fonction-inexistante
+attendre "mauvais nom de fonction (inexistante) → refus" 1 "inconnue" -- "$CTRL" TEST-45 --avant-go
+creer_paquet_fn TEST-46 fn-test '.etapes[0].fonction = "../fn-test"'
+attendre "nom de fonction avec chemin → refus" 1 "nom invalide" -- "$CTRL" TEST-46 --avant-go
+creer_paquet_fn TEST-47 fn-multi
+attendre "fonction de plusieurs fichiers → refus" 1 "un seul fichier" -- "$CTRL" TEST-47 --avant-go
+creer_paquet_fn TEST-48 fn-test 'del(.etapes[0].verify_jwt)'
+attendre "verify_jwt absent → refus" 1 "verify_jwt" -- "$CTRL" TEST-48 --avant-go
+creer_paquet_fn TEST-49 fn-test '.etapes[0].fonction = "fn-autre"'
+attendre "fonction du manifeste ≠ source de l'artefact (fn-autre inconnue) → refus" 1 "inconnue" -- "$CTRL" TEST-49 --avant-go
+creer_paquet_fn TEST-50 fn-test; valider TEST-50 Kevin; E50="$(empreinte TEST-50)"
+printf "// nouvelle version poussée après le Go\n" >> "$R/supabase/functions/fn-test/index.ts"
+git -C "$R" commit -qam "source de fn-test modifiée après le Go"
+attendre "source de la fonction modifiée après le Go → refus" 1 "ne correspond pas à la source versionnée" -- "$PORTE" TEST-50 "$E50"
 
 echo
 echo "== Hook PreToolUse (cas de scripts/tests/cas_hook.tsv)"

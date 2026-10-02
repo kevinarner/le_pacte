@@ -1,5 +1,6 @@
 #!/bin/bash
-# PORTE UNIQUE des écritures en production Swend.
+# PORTE UNIQUE des écritures en production Swend : SQL (écriture, lecture de
+# vérification) et déploiement d'Edge Functions.
 #
 #   scripts/prod_ecrire.sh <ID> <empreinte-12>              applique le paquet
 #   scripts/prod_ecrire.sh <ID> <empreinte-12> --rollback   exécute son rollback
@@ -88,7 +89,7 @@ journal "COMMIT: $(git -C "$RACINE" rev-parse HEAD)"
 journal "DEBUT: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
 journal "PLAN:"
 for ((i = 0; i < NB; i++)); do
-  journal "  $((i + 1)). $(jq -r "$FILTRE[$i] | \"\(.nom) — \(.type) — \(.fichier) — sha256 \(.sha256)\"" "$M")"
+  journal "  $((i + 1)). $(jq -r "$FILTRE[$i] | \"\(.nom) — \(.type)\(if .fonction then " " + .fonction else "" end) — \(.fichier) — sha256 \(.sha256)\"" "$M")"
 done
 
 echec() {
@@ -98,27 +99,57 @@ echec() {
   exit 1
 }
 
-for ((i = 0; i < NB; i++)); do
-  NOM="$(jq -r "$FILTRE[$i].nom" "$M")"
-  TYPE="$(jq -r "$FILTRE[$i].type" "$M")"
-  FICHIER="$(jq -r "$FILTRE[$i].fichier" "$M")"
-  case "$TYPE" in
-    sql_ecriture) URL="$URL_ECRITURE" ;;
-    sql_lecture)  URL="$URL_LECTURE" ;;
-    *) echec "type d'étape non pris en charge : $TYPE" ;;
-  esac
-  # Re-vérification juste avant l'envoi (rien ne doit bouger pendant l'exécution).
-  [ "$(sha256sum "$PAQUET_DIR/$FICHIER" | cut -d' ' -f1)" = "$(jq -r "$FILTRE[$i].sha256" "$M")" ] \
-    || echec "artefact $FICHIER modifié pendant l'exécution"
-  jq -n --rawfile q "$PAQUET_DIR/$FICHIER" '{query: $q}' > "$TMP/corps.json"
-  journal "ETAPE $((i + 1)): $NOM ($TYPE, $FICHIER) -> ${URL#"$API_BASE"}"
-  CODE="$(curl -sS -o "$TMP/reponse" -w '%{http_code}' -X POST "$URL" \
-            -H 'Content-Type: application/json' --data-binary @"$TMP/corps.json")" \
-    || { journal "  ERREUR RESEAU"; echec "étape $NOM : erreur réseau"; }
+# Requête HTTP journalisée ; arrêt si elle échoue ou ne renvoie pas un 2xx.
+requete() {  # requete <libellé> <curl args...>
+  local libelle="$1"; shift
+  CODE="$(curl -sS -o "$TMP/reponse" -w '%{http_code}' "$@")" \
+    || { journal "  ERREUR RESEAU"; echec "$libelle : erreur réseau"; }
   journal "  HTTP: $CODE"
   journal "  REPONSE: $(head -c 20000 "$TMP/reponse")"
-  echo "Étape $((i + 1))/$NB $NOM : HTTP $CODE"
-  [[ "$CODE" =~ ^2[0-9][0-9]$ ]] || echec "étape $NOM : HTTP $CODE"
+  echo "$libelle : HTTP $CODE"
+  [[ "$CODE" =~ ^2[0-9][0-9]$ ]] || echec "$libelle : HTTP $CODE"
+}
+
+for ((i = 0; i < NB; i++)); do
+  ETAPE="$(jq -c "$FILTRE[$i]" "$M")"
+  NOM="$(jq -r '.nom' <<<"$ETAPE")"
+  TYPE="$(jq -r '.type' <<<"$ETAPE")"
+  FICHIER="$(jq -r '.fichier' <<<"$ETAPE")"
+  # Re-vérification juste avant l'envoi (rien ne doit bouger pendant l'exécution).
+  [ "$(sha256sum "$PAQUET_DIR/$FICHIER" | cut -d' ' -f1)" = "$(jq -r '.sha256' <<<"$ETAPE")" ] \
+    || echec "artefact $FICHIER modifié pendant l'exécution"
+  case "$TYPE" in
+    sql_ecriture|sql_lecture)
+      if [ "$TYPE" = sql_ecriture ]; then URL="$URL_ECRITURE"; else URL="$URL_LECTURE"; fi
+      jq -n --rawfile q "$PAQUET_DIR/$FICHIER" '{query: $q}' > "$TMP/corps.json"
+      journal "ETAPE $((i + 1)): $NOM ($TYPE, $FICHIER) -> ${URL#"$API_BASE"}"
+      requete "Étape $((i + 1))/$NB $NOM" -X POST "$URL" \
+        -H 'Content-Type: application/json' --data-binary @"$TMP/corps.json"
+      ;;
+    edge_function)
+      # Déploiement de l'artefact tel quel (index.ts) : aucun bundler ni
+      # dépendance locale, Supabase résout les imports à la construction.
+      FONCTION="$(jq -r '.fonction' <<<"$ETAPE")"
+      VERIFY_JWT="$(jq -r '.verify_jwt' <<<"$ETAPE")"
+      mkdir -p "$TMP/fonction" && cp "$PAQUET_DIR/$FICHIER" "$TMP/fonction/index.ts"
+      jq -nc --arg f "$FONCTION" --argjson v "$VERIFY_JWT" \
+        '{entrypoint_path: "index.ts", name: $f, verify_jwt: $v}' > "$TMP/metadata.json"
+      URL="$API_BASE/v1/projects/$PAQUET_PROJET_ATTENDU/functions/deploy?slug=$FONCTION"
+      journal "ETAPE $((i + 1)): $NOM (edge_function $FONCTION, $FICHIER, sha256 $(jq -r '.sha256' <<<"$ETAPE"), verify_jwt $VERIFY_JWT) -> ${URL#"$API_BASE"}"
+      requete "Étape $((i + 1))/$NB $NOM (déploiement $FONCTION)" -X POST "$URL" \
+        -F "metadata=<$TMP/metadata.json" \
+        -F "file=@$TMP/fonction/index.ts;filename=index.ts;type=application/typescript"
+      # Contrôle de l'état déployé : active, verify_jwt conforme au paquet.
+      URL="$API_BASE/v1/projects/$PAQUET_PROJET_ATTENDU/functions/$FONCTION"
+      journal "CONTROLE $((i + 1)): état de $FONCTION -> ${URL#"$API_BASE"}"
+      requete "Contrôle $FONCTION" -X GET "$URL"
+      jq -e --arg f "$FONCTION" --argjson v "$VERIFY_JWT" \
+        '.slug == $f and .status == "ACTIVE" and .verify_jwt == $v' "$TMP/reponse" >/dev/null \
+        || echec "$FONCTION après déploiement : slug, statut ACTIVE ou verify_jwt=$VERIFY_JWT non confirmés"
+      journal "  DEPLOYE: version $(jq -r '.version' "$TMP/reponse"), ezbr_sha256 $(jq -r '.ezbr_sha256 // "?"' "$TMP/reponse")"
+      ;;
+    *) echec "type d'étape non pris en charge : $TYPE" ;;
+  esac
 done
 
 journal "RESULTAT: SUCCES"

@@ -21,6 +21,24 @@ paquet_racine() { git -C "$(dirname "${BASH_SOURCE[0]}")" rev-parse --show-tople
 
 paquet_refus() { echo "REFUS : $*" >&2; exit 1; }
 
+# Étape « edge_function » : fonction existante du dépôt, d'un seul fichier
+# (index.ts, sans import_map ni fichier statique), verify_jwt explicite.
+paquet_controler_fonction() {
+  local racine="$1" etape="$2" fonction fichiers
+  jq -e '.fonction | type == "string"' <<<"$etape" >/dev/null \
+    || paquet_refus "Edge Function : champ « fonction » manquant"
+  fonction="$(jq -r '.fonction' <<<"$etape")"
+  [[ "$fonction" =~ ^[A-Za-z][A-Za-z0-9_-]*$ ]] \
+    || paquet_refus "Edge Function : nom invalide « $fonction »"
+  fichiers="$(git -C "$racine" ls-files -- "supabase/functions/$fonction/")"
+  [ -n "$fichiers" ] \
+    || paquet_refus "Edge Function « $fonction » inconnue : aucun supabase/functions/$fonction/ versionné"
+  [ "$fichiers" = "supabase/functions/$fonction/index.ts" ] \
+    || paquet_refus "Edge Function « $fonction » : seules les fonctions d'un seul fichier index.ts sont prises en charge"
+  jq -e '.verify_jwt | type == "boolean"' <<<"$etape" >/dev/null \
+    || paquet_refus "Edge Function « $fonction » : verify_jwt (true/false) obligatoire"
+}
+
 # Fichiers du paquet couverts par l'empreinte (triés, sans validation.json ni journal/).
 paquet_fichiers() {
   local dir="$1"
@@ -92,7 +110,7 @@ paquet_controler() {
       || paquet_refus "étape sans nom"
     case "$type" in
       sql_ecriture|sql_lecture) ;;
-      edge_function) paquet_refus "type « edge_function » pas encore pris en charge par la porte (à ajouter dans un lot dédié)" ;;
+      edge_function) paquet_controler_fonction "$racine" "$etape" ;;
       *) paquet_refus "étape « $fichier » : type inconnu « $type »" ;;
     esac
     [[ "$fichier" =~ ^[A-Za-z0-9_.-]+$ && "$fichier" != .* ]] \
@@ -112,6 +130,19 @@ paquet_controler() {
         || paquet_refus "écriture $fichier : doit finir par « commit; »"
     fi
   done
+
+  # Une Edge Function appliquée (étapes, pas le rollback) doit être exactement
+  # la source versionnée du dépôt : ce qui est déployé est ce qui est relu.
+  local fonction source
+  while read -r etape; do
+    fonction="$(jq -r '.fonction' <<<"$etape")"
+    fichier="$(jq -r '.fichier' <<<"$etape")"
+    source="supabase/functions/$fonction/index.ts"
+    [ -z "$(git -C "$racine" status --porcelain -- "$source")" ] \
+      || paquet_refus "$source a des modifications non commitées"
+    [ "$(sha256sum "$racine/$source" | cut -d' ' -f1)" = "$(sha256sum "$PAQUET_DIR/$fichier" | cut -d' ' -f1)" ] \
+      || paquet_refus "Edge Function « $fonction » : l'artefact $fichier ne correspond pas à la source versionnée $source"
+  done < <(jq -c '.etapes[] | select(.type == "edge_function")' "$m")
 
   # Aucun fichier inattendu dans le paquet.
   local present

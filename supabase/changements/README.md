@@ -1,7 +1,7 @@
 # Change packets de production
 
 Un **change packet** est la seule forme sous laquelle un changement de
-production Swend (SQL, plus tard Edge Function) peut être exécuté
+production Swend (SQL ou déploiement d'Edge Function) peut être exécuté
 normalement. Il est versionné ici, immuable une fois validé, et exécuté
 uniquement par la porte `scripts/prod_ecrire.sh`. Règles générales :
 `CLAUDE.md` (racine).
@@ -47,11 +47,28 @@ Aucun autre fichier n'est admis dans le dossier.
 - `niveau` : 1 ou 2 (le niveau 3 n'est jamais un paquet, voir `CLAUDE.md`).
   Niveau 2 : `sauvegardes` non vide (ou `sauvegarde_justification`) et Go des
   **deux** fondateurs.
-- Étapes : `sql_ecriture` (endpoint d'écriture, **doit commencer par `begin;`
-  et finir par `commit;`**, sauf `"transaction": false` justifié dans
-  `paquet.md`) ou `sql_lecture` (endpoint `…/read-only`). Le type
-  `edge_function` est réservé : la porte le refuse tant qu'il n'est pas
-  implémenté.
+- Étapes :
+  - `sql_ecriture` : endpoint d'écriture. Le SQL **doit commencer par
+    `begin;` et finir par `commit;`**, sauf `"transaction": false` justifié
+    dans `paquet.md`.
+  - `sql_lecture` : endpoint `…/read-only`.
+  - `edge_function` : déploiement d'une Edge Function, par la même porte.
+    Exemple :
+    `{"nom": "deployer", "type": "edge_function", "fonction": "send-notification", "fichier": "send-notification.ts", "sha256": "…", "verify_jwt": true}`.
+    - **Fonctions concernées :** seulement une fonction existante du dépôt,
+      d'un seul fichier `supabase/functions/<fonction>/index.ts`.
+    - **Application :** l'artefact doit être **identique à la source
+      versionnée** de la fonction, ce qui est déployé est donc ce qui est
+      relu. La porte refuse si la source change après le Go.
+    - **Rollback :** l'artefact est la version précédente, conservée dans le
+      paquet.
+    - **Déploiement :** la porte l'envoie tel quel en `index.ts` (`POST
+      …/functions/deploy?slug=<fonction>`, `entrypoint_path` `index.ts`,
+      `verify_jwt` du manifeste), sans bundler ni dépendance locale :
+      Supabase résout les imports à la construction.
+    - **Contrôle après déploiement :** `GET …/functions/<fonction>` doit
+      confirmer le slug, le statut `ACTIVE` et `verify_jwt`. La version et
+      `ezbr_sha256` vont au reçu.
 - Ordre d'application : `sauvegardes`, puis `etapes`. `--rollback` exécute
   `rollback` seulement. Sans rollback exécutable : `rollback_justification`.
 
@@ -70,6 +87,11 @@ Le dossier `_modele/` contient un paquet vide à copier.
    (et `--par Eliot` pour le niveau 2) écrit `validation.json` avec cette
    empreinte, à committer. Un paquet validé ne se modifie plus : toute
    correction = nouvel identifiant (`R1b-02`).
+   **`--par` est déclaratif** : il trace qui a donné le Go, il **n'authentifie
+   personne**. Claude ne peut pas vérifier qui a écrit dans la conversation,
+   et rien n'empêche techniquement d'écrire `validation.json` à la main. Le
+   contrôle humain effectif est le **clic d'approbation** que Claude Code
+   demande avant d'exécuter la porte (règle `ask`).
 3. **Exécution** (session « Swend – écriture prod » seulement) :
    `scripts/prod_ecrire.sh <ID> <empreinte-12>`. Claude Code demande alors
    l'approbation humaine (règle `ask`) : vérifier que l'identifiant et

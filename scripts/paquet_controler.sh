@@ -7,6 +7,9 @@
 #   scripts/paquet_controler.sh <ID> --enregistrer-go "Go <ID>" --par <Prénom> [--par <Prénom>]
 #       après le Go écrit par un fondateur dans la conversation : crée
 #       validation.json pour l'empreinte actuelle (à committer ensuite).
+#       --par est DÉCLARATIF : il trace qui a donné le Go, il n'authentifie
+#       personne. Le contrôle humain effectif est le clic d'approbation que
+#       Claude Code demande avant scripts/prod_ecrire.sh (règle « ask »).
 #   scripts/paquet_controler.sh <ID>
 #       contrôle complet, validation comprise (ce que vérifie la porte).
 #
