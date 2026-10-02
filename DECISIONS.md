@@ -592,6 +592,34 @@ QA OK le 01/10 (métier 895/0, E2E 677/0, 28/28 scénarios). Migration `20261001
 
 ---
 
+## R1 / R1b — Sécurité des notifications push
+
+**Statut : Validée, techniquement close**  
+**Date : 02/10/2026**
+
+Lot de sécurité issu de l’audit de production du 02/10 (hors numérotation D- des décisions produit). Aucun changement de comportement pour l’app ni pour les utilisateurs.
+
+### Décision
+- **R1** : `public.notifier()` n’est plus exécutable par `PUBLIC`, `anon` ni `authenticated` (droits : `{postgres=X/postgres}`). Seules les fonctions serveur `SECURITY DEFINER` propriété de `postgres` (déclencheurs, moteurs planifiés) l’appellent.
+- **R1b** : l’Edge Function `send-notification` n’accepte plus que les appels émis par `notifier()`, et seulement pour la notification exacte préparée. Mécanisme : un jeton à usage unique, lié au contenu (`profile_id`, `title`, `body`, `data`), valable 15 minutes, consommé de façon atomique par `consommer_jeton_notification()` avant tout traitement. En base, seules les empreintes SHA-256 du jeton et du contenu sont stockées (`notification_jetons`), jamais le jeton brut. Tout autre appel : 403 `non_autorise`, sans appel FCM.
+- **R1b** : `notifier()` n’envoie plus la clé `service_role` via pg_net (elle passait en clair dans `net.http_request_queue`, lisible avec un accès en lecture seule). Elle utilise la clé anon publique pour la passerelle et ne lit plus le Vault.
+
+### Raison
+Avant R1, n’importe quel compte pouvait appeler `notifier()` ; avant R1b, n’importe qui pouvait appeler `send-notification` avec la clé anon publique (notification arbitraire vers n’importe quel profil, suppression de ses appareils), et la clé `service_role` transitait par la file pg_net.
+
+### Mise en production
+- R1 : exécuté en production le 02/10/2026 par Kevin, avant la mise en place des change packets, puis vérifié en lecture seule.
+- R1b : change packet `supabase/changements/R1b-01/` (niveau 1, empreinte `85819e728b92`, `Go R1b-01` donné par Eliot), exécuté le 02/10/2026 par la porte d’écriture (`RESULTAT: SUCCES` à 17:58:35 UTC). Reçu conservé dans le dépôt : `supabase/changements/R1b-01/journal/20261002T175829Z-appliquer.log`.
+- Vérifié en production le 02/10/2026 (lecture seule) : appel légitime de `notifier()` → 200 (`envoyes: 1`) ; appels directs anon sans jeton et avec jeton inventé (requêtes 50 et 51) → 403 `non_autorise` ; aucun jeton en attente ; `send-notification` `ACTIVE`, version 5, `verify_jwt = true` ; comparaison du catalogue avant / après : seuls les objets R1b et le corps de `notifier()` ont changé ; jobs pg_cron tous `succeeded` depuis le déploiement, aucun échec.
+- Garde-fous de production : `scripts/tests/test_garde_prod.sh` 135/135 le 02/10.
+
+### Reste à faire (hors R1 / R1b)
+- Décisions humaines (niveau 3) : supprimer le secret Vault `service_role_key_notifications`, devenu inutile hors rollback de R1b-01 ; décider d’une rotation de la clé `service_role`.
+- Banc QA : sa doublure de `notifier()` n’est pas réalignée sur R1b (lot à part).
+- Dette d’outillage : `.claude/hooks/garde_prod.py` peut bloquer à tort certaines commandes locales (faux positif) ; non corrigé pour l’instant.
+
+---
+
 ## Ajouter une décision
 
 Créer une nouvelle entrée avec :

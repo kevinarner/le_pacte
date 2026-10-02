@@ -58,6 +58,15 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
 - L'Edge Function `supabase/functions/send-notification` (hors migration)
   a été redéployée le 28/09 avec le lien web des rappels
   (`?rappel=<pacte_id>`).
+- Sécurité des notifications (02/10, hors migration) : R1 (`notifier()`
+  non exécutable par PUBLIC / anon / authenticated) et R1b (jeton à usage
+  unique lié au contenu exigé par `send-notification`, version 5 ;
+  `notifier()` n'envoie plus la clé service_role via pg_net), exécuté
+  par le change packet `supabase/changements/R1b-01/` (reçu dans son
+  `journal/`). Vérifié en production le 02/10 : appel légitime 200,
+  appels anon 403, catalogue et pg_cron sans anomalie. `notifier()` et
+  les objets R1b ne sont pas versionnés ici : leur définition est dans
+  `R1b-01/appliquer.sql`.
 - Tout nouveau changement de schéma = un nouveau fichier ici, daté, testé
   par `qa/run_metier.sh` avant d'être exécuté en production.
 - Le schéma antérieur à ces scripts (tables, premières policies, triggers de
