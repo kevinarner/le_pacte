@@ -1,0 +1,70 @@
+# Cas du hook .claude/hooks/garde_prod.py — lus par test_garde_prod.sh, jamais exécutés.
+# ATTENDU<TAB>commande. BLOQUE = sortie 2 ; AUTORISE = sortie 0 ;
+# LIMITE = contournement connu NON couvert (le hook laisse passer), documenté
+# dans supabase/changements/README.md : le test vérifie que la limite est
+# toujours celle annoncée.
+# Variables : {ECRITURE_SH} {LECTURE_SH} {WRAPPER_HORS_SCRIPTS} {WRAPPER_SCRIPTS} {ECRITURE_PY}
+#
+# Écritures directes vers l'API Management
+BLOQUE	curl -sS -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query -H 'Content-Type: application/json' -d '{"query":"select 1"}'
+BLOQUE	/usr/bin/curl -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query -d '{}'
+BLOQUE	sh -c 'curl -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query -d @q.json'
+BLOQUE	bash -c "wget --post-data='{}' https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query"
+BLOQUE	echo ok && curl -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query -d '{}'
+BLOQUE	ls; curl -X POST "https://api.supabase.com/v1/projects/$REF/database/query" -d '{}'
+BLOQUE	python3 -c "import urllib.request; urllib.request.urlopen('https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query', data=b'{}')"
+BLOQUE	node -e "fetch('https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query',{method:'POST',body:'{}'})"
+BLOQUE	curl -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/functions/deploy?slug=send-notification
+BLOQUE	curl -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/secrets -d '[]'
+BLOQUE	curl -X PATCH https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/config/auth -d '{}'
+BLOQUE	curl -X DELETE https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only
+BLOQUE	curl https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/api-keys
+BLOQUE	curl https://api.supabase.com/v1/projects
+# Appels directs au projet (REST, Edge Functions, Postgres)
+BLOQUE	curl -X POST https://ssciqjpaibdorvnkkhsk.supabase.co/functions/v1/send-notification -d '{}'
+BLOQUE	curl https://ssciqjpaibdorvnkkhsk.supabase.co/rest/v1/rpc/notifier -d '{}'
+BLOQUE	psql "postgresql://postgres@db.ssciqjpaibdorvnkkhsk.supabase.co:5432/postgres" -c "drop table x"
+BLOQUE	supabase db push --db-url https://ssciqjpaibdorvnkkhsk.supabase.co
+BLOQUE	supabase functions deploy send-notification
+BLOQUE	cd supabase && supabase secrets set CLE=valeur
+# Scripts locaux exécutés directement
+BLOQUE	bash {ECRITURE_SH}
+BLOQUE	sh {ECRITURE_SH}
+BLOQUE	{ECRITURE_SH}
+BLOQUE	python3 {ECRITURE_PY}
+AUTORISE	bash {LECTURE_SH}
+# La porte : seulement sous forme canonique, seule
+AUTORISE	scripts/prod_ecrire.sh R1b-01 0123456789ab
+AUTORISE	./scripts/prod_ecrire.sh R1b-01 0123456789ab --rollback
+AUTORISE	bash scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	sh -c 'scripts/prod_ecrire.sh R1b-01 0123456789ab'
+BLOQUE	/home/user/le_pacte/scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	scripts/prod_ecrire.sh R1b-01 0123456789ab; echo fini
+BLOQUE	echo o | bash scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	SWEND_SESSION_ECRITURE=1 scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	env SWEND_SESSION_ECRITURE=1 scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	bash -x scripts/prod_ecrire.sh R1b-01 0123456789ab
+BLOQUE	bash -n -x scripts/prod_ecrire.sh R1b-01 0123456789ab
+AUTORISE	bash -n scripts/prod_ecrire.sh scripts/paquet_controler.sh
+AUTORISE	bash -n {ECRITURE_SH}
+BLOQUE	bash -x {ECRITURE_SH}
+BLOQUE	bash {WRAPPER_HORS_SCRIPTS}
+AUTORISE	bash {WRAPPER_SCRIPTS}
+# Lectures prévues et commandes ordinaires
+AUTORISE	curl -sS -X POST https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only -H 'Content-Type: application/json' -d '{"query":"select 1 as ok;"}'
+AUTORISE	jq -n --arg q "$SQL" '{query:$q}' | curl -sS -X POST 'https://api.supabase.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only' -H 'Content-Type: application/json' --data-binary @-
+AUTORISE	grep -rn "api.supabase.com" supabase/ lib/
+AUTORISE	cat scripts/prod_ecrire.sh
+AUTORISE	sha256sum scripts/prod_ecrire.sh supabase/changements/_modele/appliquer.sql
+AUTORISE	git log --oneline -5
+AUTORISE	flutter analyze
+AUTORISE	scripts/paquet_controler.sh R1b-01 --avant-go
+AUTORISE	python3 .claude/hooks/garde_prod.py
+AUTORISE	bash {LECTURE_SH} && echo fin
+# Faux positif connu : un message qui cite une URL d'écriture avec un outil réseau
+BLOQUE	git commit -m "doc : ne jamais faire curl https://api.supabase.com/v1/projects/x/database/query"
+# Contournements délibérés NON couverts (limites annoncées)
+LIMITE	H=api.supa; curl -X POST "https://${H}base.com/v1/projects/ssciqjpaibdorvnkkhsk/database/query" -d '{}'
+LIMITE	U=$(printf 'https://api.%s.com/v1/projects/x/database/query' supabase); curl -X POST "$U" -d '{}'
+LIMITE	echo Y3VybCAtWCBQT1NUIC4uLg== | base64 -d | sh
+LIMITE	make deployer-prod

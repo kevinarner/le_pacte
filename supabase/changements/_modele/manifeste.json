@@ -1,0 +1,29 @@
+{
+  "id": "<ID>",
+  "niveau": 1,
+  "projet": "ssciqjpaibdorvnkkhsk",
+  "objectif": "Une phrase.",
+  "sauvegardes": [],
+  "etapes": [
+    {
+      "nom": "appliquer",
+      "type": "sql_ecriture",
+      "fichier": "appliquer.sql",
+      "sha256": "48f1c4ce739f01e13c1ca6e903e7f4be1d63112aa5176c70227ebda0a1b59df2"
+    },
+    {
+      "nom": "verifier",
+      "type": "sql_lecture",
+      "fichier": "verifier.sql",
+      "sha256": "de54d55603a49cb49848c6a907bca6610f06e203d586e85e4807ce1e1e89b544"
+    }
+  ],
+  "rollback": [
+    {
+      "nom": "rollback",
+      "type": "sql_ecriture",
+      "fichier": "rollback.sql",
+      "sha256": "4b0d3a0f206ef2ef3312311b134df7c47d56c8b2bf9d99fceece8f83698f45ef"
+    }
+  ]
+}

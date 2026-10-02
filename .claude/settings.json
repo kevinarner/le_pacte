@@ -1,4 +1,14 @@
 {
+  "permissions": {
+    "ask": [
+      "Bash(scripts/prod_ecrire.sh)",
+      "Bash(scripts/prod_ecrire.sh *)",
+      "Bash(./scripts/prod_ecrire.sh)",
+      "Bash(./scripts/prod_ecrire.sh *)",
+      "Bash(bash scripts/prod_ecrire.sh)",
+      "Bash(bash scripts/prod_ecrire.sh *)"
+    ]
+  },
   "hooks": {
     "SessionStart": [
       {
@@ -6,6 +16,17 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/garde_prod.py\""
           }
         ]
       }

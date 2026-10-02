@@ -5,6 +5,13 @@ if [ "${CLAUDE_CODE_REMOTE:-}" != "true" ]; then
   exit 0
 fi
 
+# Session « Swend – écriture prod » : stérile, aucune installation ni
+# téléchargement de dépendances en présence du jeton d'écriture (CLAUDE.md).
+if [ "${SWEND_SESSION_ECRITURE:-}" = "1" ]; then
+  echo "Session d'écriture production : installation Flutter ignorée."
+  exit 0
+fi
+
 FLUTTER_HOME="$HOME/flutter"
 
 if [ ! -d "$FLUTTER_HOME" ]; then
