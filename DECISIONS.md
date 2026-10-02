@@ -575,6 +575,9 @@ Pour un Swend créé par un utilisateur standard, aucune date ne peut tomber ava
 - La fonction utilisée par l’app, `date_minimale_nouveau_swend()`, n’a aucun paramètre : elle s’appuie sur `auth.uid()` (impossible de tester l’exemption d’un autre compte) et ne renvoie qu’une date ou null.
 - Aucune autre règle modifiée (2 contre-propositions au plus, jours, créneaux, statuts).
 
+### Écart connu, accepté (01/10)
+Seuls lundi, mardi et mercredi sont sélectionnables (règle inchangée) : J+15 peut tomber un autre jour, le premier jour cliquable est alors le lundi suivant, alors que le message de refus annonce J+15. Le calendrier empêche déjà ce cas en pratique ; D-025 n’est pas rouvert pour cela.
+
 ### Hors D-025
 - D-025b (petit lot à venir) : la date retenue doit être l’une des dates proposées. Aujourd’hui, D-025 ne contrôle que le délai de 15 jours pour la date retenue.
 
@@ -585,7 +588,7 @@ Laisser le temps d’organiser le Swend (réservation manuelle, personnes de con
 D-011 (négociation de date), D-020 (réservation manuelle), D-024 (lecture colonne par colonne de `pactes`).
 
 ### Mise en production
-QA OK le 01/10 (métier 895/0, E2E 677/0, 28/28 scénarios). Migration `20261001000000_delai_minimum_swend.sql` exécutée en production le 01/10/2026 (5/5 vérifications à true), puis app déployée le 01/10/2026 (gh-pages `34629e7`, source `79e542e`) — ordre respecté : l’app lit `date_minimale`, elle ne pouvait pas précéder la migration. Contrôle en lecture seule des 3 comptes fondateurs (email confirmé dans `auth.users`) : résultat à confirmer. D-025 techniquement en production ; test réel humain à faire. D-025b non commencé.
+QA OK le 01/10 (métier 895/0, E2E 677/0, 28/28 scénarios). Migration `20261001000000_delai_minimum_swend.sql` exécutée en production le 01/10/2026 (5/5 vérifications à true), puis app déployée le 01/10/2026 (gh-pages `34629e7`, source `79e542e`) — ordre respecté : l’app lit `date_minimale`, elle ne pouvait pas précéder la migration. Contrôle en lecture seule des 3 comptes fondateurs dans `auth.users` : 1 compte chacun, email confirmé — exemptions effectives. D-025 techniquement en production ; test réel humain à faire. D-025b non commencé.
 
 ---
 
