@@ -13,6 +13,7 @@ import '../../services/chat_apres_swend_repository.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/heure_paris.dart';
 import '../../utils/noms.dart';
 import '../detail_pacte/detail_pacte_screen.dart';
 
@@ -403,8 +404,8 @@ class _AccueilScreenState extends State<AccueilScreen> {
                   if (pacte.dateRetenue != null)
                     Text(
                       '${pacte.type == TypeRepas.dejeuner ? 'Déjeuner' : 'Dîner'} · '
-                      '${pacte.dateRetenue!.day}/${pacte.dateRetenue!.month}/${pacte.dateRetenue!.year} '
-                      'à ${formaterHeure(heureDe(pacte.dateRetenue!))}',
+                      '${formaterJourCourtChiffres(pacte.dateRetenue!)} '
+                      'à ${formaterHeure(heureParis(pacte.dateRetenue!))}',
                       style: TextStyle(
                         color: annule ? Colors.black38 : Colors.black54,
                         fontSize: 13,
@@ -496,9 +497,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   String _libelleRelatif(DateTime date) {
-    final aujourdhui = DateTime.now();
-    final jours = DateTime(date.year, date.month, date.day)
-        .difference(DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day))
+    // Jours civils de Paris ; UTC pour une différence en jours exacte.
+    final jour = jourParis(date);
+    final aujourdhui = aujourdhuiParis();
+    final jours = DateTime.utc(jour.year, jour.month, jour.day)
+        .difference(DateTime.utc(aujourdhui.year, aujourdhui.month, aujourdhui.day))
         .inDays;
     if (jours < 0) return 'Passé';
     if (jours == 0) return "Aujourd'hui";

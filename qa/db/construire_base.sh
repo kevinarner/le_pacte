@@ -14,6 +14,9 @@ BASE="$1"; REJOUER="$2"
 qa_psql postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$BASE' and pid <> pg_backend_pid()" >/dev/null
 qa_psql postgres -c "drop database if exists \"$BASE\"" 2>/dev/null
 qa_psql postgres -c "create database \"$BASE\"" || exit 1
+# Même fuseau de session que la production (UTC) : une conversion implicite
+# s'y comporte comme en production (R2).
+qa_psql postgres -c "alter database \"$BASE\" set timezone to 'UTC'" >/dev/null || exit 1
 
 appliquer() {
   if ! qa_psql "$BASE" -v ON_ERROR_STOP=1 -f "$1" > "$QA_LOGS/migration.log" 2>&1; then
@@ -23,7 +26,7 @@ appliquer() {
 appliquer "$QA_ROOT/db/replica/00_schema_initial.sql"
 for f in "$REPO_ROOT"/supabase/migrations/*.sql; do appliquer "$f"; done
 if [ "$REJOUER" = "--rejouer" ]; then
-  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h,confidentialite_telephones,chat_apres_swend,delai_minimum_swend}.sql; do
+  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h,confidentialite_telephones,chat_apres_swend,delai_minimum_swend,fuseaux_horaires}.sql; do
     appliquer "$f"
   done
 fi

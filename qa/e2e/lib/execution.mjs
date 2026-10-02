@@ -23,10 +23,11 @@ export class Execution {
     this.memo = {}; // données partagées entre étapes (photos de David…)
   }
 
-  // Session de l'acteur, démarrée et connectée au premier usage.
-  async acteur(nom) {
+  // Session de l'acteur, démarrée et connectée au premier usage ; options :
+  // { fuseau } de l'appareil (Europe/Paris par défaut).
+  async acteur(nom, options = {}) {
     if (!this.acteurs.has(nom)) {
-      const a = new Acteur(nom);
+      const a = new Acteur(nom, options);
       this.acteurs.set(nom, a);
       await a.demarrer(this.navigateur);
     }

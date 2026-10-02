@@ -15,7 +15,7 @@ declare v uuid;
 begin
   insert into pactes (statut, dates_proposees, nombre_echanges_date, restaurant_id,
                       initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('enAttenteChoixDateDestinataire', array['2031-11-10 19:30+00'::timestamptz], 0,
+  values ('enAttenteChoixDateDestinataire', to_jsonb(array['2031-11-10 19:30+00'::timestamptz]), 0,
           '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
@@ -33,7 +33,7 @@ end $$;
 create or replace function contre_proposer(p_qui uuid, p uuid, p_date text, p_compteur int, p_statut text) returns text
 language sql as $$
   select en_tant_que(p_qui, format(
-    'update pactes set dates_proposees = array[%L::timestamptz], nombre_echanges_date = %s, statut = %L where id = %L',
+    'update pactes set dates_proposees = to_jsonb(array[%L::timestamptz]), nombre_echanges_date = %s, statut = %L where id = %L',
     p_date, p_compteur, p_statut, p))
 $$;
 
@@ -114,7 +114,7 @@ select verifier('N', 'ni en réutilisant le compteur (dates changées, compteur 
 select verifier('N', 'ni en remettant le compteur à zéro',
   contre_proposer(:'D', :'p', '2031-11-13 19:30+00', 0, 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
 select verifier('N', 'les dates restent celles de C',
-  (select dates_proposees from pactes where id = :'p') = array['2031-11-12 19:30+00'::timestamptz]);
+  (select instants_proposes(dates_proposees) from pactes where id = :'p') = array['2031-11-12 19:30+00'::timestamptz]);
 select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %L where id = %L', '2031-11-12 19:30+00', 'enAttenteReponse', :'p')) as r1 \gset
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'confirme', :'p')) as r2 \gset
 select verifier('N', 'un accord sur C reste possible (choix puis acceptation)',
@@ -135,11 +135,11 @@ select verifier('N', 'négociation échouée : jamais scellé, Kevin ne voit rie
   (select scelle_le from pactes where id = :'p') is null and vu_par_kevin(:'p') = '0/0/0', vu_par_kevin(:'p'));
 select count(*) as avant from pactes where initiateur_id = :'E' \gset
 select en_tant_que(:'E', format(
-    'insert into pactes (statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values (%L, array[%L::timestamptz], %L, %L, %L, %L, %L)',
+    'insert into pactes (statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values (%L, to_jsonb(array[%L::timestamptz]), %L, %L, %L, %L, %L)',
     'enAttenteChoixDateDestinataire', '2031-11-20 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02')) as r1 \gset
 select verifier('N', 'un nouveau Swend peut être créé ensuite (compteur à zéro, non scellé)',
   :'r1' = 'OK' and (select count(*) from pactes where initiateur_id = :'E') = :avant + 1
-  and (select count(*) from pactes where initiateur_id = :'E' and dates_proposees = array['2031-11-20 19:30+00'::timestamptz]
+  and (select count(*) from pactes where initiateur_id = :'E' and instants_proposes(dates_proposees) = array['2031-11-20 19:30+00'::timestamptz]
        and nombre_echanges_date = 0 and scelle_le is null) = 1, :'r1');
 
 -- ===================================================================

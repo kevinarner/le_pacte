@@ -4,6 +4,7 @@ import '../models/pacte.dart';
 import '../models/remplacant.dart';
 import '../models/type_repas.dart';
 import 'date_fr.dart';
+import 'heure_paris.dart';
 import 'noms.dart';
 
 /// Textes envoyés par Messages ou WhatsApp — fonctions pures, testées dans
@@ -45,7 +46,7 @@ String messageUrgence(Pacte pacte, Remplacant r, CotePacte autreCote) {
   final date = pacte.dateRetenue;
   final quand = date == null
       ? ''
-      : ' le ${date.day} ${moisAnnee[date.month - 1]} à ${formaterHeure(heureDe(date))}';
+      : ' le ${formaterJourEtMois(date)} à ${formaterHeure(heureParis(date))}';
   final autre = prenomDe(autreCote.nomTitulaire);
   final restaurant = pacte.restaurantRetenu?.nom;
   final ou = restaurant == null ? '' : ', au restaurant $restaurant';

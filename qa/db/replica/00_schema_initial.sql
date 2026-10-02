@@ -174,12 +174,12 @@ $$;
 
 alter table profiles add column if not exists email text;
 alter table restaurants add column if not exists lien text,
-  add column if not exists creneaux_dejeuner text[],
-  add column if not exists creneaux_diner text[];
+  add column if not exists creneaux_dejeuner jsonb not null default '[]'::jsonb,
+  add column if not exists creneaux_diner jsonb not null default '[]'::jsonb;
 
 alter table pactes
   add column if not exists type text not null default 'diner',
-  add column if not exists dates_proposees timestamptz[] not null default '{}',
+  add column if not exists dates_proposees jsonb not null default '[]'::jsonb,
   add column if not exists nombre_echanges_date int not null default 0,
   add column if not exists created_at timestamptz not null default now();
 

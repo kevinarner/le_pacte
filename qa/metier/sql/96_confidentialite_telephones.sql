@@ -67,7 +67,7 @@ begin
   insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id,
                       initiateur_nom, destinataire_nom, destinataire_telephone)
   values (case when p_etat = 'non_scelle' then 'enAttenteReponse' else 'confirme' end, 'diner',
-          now() + interval '10 days', array[now() + interval '10 days'],
+          now() + interval '10 days', to_jsonb(array[now() + interval '10 days']),
           '00000000-0000-0000-0000-0000000000aa', '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           'David D', '06 00 00 00 02')
   returning id into v;
@@ -215,7 +215,7 @@ select verifier('B', 'la ligne Swend reste lisible (colonnes relues par l''app) 
 select verifier('C', 'Eliot crée un Swend (réponse limitée aux colonnes de l''app)',
   c_lire(:'E', $q$with n as (insert into pactes (type, statut, dates_proposees, restaurant_id, initiateur_id,
       initiateur_nom, destinataire_nom, destinataire_telephone)
-    values ('diner', 'enAttenteChoixDateDestinataire', array[now() + interval '20 days'],
+    values ('diner', 'enAttenteChoixDateDestinataire', to_jsonb(array[now() + interval '20 days']),
       '00000000-0000-0000-0000-0000000000aa', '00000000-0000-0000-0000-00000000000e', 'Eliot E', 'David D',
       '06.00.00.00.02 ')
     returning id, type, statut, dates_proposees, date_retenue, nombre_echanges_date, restaurant_id,
@@ -224,12 +224,12 @@ select verifier('C', 'Eliot crée un Swend (réponse limitée aux colonnes de l'
 select verifier('C', 'le numéro saisi est enregistré, le destinataire rattaché par la base',
   (select destinataire_telephone = '06.00.00.00.02 ' and destinataire_telephone_e164 = '+33600000002'
           and destinataire_id = :'D'
-   from pactes where initiateur_id = :'E' and dates_proposees[1] > now() + interval '19 days'
+   from pactes where initiateur_id = :'E' and (instants_proposes(dates_proposees))[1] > now() + interval '19 days'
    order by created_at desc limit 1));
 select verifier('C', 'demander le numéro en retour de la création est refusé',
   c_lire(:'E', $q$with n as (insert into pactes (type, statut, dates_proposees, restaurant_id, initiateur_id,
       initiateur_nom, destinataire_nom, destinataire_telephone)
-    values ('diner', 'enAttenteChoixDateDestinataire', array[now() + interval '21 days'],
+    values ('diner', 'enAttenteChoixDateDestinataire', to_jsonb(array[now() + interval '21 days']),
       '00000000-0000-0000-0000-0000000000aa', '00000000-0000-0000-0000-00000000000e', 'Eliot E', 'David D',
       '0600000002') returning destinataire_telephone)
     select 'OK' from n$q$) = 'REFUS');

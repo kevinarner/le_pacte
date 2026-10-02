@@ -189,7 +189,7 @@ class ChatApresSwend {
       'Après le Swend',
       if (restaurant != null && restaurant.isNotEmpty) restaurant,
       if (date != null)
-        '${date.toLocal().day} ${moisAnnee[date.toLocal().month - 1]}',
+        formaterJourEtMois(date),
     ].join(' · ');
   }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:le_pacte/utils/heure_paris.dart';
 import 'package:le_pacte/models/delai_minimum.dart';
 import 'package:le_pacte/services/pacte_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -28,13 +29,18 @@ void main() {
         DateTime(2026, 10, 1));
   });
 
-  test('J+14 refusé, J+15 accepté, à toute heure', () {
+  test('J+14 refusé, J+15 accepté, à toute heure (jour de Paris)', () {
     final min = DateTime(2026, 10, 16);
-    expect(respecteDateMinimale(DateTime(2026, 10, 15, 23, 59), min), isFalse);
-    expect(respecteDateMinimale(DateTime(2026, 10, 16, 0, 0), min), isTrue);
-    expect(respecteDateMinimale(DateTime(2026, 10, 16, 21, 0), min), isTrue);
-    expect(respecteDateMinimale(DateTime(2026, 11, 1), min), isTrue);
-    expect(respecteDateMinimale(DateTime(2026, 10, 2), null), isTrue);
+    DateTime paris(int j, int h, int m) =>
+        instantParis(DateTime(2026, 10, j), TimeOfDay(hour: h, minute: m));
+    expect(respecteDateMinimale(paris(15, 23, 59), min), isFalse);
+    expect(respecteDateMinimale(paris(16, 0, 0), min), isTrue);
+    expect(respecteDateMinimale(paris(16, 21, 0), min), isTrue);
+    expect(respecteDateMinimale(paris(31, 12, 0), min), isTrue);
+    expect(respecteDateMinimale(paris(2, 19, 0), null), isTrue);
+    // 16/10 00:30 à Paris = 15/10 22:30 UTC : c'est le jour de Paris qui compte.
+    expect(respecteDateMinimale(DateTime.utc(2026, 10, 15, 22, 30), min), isTrue);
+    expect(respecteDateMinimale(DateTime.utc(2026, 10, 15, 21, 30), min), isFalse);
   });
 
   test('message de refus', () {
@@ -75,7 +81,8 @@ void main() {
   DateTime jour(DateTime d) => DateTime(d.year, d.month, d.day);
 
   testWidgets('calendrier : rien avant la date minimale', (tester) async {
-    final min = jour(DateTime.now().add(const Duration(days: 15)));
+    final a = aujourdhuiParis();
+    final min = DateTime(a.year, a.month, a.day + 15);
     final dialogue = await calendrier(tester, min);
     expect(jour(dialogue.firstDate), min);
     expect(dialogue.initialDate!.isBefore(min), isFalse);
@@ -83,11 +90,13 @@ void main() {
 
   testWidgets('calendrier sans date minimale : à partir d’aujourd’hui', (tester) async {
     final dialogue = await calendrier(tester, null);
-    expect(jour(dialogue.firstDate), jour(DateTime.now()));
+    // Aujourd'hui à Paris, pas la date de l'appareil (R2).
+    expect(jour(dialogue.firstDate), aujourdhuiParis());
   });
 
   testWidgets('date minimale plus tardive que le départ (+60 j) : départ recalé', (tester) async {
-    final min = jour(DateTime.now().add(const Duration(days: 90)));
+    final a = aujourdhuiParis();
+    final min = DateTime(a.year, a.month, a.day + 90);
     final dialogue = await calendrier(tester, min);
     expect(jour(dialogue.firstDate), min);
     expect(dialogue.initialDate!.isBefore(min), isFalse);

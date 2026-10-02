@@ -91,7 +91,7 @@ export default {
       sql(`update pactes set date_minimale = '${j120}' where id = '${id}'`);
       const eliot = await ex.eliot();
       await A.contreProposer(eliot, /Swend avec David/);
-      const premiere = () => sql(`select min((d at time zone 'Europe/Paris')::date)::text from pactes, unnest(dates_proposees) d where id = '${id}'`);
+      const premiere = () => sql(`select min((d at time zone 'Europe/Paris')::date)::text from pactes, unnest(instants_proposes(dates_proposees)) d where id = '${id}'`);
       const etat = () => sql(`select statut || '|' || nombre_echanges_date from pactes where id = '${id}'`);
       await ex.verifier('contre-proposition d\'Eliot acceptée', () => etat() === 'enAttenteChoixDateDestinataire|2', { obtenu: etat });
       await ex.verifier('date proposée par le calendrier : pas avant la date minimale', () => premiere() >= j120,

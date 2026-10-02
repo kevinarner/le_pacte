@@ -177,7 +177,7 @@ void main() {
         expect(
           un.sousTitreCarteAccueil(
             restaurant: 'Au Père Lapin',
-            date: DateTime(2031, 10, 13, 20),
+            date: DateTime.utc(2026, 10, 13, 18), // 20:00 à Paris
           ),
           'Après le Swend · Au Père Lapin · 13 octobre',
         );

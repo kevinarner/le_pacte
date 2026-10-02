@@ -5,9 +5,14 @@ import { config, urlAutorisee, COMPTES } from './config.mjs';
 
 const DELAI = 15000;
 
+// Fuseau de l'appareil : Europe/Paris par défaut (QA_FUSEAU pour tout le
+// banc, ou par acteur). R2 : aucun affichage ne doit en dépendre.
+export const FUSEAU_PAR_DEFAUT = process.env.QA_FUSEAU || 'Europe/Paris';
+
 export class Acteur {
-  constructor(nom) {
+  constructor(nom, { fuseau = FUSEAU_PAR_DEFAUT } = {}) {
     this.nom = nom;
+    this.fuseau = fuseau;
     this.compte = COMPTES[nom];
     this.journal = [];      // console, erreurs de page, liens ouverts
     this.liensOuverts = []; // URL passées à window.open (sms:, wa.me…)
@@ -22,7 +27,7 @@ export class Acteur {
   }
 
   async demarrer(navigateur) {
-    this.contexte = await navigateur.newContext({ viewport: { width: 400, height: 860 }, locale: 'fr-FR', timezoneId: 'UTC' });
+    this.contexte = await navigateur.newContext({ viewport: { width: 400, height: 860 }, locale: 'fr-FR', timezoneId: this.fuseau });
     // Garde-fou réseau : rien ne sort de la pile locale.
     await this.contexte.route('**/*', (route) => {
       const url = route.request().url();

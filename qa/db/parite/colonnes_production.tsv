@@ -1,0 +1,150 @@
+anomalies_chat_apres_swend	code	text	NO
+anomalies_chat_apres_swend	detail	text	YES
+anomalies_chat_apres_swend	detectee_le	timestamp with time zone	NO
+anomalies_chat_apres_swend	pacte_id	uuid	NO
+chat_apres_swend_service	id	boolean	NO
+chat_apres_swend_service	mise_en_service	timestamp with time zone	NO
+chats_apres_swend	ferme_le	timestamp with time zone	YES
+chats_apres_swend	id	uuid	NO
+chats_apres_swend	motif_fermeture	text	YES
+chats_apres_swend	ouvert_le	timestamp with time zone	NO
+chats_apres_swend	ouvre_le	timestamp with time zone	NO
+chats_apres_swend	pacte_id	uuid	NO
+comptes_fondateurs	ajoute_le	timestamp with time zone	NO
+comptes_fondateurs	email	text	NO
+device_tokens	created_at	timestamp with time zone	NO
+device_tokens	id	uuid	NO
+device_tokens	plateforme	text	NO
+device_tokens	profile_id	uuid	NO
+device_tokens	token	text	NO
+evenements_fil	code	text	NO
+evenements_fil	created_at	timestamp with time zone	NO
+evenements_fil	id	uuid	NO
+evenements_fil	remplacant_id	uuid	NO
+lectures_chat_apres_swend	chat_id	uuid	NO
+lectures_chat_apres_swend	lu_le	timestamp with time zone	NO
+lectures_chat_apres_swend	profil_id	uuid	NO
+lectures_fil	lu_le	timestamp with time zone	NO
+lectures_fil	profile_id	uuid	NO
+lectures_fil	remplacant_id	uuid	NO
+messages	contenu	text	NO
+messages	created_at	timestamp with time zone	NO
+messages	expediteur_id	uuid	NO
+messages	id	uuid	NO
+messages	remplacant_id	uuid	NO
+messages_apres_swend	chat_id	uuid	NO
+messages_apres_swend	contenu	text	NO
+messages_apres_swend	created_at	timestamp with time zone	NO
+messages_apres_swend	genre	text	NO
+messages_apres_swend	id	uuid	NO
+messages_apres_swend	participant_id	uuid	YES
+messages_contact	created_at	timestamp with time zone	NO
+messages_contact	id	uuid	NO
+messages_contact	message	text	NO
+messages_contact	objet	text	NO
+messages_contact	profile_id	uuid	NO
+notification_jetons	charge_empreinte	bytea	NO
+notification_jetons	cree_le	timestamp with time zone	NO
+notification_jetons	empreinte	bytea	NO
+pactes	annule_le	timestamp with time zone	YES
+pactes	annule_par	uuid	YES
+pactes	created_at	timestamp with time zone	NO
+pactes	date_minimale	date	YES
+pactes	date_retenue	timestamp with time zone	YES
+pactes	dates_proposees	jsonb	NO
+pactes	destinataire_id	uuid	YES
+pactes	destinataire_nom	text	NO
+pactes	destinataire_remplacant_1_nom	text	YES
+pactes	destinataire_remplacant_1_telephone	text	YES
+pactes	destinataire_remplacant_2_nom	text	YES
+pactes	destinataire_remplacant_2_telephone	text	YES
+pactes	destinataire_remplacant_3_nom	text	YES
+pactes	destinataire_remplacant_3_telephone	text	YES
+pactes	destinataire_remplacant_4_nom	text	YES
+pactes	destinataire_remplacant_4_telephone	text	YES
+pactes	destinataire_remplacant_5_nom	text	YES
+pactes	destinataire_remplacant_5_telephone	text	YES
+pactes	destinataire_telephone	text	NO
+pactes	destinataire_telephone_e164	text	YES
+pactes	id	uuid	NO
+pactes	initiateur_id	uuid	NO
+pactes	initiateur_nom	text	NO
+pactes	initiateur_remplacant_1_nom	text	YES
+pactes	initiateur_remplacant_1_telephone	text	YES
+pactes	initiateur_remplacant_2_nom	text	YES
+pactes	initiateur_remplacant_2_telephone	text	YES
+pactes	initiateur_remplacant_3_nom	text	YES
+pactes	initiateur_remplacant_3_telephone	text	YES
+pactes	initiateur_remplacant_4_nom	text	YES
+pactes	initiateur_remplacant_4_telephone	text	YES
+pactes	initiateur_remplacant_5_nom	text	YES
+pactes	initiateur_remplacant_5_telephone	text	YES
+pactes	nombre_echanges_date	integer	NO
+pactes	restaurant_id	uuid	YES
+pactes	scelle_le	timestamp with time zone	YES
+pactes	statut	text	NO
+pactes	type	text	NO
+participants_chat_apres_swend	chat_id	uuid	NO
+participants_chat_apres_swend	id	uuid	NO
+participants_chat_apres_swend	place_de	text	YES
+participants_chat_apres_swend	prenom_affiche	text	NO
+participants_chat_apres_swend	profil_id	uuid	YES
+participants_chat_apres_swend	role	text	NO
+profiles	created_at	timestamp with time zone	NO
+profiles	email	text	NO
+profiles	id	uuid	NO
+profiles	nom	text	NO
+profiles	photo_url	text	YES
+profiles	prenom	text	NO
+profiles	telephone	text	NO
+profiles	telephone_e164	text	YES
+rappels_echeances	echeance	timestamp with time zone	NO
+rappels_echeances	pacte_id	uuid	NO
+rappels_echeances	traite_le	timestamp with time zone	NO
+rappels_echeances	type_rappel	text	NO
+rappels_envoyes	envoye_le	timestamp with time zone	NO
+rappels_envoyes	famille	text	NO
+rappels_envoyes	pacte_id	uuid	NO
+rappels_envoyes	profile_id	uuid	NO
+rappels_envoyes	type_rappel	text	NO
+remplacants	cote	text	NO
+remplacants	demande_statut	text	YES
+remplacants	email	text	NO
+remplacants	id	uuid	NO
+remplacants	indisponible_spontanement	boolean	NO
+remplacants	nom	text	NO
+remplacants	pacte_id	uuid	NO
+remplacants	prenom	text	NO
+remplacants	profil_id	uuid	YES
+remplacants	retire_le	timestamp with time zone	YES
+remplacants	selectionne	boolean	NO
+remplacants	telephone	text	NO
+remplacants	telephone_e164	text	YES
+reservations_suivi	created_at	timestamp with time zone	NO
+reservations_suivi	id	uuid	NO
+reservations_suivi	nom_reservation	text	YES
+reservations_suivi	note	text	YES
+reservations_suivi	pacte_id	uuid	YES
+reservations_suivi	pris_en_charge_par	text	YES
+reservations_suivi	reference_reservation	text	YES
+reservations_suivi	resume_swend_supprime	text	YES
+reservations_suivi	statut_reservation	text	NO
+reservations_suivi	swend_supprime_le	timestamp with time zone	YES
+reservations_suivi	updated_at	timestamp with time zone	NO
+restaurants	creneaux_dejeuner	jsonb	NO
+restaurants	creneaux_diner	jsonb	NO
+restaurants	id	uuid	NO
+restaurants	lien	text	NO
+restaurants	nom	text	NO
+suggestions_restaurant	created_at	timestamp with time zone	NO
+suggestions_restaurant	id	uuid	NO
+suggestions_restaurant	lien	text	YES
+suggestions_restaurant	nom	text	NO
+suggestions_restaurant	profile_id	uuid	NO
+swends_figes	date_retenue	timestamp with time zone	NO
+swends_figes	fige_le	timestamp with time zone	NO
+swends_figes	pacte_id	uuid	NO
+swends_figes	rattrapage	boolean	NO
+verifications_destinataire	profile_id	uuid	NO
+verifications_destinataire	telephone_e164	text	NO
+verifications_destinataire	verifie_le	timestamp with time zone	NO

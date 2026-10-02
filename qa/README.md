@@ -192,6 +192,23 @@ Dans le dossier d'artefacts :
 `qa/artifacts/<date>-metier/` contient les journaux des tests métier en échec.
 Journaux de la pile : `qa/stack.sh logs`.
 
+## Fuseaux horaires et parité avec la production (R2)
+
+- **Fuseaux** : l'heure métier est celle d'Europe/Paris, un rendez-vous est un
+  instant (`lib/utils/heure_paris.dart`). Les E2E tournent avec des appareils
+  en Europe/Paris (par défaut, ou `QA_FUSEAU=…`) ; le scénario
+  `fuseaux_horaires` met un acteur à New York. `qa/run_metier.sh` rejoue toute
+  la suite Dart avec l'appareil en UTC, Europe/Paris, America/New_York et
+  Pacific/Auckland, et compare la conversion de l'app à PostgreSQL pour
+  chaque créneau de chaque jour (2026-2029). Les bases du banc sont en UTC,
+  comme la production.
+- **Parité** (`qa/metier/parite_schema.sh`, lancé avant les tests SQL) :
+  types des colonnes identiques à la production (aucune exception), autres
+  écarts de colonnes et de déclencheurs (dont leur état actif / désactivé)
+  limités à `qa/db/parite/*_admis.tsv`. Instantanés de production :
+  `qa/db/parite/*_production.tsv`, à rafraîchir en lecture seule
+  (`colonnes.sql`, `declencheurs.sql`) après chaque changement de production.
+
 ## Protection de la production
 
 Le banc refuse de démarrer si quoi que ce soit ressemble à la production :

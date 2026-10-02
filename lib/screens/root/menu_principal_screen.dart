@@ -12,6 +12,7 @@ import '../../services/chat_apres_swend_repository.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/heure_paris.dart';
 import '../../utils/noms.dart';
 import '../../widgets/action_disponibilite.dart';
 import '../accueil/accueil_screen.dart';
@@ -495,7 +496,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
         ? 'Swend avec ${prenomDe(avecQui)}'
         : 'Ton Swend';
     final contexte = fil.dateConcernee != null
-        ? '$base · ${_libelleDateCourt(fil.dateConcernee!)} à ${formaterHeure(heureDe(fil.dateConcernee!))}'
+        ? '$base · ${_libelleDateCourt(fil.dateConcernee!)} à ${formaterHeure(heureParis(fil.dateConcernee!))}'
         : base;
     return Card(
       color: AppColors.pecheClair,
@@ -593,8 +594,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
     );
   }
 
-  String _libelleDateCourt(DateTime date) =>
-      '${date.day} ${moisAnnee[date.month - 1]}';
+  String _libelleDateCourt(DateTime date) => formaterJourEtMois(date);
 
   Widget _tuilePrincipale({
     required IconData icone,

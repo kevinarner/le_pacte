@@ -32,7 +32,7 @@ declare v uuid;
 begin
   insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id,
                       initiateur_nom, destinataire_nom, destinataire_telephone)
-  values (p_statut, 'diner', p_date, array[p_date], '00000000-0000-0000-0000-0000000000aa',
+  values (p_statut, 'diner', p_date, to_jsonb(array[p_date]), '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E', 'David D', '06 00 00 00 02')
   returning id into v;
   return v;
@@ -365,9 +365,12 @@ select verifier('K', 'un message système doit être sans auteur, un message tex
 -- ===================================================================
 -- L. Confidentialité (D-024) et séparation avec l'imprévu
 -- ===================================================================
+-- Identifiants retirés avant la recherche : un UUID aléatoire peut contenir
+-- « 06 » suivi de 8 chiffres (faux positif intermittent constaté le 03/10).
 select verifier('L', 'aucun numéro dans les push du chat',
   not exists (select 1 from notifications_log where data->>'type' = 'chat_apres_swend'
-              and (titre || corps || data::text) ~ '(0[67]([ .]?[0-9]){8}|\+33)'));
+              and (titre || corps || regexp_replace(data::text, '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', '', 'g'))
+                  ~ '(0[67]([ .]?[0-9]){8}|\+33)'));
 select verifier('L', 'aucune colonne de numéro dans les tables du chat',
   not exists (select 1 from information_schema.columns where table_schema = 'public'
               and table_name like '%chat_apres_swend%' and column_name ~* 'telephone|phone'));

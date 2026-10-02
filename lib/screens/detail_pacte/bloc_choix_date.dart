@@ -5,6 +5,7 @@ import '../../models/pacte.dart';
 import '../../models/statut_pacte.dart';
 import '../../services/pacte_repository.dart';
 import '../../utils/date_fr.dart';
+import '../../utils/heure_paris.dart';
 import '../../widgets/dates_form.dart';
 
 /// D-011 : après la proposition initiale, au plus 2 contre-propositions AU
@@ -154,10 +155,18 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     );
   }
 
-  /// Refus de la base pour une date trop proche (D-025) : message clair,
+  /// Refus de la base pour une date trop proche (D-025), ou une date refusée
+  /// (R2, D-025b) : message clair,
   /// rien n'est modifié à l'écran. Toute autre erreur est relancée.
   bool _dateTropProche(Object e) {
-    if (PacteRepository.codeErreurMetier(e) != 'date_trop_proche') return false;
+    final code = PacteRepository.codeErreurMetier(e);
+    if (code == 'date_sans_fuseau' || code == 'date_non_proposee') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(messageDateRefusee)),
+      );
+      return true;
+    }
+    if (code != 'date_trop_proche') return false;
     final minimale =
         PacteRepository.dateMinimaleDeErreur(e) ?? widget.pacte.dateMinimale;
     if (minimale == null) return false;
@@ -219,7 +228,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
 
   Future<void> _proposerAutreHoraire(DateTime date) async {
     final creneaux = _creneaux;
-    final heureActuelle = heureDe(date);
+    final heureActuelle = heureParis(date);
     final choix = await showModalBottomSheet<TimeOfDay>(
       context: context,
       builder: (context) => SafeArea(
@@ -247,7 +256,7 @@ class _BlocChoixDateState extends State<BlocChoixDate> {
     if (choix != null) {
       nouvellesDates
         ..clear()
-        ..add(avecHeure(date, choix));
+        ..add(avecHeureParis(date, choix));
       await _validerContreProposition();
     }
   }

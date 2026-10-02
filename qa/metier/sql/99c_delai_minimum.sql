@@ -54,7 +54,7 @@ create or replace function dm_creer(p_user uuid, p_dates timestamptz[], p_dest_t
                                     p_extra text default '') returns text language sql as $$
   select dm_lire(p_user, format(
     $q$insert into pactes (type, statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
-       destinataire_nom, destinataire_telephone %s) values ('diner', 'enAttenteChoixDateDestinataire', %L,
+       destinataire_nom, destinataire_telephone %s) values ('diner', 'enAttenteChoixDateDestinataire', to_jsonb(%L::timestamptz[]),
        '00000000-0000-0000-0000-0000000000aa', %L, 'X', 'Y', %L %s) returning id::text$q$,
     case when p_extra = '' then '' else ', date_minimale' end, p_dates, p_user, p_dest_tel,
     case when p_extra = '' then '' else ', ' || quote_literal(p_extra) end))
@@ -62,7 +62,7 @@ $$;
 -- Contre-proposition par un compte : 'OK' ou l'erreur.
 create or replace function dm_contre(p_user uuid, p uuid, p_dates timestamptz[], p_statut text) returns text language sql as $$
   select dm_lire(p_user, format(
-    $q$update pactes set dates_proposees = %L, nombre_echanges_date = nombre_echanges_date + 1, statut = %L
+    $q$update pactes set dates_proposees = to_jsonb(%L::timestamptz[]), nombre_echanges_date = nombre_echanges_date + 1, statut = %L
        where id = %L returning 'OK'$q$, p_dates, p_statut, p))
 $$;
 -- Choix de la date par le destinataire : 'OK' ou l'erreur.
@@ -92,7 +92,7 @@ select verifier('A', 'date_minimale envoyée par l''app : ignorée, recalculée 
   dm_min(:'a2') = (dm_aujourdhui() + 15)::text, :'a2' || ' → ' || dm_min(:'a2'));
 select verifier('A', 'date retenue fournie à la création, trop proche : refusée',
   dm_lire(:'E', format($q$insert into pactes (type, statut, dates_proposees, date_retenue, restaurant_id, initiateur_id,
-     initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'enAttenteReponse', %L, %L,
+     initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'enAttenteReponse', to_jsonb(%L::timestamptz[]), %L,
      '00000000-0000-0000-0000-0000000000aa', %L, 'X', 'Y', '0600000002') returning 'OK'$q$,
      array[dm_jour(20)], dm_jour(5), :'E')) like '%date_trop_proche%');
 
@@ -156,7 +156,7 @@ select verifier('E', 'l''app ne peut ni effacer ni changer la date minimale (mod
 -- ===================================================================
 insert into pactes (id, type, statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
                     destinataire_nom, destinataire_telephone)
-values ('00000000-0000-0000-0000-000000000f01', 'diner', 'enAttenteChoixDateDestinataire', array[dm_jour(3)],
+values ('00000000-0000-0000-0000-000000000f01', 'diner', 'enAttenteChoixDateDestinataire', to_jsonb(array[dm_jour(3)]),
         '00000000-0000-0000-0000-0000000000aa', :'E', 'X', 'Y', '0600000002');
 select verifier('F', 'Swend inséré hors app (SQL Editor) : aucune date minimale, date proche acceptée',
   dm_min('00000000-0000-0000-0000-000000000f01') = 'null');
@@ -174,7 +174,7 @@ select verifier('G', 'limite de 2 contre-propositions inchangée (3e : negociati
   and dm_contre(:'D', :'g', array[dm_jour(2)], 'enAttenteChoixDateInitiateur') like '%negociation_terminee%');
 select verifier('G', 'Swend scellé avec une date passée : toujours swend_passe (garde existant en premier)',
   dm_lire(:'E', format($q$insert into pactes (type, statut, dates_proposees, date_retenue, restaurant_id, initiateur_id,
-     initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'confirme', %L, %L,
+     initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'confirme', to_jsonb(%L::timestamptz[]), %L,
      '00000000-0000-0000-0000-0000000000aa', %L, 'X', 'Y', '0600000002') returning 'OK'$q$,
      array[now() - interval '1 hour'], now() - interval '1 hour', :'E')) like '%swend_passe%');
 select verifier('G', 'numéro invalide : toujours telephone_invalide',

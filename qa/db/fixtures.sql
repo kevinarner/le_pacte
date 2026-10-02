@@ -34,7 +34,7 @@ begin
   end loop;
   insert into restaurants (id, nom, lien, creneaux_dejeuner, creneaux_diner)
   values (qa.id('restaurant'), 'Au père Lapin', 'https://example.com',
-          array['12:00','12:30','13:00'], array['19:30','20:00','20:30']);
+          '["12:00","12:30","13:00"]'::jsonb, '["19:30","20:00","20:30"]'::jsonb);
   -- Comptes Auth (emails confirmés), comme Supabase.
   insert into auth.users (id, email, email_confirmed_at) values
     (qa.id('eliot'), 'eliot@swend.test', now()), (qa.id('david'), 'david@swend.test', now()),
@@ -69,7 +69,7 @@ begin
 
   insert into pactes (id, type, statut, dates_proposees, date_retenue, restaurant_id,
                       initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
-  values (qa.id('swend'), 'diner', 'confirme', array[qa.date_swend()], qa.date_swend(),
+  values (qa.id('swend'), 'diner', 'confirme', to_jsonb(array[qa.date_swend()]), qa.date_swend(),
           qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05');
 
   if p_etat in ('scelle', 'scelle_kevin_deux_cotes') then

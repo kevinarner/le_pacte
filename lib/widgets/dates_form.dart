@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 
 import '../models/delai_minimum.dart';
 import '../utils/date_fr.dart';
+import '../utils/heure_paris.dart';
 
 /// Formulaire de saisie d'une liste de dates (avec horaire) proposées
 /// pour un pacte. Mute directement [dates] (ajout/suppression/modification).
+/// Chaque date est un instant ; jour et créneau sont ceux de Paris (R2), le
+/// calendrier ne manipule que des jours civils.
 /// [creneaux] doit contenir les horaires réellement proposés par le
 /// restaurant pour le type de repas choisi.
 class DatesForm extends StatefulWidget {
@@ -39,8 +42,8 @@ class _DatesFormState extends State<DatesForm> {
       // Les créneaux disponibles ont changé (ex. changement de type de
       // repas) : on recale les horaires qui ne sont plus proposés.
       for (var i = 0; i < widget.dates.length; i++) {
-        if (!widget.creneaux.contains(heureDe(widget.dates[i]))) {
-          widget.dates[i] = avecHeure(widget.dates[i], widget.creneaux.first);
+        if (!widget.creneaux.contains(heureParis(widget.dates[i]))) {
+          widget.dates[i] = avecHeureParis(widget.dates[i], widget.creneaux.first);
         }
       }
     }
@@ -64,8 +67,8 @@ class _DatesFormState extends State<DatesForm> {
   Widget _ligne(int index) {
     final date = widget.dates[index];
     final creneaux = widget.creneaux;
-    final heureActuelle = creneaux.contains(heureDe(date))
-        ? heureDe(date)
+    final heureActuelle = creneaux.contains(heureParis(date))
+        ? heureParis(date)
         : creneaux.first;
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
@@ -86,7 +89,7 @@ class _DatesFormState extends State<DatesForm> {
               onChanged: (h) {
                 if (h == null) return;
                 setState(() {
-                  widget.dates[index] = avecHeure(date, h);
+                  widget.dates[index] = avecHeureParis(date, h);
                   widget.onChanged();
                 });
               },
@@ -106,7 +109,7 @@ class _DatesFormState extends State<DatesForm> {
     final d = await _choisirDate();
     if (d != null) {
       setState(() {
-        widget.dates.add(avecHeure(d, widget.creneaux.first));
+        widget.dates.add(instantParis(d, widget.creneaux.first));
         widget.onChanged();
       });
     }
@@ -114,13 +117,13 @@ class _DatesFormState extends State<DatesForm> {
 
   Future<void> _modifierDate(int index) async {
     final actuel = widget.dates[index];
-    final d = await _choisirDate(initial: actuel);
+    final d = await _choisirDate(initial: jourParis(actuel));
     if (d != null) {
       setState(() {
-        final heure = widget.creneaux.contains(heureDe(actuel))
-            ? heureDe(actuel)
+        final heure = widget.creneaux.contains(heureParis(actuel))
+            ? heureParis(actuel)
             : widget.creneaux.first;
-        widget.dates[index] = avecHeure(d, heure);
+        widget.dates[index] = instantParis(d, heure);
         widget.onChanged();
       });
     }
@@ -133,17 +136,19 @@ class _DatesFormState extends State<DatesForm> {
     });
   }
 
+  /// Jour civil choisi dans le calendrier (jours de Paris).
   Future<DateTime?> _choisirDate({DateTime? initial}) {
-    final premier = premierJourSelectionnable(DateTime.now(), widget.dateMinimale);
+    final aujourdhui = aujourdhuiParis();
+    final premier = premierJourSelectionnable(aujourdhui, widget.dateMinimale);
     var depart =
         initial ??
-        prochainJourAutorise(DateTime.now().add(const Duration(days: 60)));
+        prochainJourAutorise(DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day + 60));
     if (depart.isBefore(premier)) depart = prochainJourAutorise(premier);
     return showDatePicker(
       context: context,
       initialDate: depart,
       firstDate: premier,
-      lastDate: DateTime.now().add(const Duration(days: 365)),
+      lastDate: DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day + 365),
       locale: const Locale('fr', 'FR'),
       selectableDayPredicate: estJourAutorise,
     );

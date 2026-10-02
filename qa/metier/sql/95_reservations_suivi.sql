@@ -27,11 +27,12 @@ end $$;
 create or replace function nb_suivis(p uuid) returns int language sql as $$
   select count(*)::int from reservations_suivi where pacte_id = p
 $$;
--- Scelle un Swend en négociation comme l'app : David choisit la date puis accepte.
+-- Scelle un Swend en négociation comme l'app : David choisit la première des
+-- dates proposées (D-025b) puis accepte.
 create or replace function sceller(p uuid) returns void language plpgsql as $$
 begin
   if en_tant_que('00000000-0000-0000-0000-00000000000d', format('update pactes set date_retenue = %L, statut = %L where id = %L',
-       date_trunc('minute', now()) + interval '20 days 2 hours', 'enAttenteReponse', p)) <> 'OK' then
+       (select (instants_proposes(dates_proposees))[1] from pactes where id = p), 'enAttenteReponse', p)) <> 'OK' then
     raise exception 'choix de date impossible';
   end if;
   if en_tant_que('00000000-0000-0000-0000-00000000000d', format('update pactes set statut = %L where id = %L', 'confirme', p)) <> 'OK' then

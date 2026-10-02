@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
+import 'package:le_pacte/utils/heure_paris.dart';
 import 'package:le_pacte/models/cote_pacte.dart';
 import 'package:le_pacte/models/pacte.dart';
 import 'package:le_pacte/models/remplacant.dart';
@@ -82,7 +84,7 @@ void main() {
           id: 'p',
           type: TypeRepas.diner,
           datesProposees: const [],
-          dateRetenue: DateTime(2026, 10, 27, 19, 30),
+          dateRetenue: instantParis(DateTime(2026, 10, 27), const TimeOfDay(hour: 19, minute: 30)),
           restaurantsProposes: const [],
           initiateur: eliot,
           destinataire: david,

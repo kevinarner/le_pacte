@@ -41,6 +41,13 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   (gh-pages `34629e7`, déployée le 01/10 ; une app qui la demande avant la
   migration verrait ses lectures de Swends refusées). Contrôle en lecture
   seule des 3 comptes fondateurs : 1 compte chacun, email confirmé.
+  Constat du 03/10 (lecture seule) : son déclencheur
+  `trg_verrou_delai_minimum_swend` est **désactivé** en production (`D`,
+  origine inconnue) ; D-025 n'y est donc pas appliqué.
+  `20261003000000_fuseaux_horaires.sql` : **préparée, non exécutée** (R2,
+  convention temporelle, et D-025b). Exécution prévue par le change packet
+  `supabase/changements/R2-01/` (niveau 2), après le déploiement de l'app
+  correspondante ; la conversion des 2 Swends existants est dans le paquet.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

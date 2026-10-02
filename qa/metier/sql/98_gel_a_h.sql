@@ -306,9 +306,9 @@ select verifier('I', 'après H : fiche du Swend', current_setting('qa.dest') = '
 -- ===================================================================
 insert into pactes (id, statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
                     destinataire_nom, destinataire_telephone)
-values ('00000000-0000-4000-9800-000000000001', 'enAttenteReponse', 'diner', array[now() - interval '1 minute'],
+values ('00000000-0000-4000-9800-000000000001', 'enAttenteReponse', 'diner', to_jsonb(array[now() - interval '1 minute']),
         now() - interval '1 minute', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02'),
-       ('00000000-0000-4000-9800-000000000002', 'enAttenteReponse', 'diner', array[now() + interval '1 day'],
+       ('00000000-0000-4000-9800-000000000002', 'enAttenteReponse', 'diner', to_jsonb(array[now() + interval '1 day']),
         now() + interval '1 day', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02');
 select verifier('J', 'David ne peut pas sceller un Swend dont l''heure est passée',
   en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'confirme', '00000000-0000-4000-9800-000000000001')) like '%swend_passe%'
@@ -317,7 +317,7 @@ select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', '
 select verifier('J', 'sceller un Swend à venir reste possible',
   :'r' = 'OK' and (select scelle_le is not null from pactes where id = '00000000-0000-4000-9800-000000000002'), :'r');
 select verifier('J', 'créer directement un Swend scellé déjà passé : refusé',
-  en_tant_que(:'E', format('insert into pactes (statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values (%L, %L, array[%L::timestamptz], %L, %L, %L, %L, %L, %L)',
+  en_tant_que(:'E', format('insert into pactes (statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values (%L, %L, to_jsonb(array[%L::timestamptz]), %L, %L, %L, %L, %L, %L)',
     'confirme', 'diner', now() - interval '1 hour', now() - interval '1 hour', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02')) like '%swend_passe%');
 select verifier('J', 'la date d''un Swend scellé n''est plus modifiable par l''app',
   en_tant_que(:'E', format('update pactes set date_retenue = %L where id = %L', now() + interval '2 days', '00000000-0000-4000-9800-000000000002')) like '%modification_interdite%');
@@ -573,7 +573,7 @@ select verifier('N', 'annulé : Camille (prévue) n''obtient plus rien ; Kevin (
 -- Avant scellage (D-019) : rien.
 insert into pactes (id, statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
                     destinataire_nom, destinataire_telephone)
-values ('00000000-0000-4000-9800-000000000019', 'enAttenteChoixDateDestinataire', 'diner', array[now() + interval '3 days'],
+values ('00000000-0000-4000-9800-000000000019', 'enAttenteChoixDateDestinataire', 'diner', to_jsonb(array[now() + interval '3 days']),
         null, '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', 'David D', '06 00 00 00 02');
 select ajouter_fiche(:'E', '00000000-0000-4000-9800-000000000019', 'initiateur', 'Kevin', '0600000003') as k19 \gset
 select verifier('N', 'avant scellage : aucun numéro (D-019)', g_tel(:'K', 'telephone_titulaire_accessible', :'k19') = '');

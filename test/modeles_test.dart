@@ -68,9 +68,9 @@ void main() {
         isNot(contains('Eliot')),
       );
     });
-    test('horodatage "10 nov. · 09:42"', () {
+    test('horodatage "10 nov. · 09:42" (heure de Paris, R2)', () {
       expect(
-        formaterHorodatage(DateTime(2026, 11, 10, 9, 42)),
+        formaterHorodatage(DateTime.utc(2026, 11, 10, 8, 42)),
         '10 nov. · 09:42',
       );
     });

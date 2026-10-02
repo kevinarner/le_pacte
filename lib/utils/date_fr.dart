@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'heure_paris.dart';
+
 const joursSemaine = [
   'lundi',
   'mardi',
@@ -25,8 +27,15 @@ const moisAnnee = [
   'décembre',
 ];
 
-String formaterDateEnToutesLettres(DateTime d) =>
-    '${joursSemaine[d.weekday - 1]} ${d.day} ${moisAnnee[d.month - 1]} ${d.year}';
+/// Les formats ci-dessous reçoivent un **instant** de rendez-vous et
+/// l'affichent à l'heure de Paris (R2, `heure_paris.dart`), jamais à celle
+/// de l'appareil.
+
+/// « mardi 17 novembre 2026 »
+String formaterDateEnToutesLettres(DateTime instant) {
+  final d = enParis(instant);
+  return '${joursSemaine[d.weekday - 1]} ${d.day} ${moisAnnee[d.month - 1]} ${d.year}';
+}
 
 /// Seuls les lundi, mardi et mercredi sont autorisés pour un pacte.
 bool estJourAutorise(DateTime d) => d.weekday <= DateTime.wednesday;
@@ -53,21 +62,30 @@ List<TimeOfDay> genererCreneaux(TimeOfDay debut, TimeOfDay fin, {int pasMinutes 
   return creneaux;
 }
 
-TimeOfDay heureDe(DateTime d) => TimeOfDay(hour: d.hour, minute: d.minute);
-
-DateTime avecHeure(DateTime jour, TimeOfDay heure) =>
-    DateTime(jour.year, jour.month, jour.day, heure.hour, heure.minute);
-
 String formaterHeure(TimeOfDay t) => '${t.hour}h${t.minute.toString().padLeft(2, '0')}';
 
-String formaterDateEtHeure(DateTime d) =>
-    '${formaterDateEnToutesLettres(d)} à ${formaterHeure(heureDe(d))}';
+/// « mardi 17 novembre 2026 à 19h00 »
+String formaterDateEtHeure(DateTime instant) =>
+    '${formaterDateEnToutesLettres(instant)} à ${formaterHeure(heureParis(instant))}';
 
-/// "Mardi 13 octobre · 20h00"
-String formaterJourEtHeureCourt(DateTime d) {
+/// « Mardi 17 novembre · 19h00 »
+String formaterJourEtHeureCourt(DateTime instant) {
+  final d = enParis(instant);
   final jour = joursSemaine[d.weekday - 1];
   return '${jour[0].toUpperCase()}${jour.substring(1)} ${d.day} '
-      '${moisAnnee[d.month - 1]} · ${formaterHeure(heureDe(d))}';
+      '${moisAnnee[d.month - 1]} · ${formaterHeure(heureParis(instant))}';
+}
+
+/// « 17/11/2026 » (jour de Paris d'un instant)
+String formaterJourCourtChiffres(DateTime instant) {
+  final d = enParis(instant);
+  return '${d.day}/${d.month}/${d.year}';
+}
+
+/// « 17 novembre » (jour de Paris d'un instant)
+String formaterJourEtMois(DateTime instant) {
+  final d = enParis(instant);
+  return '${d.day} ${moisAnnee[d.month - 1]}';
 }
 
 const _moisCourts = [
@@ -75,10 +93,10 @@ const _moisCourts = [
   'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.',
 ];
 
-/// "10 nov. · 09:42", en heure locale — horodatage des événements d'une
+/// "10 nov. · 09:42", à l'heure de Paris — horodatage des événements d'une
 /// conversation.
 String formaterHorodatage(DateTime d) {
-  final l = d.toLocal();
+  final l = enParis(d);
   return '${l.day} ${_moisCourts[l.month - 1]} · '
       '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
 }

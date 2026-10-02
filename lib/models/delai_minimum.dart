@@ -1,4 +1,5 @@
 import '../utils/date_fr.dart';
+import '../utils/heure_paris.dart';
 
 /// Délai minimum avant un Swend (D-025) : pour un Swend créé par un
 /// utilisateur standard, aucune date (proposée ou retenue) avant la date de
@@ -14,18 +15,25 @@ DateTime? dateMinimaleDepuis(Object? valeur) {
   return d == null ? null : DateTime(d.year, d.month, d.day);
 }
 
-/// Premier jour sélectionnable dans le calendrier : aujourd'hui, ou la date
-/// minimale si elle est plus tardive.
-DateTime premierJourSelectionnable(DateTime maintenant, DateTime? dateMinimale) {
-  final aujourdhui = DateTime(maintenant.year, maintenant.month, maintenant.day);
-  if (dateMinimale == null || dateMinimale.isBefore(aujourdhui)) return aujourdhui;
+/// Premier jour sélectionnable dans le calendrier : [aujourdhui] (jour
+/// civil de Paris, [aujourdhuiParis]), ou la date minimale si elle est plus
+/// tardive.
+DateTime premierJourSelectionnable(DateTime aujourdhui, DateTime? dateMinimale) {
+  final jour = DateTime(aujourdhui.year, aujourdhui.month, aujourdhui.day);
+  if (dateMinimale == null || dateMinimale.isBefore(jour)) return jour;
   return dateMinimale;
 }
 
-/// La date (jour) respecte-t-elle la date minimale ?
-bool respecteDateMinimale(DateTime date, DateTime? dateMinimale) =>
-    dateMinimale == null ||
-    !DateTime(date.year, date.month, date.day).isBefore(dateMinimale);
+/// Le jour de Paris de cet instant de rendez-vous respecte-t-il la date
+/// minimale ? (même calcul que la base : jour de Paris ≥ date minimale)
+bool respecteDateMinimale(DateTime instant, DateTime? dateMinimale) =>
+    dateMinimale == null || !jourParis(instant).isBefore(dateMinimale);
+
+/// Refus de la base pour une date sans fuseau (`date_sans_fuseau`) ou une
+/// date retenue absente des dates proposées (`date_non_proposee`, D-025b) :
+/// n'arrive qu'avec une version périmée de l'app (R2).
+const messageDateRefusee =
+    'Cette date n’a pas pu être enregistrée. Rechargez l’app puis réessayez.';
 
 /// Message affiché quand une date est trop proche (refus de la base, ou
 /// contrôle avant l'envoi).

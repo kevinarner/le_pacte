@@ -1,0 +1,23 @@
+# Écarts connus et admis entre les déclencheurs de la production et ceux du
+# banc QA : voir qa/metier/parite_schema.sh. Format :
+# <côté où la ligne existe seule>	<table>	<déclencheur>	<état O/D>.
+# Établi le 03/10/2026 (R2).
+#
+# Déclencheurs historiques non versionnés, reconstruits par la réplique sous
+# d'autres noms (même rôle) :
+production	messages	on_nouveau_message	O
+production	pactes	on_nouveau_pacte	O
+production	pactes	on_reponse_pacte	O
+production	remplacants	on_remplacant_change	O
+production	remplacants	on_remplacant_selectionne	O
+qa	remplacants	trg_annuler_si_double_absence	O
+qa	remplacants	trg_synchroniser_remplacants_caches	O
+#
+# R2 (migration fuseaux_horaires) : pas encore en production. Retirer ces
+# lignes et rafraîchir l'instantané après l'exécution de R2-01.
+qa	pactes	trg_verrou_zz_dates_swend	O
+#
+# À TRANCHER (fondateurs) : déclencheur D-025 désactivé en production
+# (tgenabled = D, constaté le 03/10/2026, origine inconnue) ; actif au banc.
+production	pactes	trg_verrou_delai_minimum_swend	D
+qa	pactes	trg_verrou_delai_minimum_swend	O

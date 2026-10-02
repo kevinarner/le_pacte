@@ -1,0 +1,36 @@
+{
+  "id": "R2-01",
+  "niveau": 2,
+  "projet": "ssciqjpaibdorvnkkhsk",
+  "objectif": "Convention temporelle R2 (heure de Paris, instants absolus, dates proposées avec fuseau explicite), push à l heure de Paris, correction jsonb de D-025, D-025b (date retenue parmi les dates proposées), conversion des 2 Swends existants (17/11 de nouveau à 19:00 à Paris).",
+  "sauvegardes": [
+    {
+      "nom": "sauvegarde",
+      "type": "sql_ecriture",
+      "fichier": "sauvegarde.sql",
+      "sha256": "d70c35b6ba073ffae8003d89fcc7f92b8bfd9988c36c45ebb256d993560b232f"
+    }
+  ],
+  "etapes": [
+    {
+      "nom": "appliquer",
+      "type": "sql_ecriture",
+      "fichier": "appliquer.sql",
+      "sha256": "be47725e93e2db0dbdb99344d349fa004e8a47cf78997fd11043e55102c2e823"
+    },
+    {
+      "nom": "verifier",
+      "type": "sql_lecture",
+      "fichier": "verifier.sql",
+      "sha256": "29254e017596aef9dcb72b1a0ad0ff948d59f171eccbdd729edaadae5f088140"
+    }
+  ],
+  "rollback": [
+    {
+      "nom": "rollback",
+      "type": "sql_ecriture",
+      "fichier": "rollback.sql",
+      "sha256": "170c038351115ca557753b7bef080c62921db056b8ff34c586f32258b97de44d"
+    }
+  ]
+}

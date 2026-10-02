@@ -116,7 +116,7 @@ select verifier('P', 'heure d''hiver : rien à 17h00 Paris la veille', rappels_a
 select verifier('P', 'heure d''hiver : J-1 à 18h00 Paris (17h UTC), date du lundi 26 octobre',
   rappels_a(:'p', '2037-10-25 17:00+00') = 2 and rappels_de(:'p', :'E') like '%lundi 26 octobre à 20h00%');
 insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-values ('enAttenteReponse', 'diner', '2037-10-12 18:00+00', array['2037-10-12 18:00+00'::timestamptz], '00000000-0000-0000-0000-0000000000aa',
+values ('enAttenteReponse', 'diner', '2037-10-12 18:00+00', to_jsonb(array['2037-10-12 18:00+00'::timestamptz]), '00000000-0000-0000-0000-0000000000aa',
         :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02') returning id as pn \gset
 select verifier('P', 'Swend non scellé : aucun rappel', rappels_a(:'pn', :'J1') = 0);
 

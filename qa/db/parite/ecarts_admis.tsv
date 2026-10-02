@@ -1,0 +1,89 @@
+# Écarts connus et admis entre la production et le banc QA (colonnes du
+# schéma public), hors types : voir qa/metier/parite_schema.sh. Format :
+# <côté où la ligne existe seule>	<table>	<colonne>	<type>	<nullable>.
+# Les types ne sont jamais admis ici. Établi le 03/10/2026 (R2) :
+# - nullabilité : la réplique d'avant migrations (reconstruite) est plus
+#   permissive que la production (NOT NULL absents) ;
+# - tables non reproduites par le banc : messages_contact,
+#   suggestions_restaurant, notification_jetons (R1b, hors banc), colonnes
+#   cachées des remplaçants 2 à 5, profiles.created_at / photo_url ;
+# - notifications_log : journal du banc à la place de notifier().
+production	device_tokens	created_at	timestamp with time zone	NO
+production	device_tokens	plateforme	text	NO
+production	device_tokens	profile_id	uuid	NO
+production	device_tokens	token	text	NO
+production	messages	contenu	text	NO
+production	messages	created_at	timestamp with time zone	NO
+production	messages	expediteur_id	uuid	NO
+production	messages_contact	created_at	timestamp with time zone	NO
+production	messages_contact	id	uuid	NO
+production	messages_contact	message	text	NO
+production	messages_contact	objet	text	NO
+production	messages_contact	profile_id	uuid	NO
+production	notification_jetons	charge_empreinte	bytea	NO
+production	notification_jetons	cree_le	timestamp with time zone	NO
+production	notification_jetons	empreinte	bytea	NO
+production	pactes	destinataire_nom	text	NO
+production	pactes	destinataire_remplacant_2_nom	text	YES
+production	pactes	destinataire_remplacant_2_telephone	text	YES
+production	pactes	destinataire_remplacant_3_nom	text	YES
+production	pactes	destinataire_remplacant_3_telephone	text	YES
+production	pactes	destinataire_remplacant_4_nom	text	YES
+production	pactes	destinataire_remplacant_4_telephone	text	YES
+production	pactes	destinataire_remplacant_5_nom	text	YES
+production	pactes	destinataire_remplacant_5_telephone	text	YES
+production	pactes	destinataire_telephone	text	NO
+production	pactes	initiateur_id	uuid	NO
+production	pactes	initiateur_nom	text	NO
+production	pactes	initiateur_remplacant_2_nom	text	YES
+production	pactes	initiateur_remplacant_2_telephone	text	YES
+production	pactes	initiateur_remplacant_3_nom	text	YES
+production	pactes	initiateur_remplacant_3_telephone	text	YES
+production	pactes	initiateur_remplacant_4_nom	text	YES
+production	pactes	initiateur_remplacant_4_telephone	text	YES
+production	pactes	initiateur_remplacant_5_nom	text	YES
+production	pactes	initiateur_remplacant_5_telephone	text	YES
+production	profiles	created_at	timestamp with time zone	NO
+production	profiles	email	text	NO
+production	profiles	nom	text	NO
+production	profiles	photo_url	text	YES
+production	profiles	prenom	text	NO
+production	profiles	telephone	text	NO
+production	remplacants	email	text	NO
+production	remplacants	nom	text	NO
+production	remplacants	prenom	text	NO
+production	remplacants	telephone	text	NO
+production	restaurants	lien	text	NO
+production	restaurants	nom	text	NO
+production	suggestions_restaurant	created_at	timestamp with time zone	NO
+production	suggestions_restaurant	id	uuid	NO
+production	suggestions_restaurant	lien	text	YES
+production	suggestions_restaurant	nom	text	NO
+production	suggestions_restaurant	profile_id	uuid	NO
+qa	device_tokens	created_at	timestamp with time zone	YES
+qa	device_tokens	plateforme	text	YES
+qa	device_tokens	profile_id	uuid	YES
+qa	device_tokens	token	text	YES
+qa	messages	contenu	text	YES
+qa	messages	created_at	timestamp with time zone	YES
+qa	messages	expediteur_id	uuid	YES
+qa	notifications_log	corps	text	YES
+qa	notifications_log	created_at	timestamp with time zone	YES
+qa	notifications_log	data	jsonb	YES
+qa	notifications_log	id	bigint	NO
+qa	notifications_log	profile_id	uuid	YES
+qa	notifications_log	titre	text	YES
+qa	pactes	destinataire_nom	text	YES
+qa	pactes	destinataire_telephone	text	YES
+qa	pactes	initiateur_id	uuid	YES
+qa	pactes	initiateur_nom	text	YES
+qa	profiles	email	text	YES
+qa	profiles	nom	text	YES
+qa	profiles	prenom	text	YES
+qa	profiles	telephone	text	YES
+qa	remplacants	email	text	YES
+qa	remplacants	nom	text	YES
+qa	remplacants	prenom	text	YES
+qa	remplacants	telephone	text	YES
+qa	restaurants	lien	text	YES
+qa	restaurants	nom	text	YES

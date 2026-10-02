@@ -10,6 +10,7 @@ import '../../services/app_store.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/heure_paris.dart';
 import '../../utils/telephone.dart';
 import '../../utils/textes_invitation.dart';
 import '../../widgets/dates_form.dart';
@@ -518,9 +519,9 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
-  /// Repli si la base n'a pas pu donner la date : aujourd'hui + 15 jours.
+  /// Repli si la base n'a pas pu donner la date : aujourd'hui (Paris) + 15 jours.
   DateTime _dansQuinzeJours() {
-    final n = DateTime.now();
+    final n = aujourdhuiParis();
     return DateTime(n.year, n.month, n.day + 15);
   }
 
@@ -565,6 +566,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 dateMinimale ??
                 _dansQuinzeJours(),
           ),
+          'date_sans_fuseau' || 'date_non_proposee' => messageDateRefusee,
           _ => "Impossible d'envoyer le Swend pour le moment.\n$e",
         };
       });

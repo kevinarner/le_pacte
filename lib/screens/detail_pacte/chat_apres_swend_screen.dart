@@ -150,7 +150,7 @@ class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
                       ),
                       if (date != null)
                         Text(
-                          '${date.toLocal().day} ${moisAnnee[date.toLocal().month - 1]}',
+                          formaterJourEtMois(date),
                           style: const TextStyle(
                             fontSize: 12,
                             color: AppColors.texteAttenue,

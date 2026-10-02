@@ -13,6 +13,7 @@ import '../models/restaurant.dart';
 import '../models/statut_pacte.dart';
 import '../models/statut_presence.dart';
 import '../models/type_repas.dart';
+import '../utils/heure_paris.dart';
 
 /// Accès aux pactes, remplaçants et au restaurant stockés dans Supabase.
 /// Les colonnes de suivi interne (historique des remplaçants) ne sont
@@ -166,10 +167,10 @@ class PacteRepository {
       id: id,
       type: TypeRepas.values.byName(row['type'] as String),
       datesProposees: (row['dates_proposees'] as List)
-          .map((s) => DateTime.parse(s as String))
+          .map((s) => lireInstant(s as String))
           .toList(),
       dateRetenue: row['date_retenue'] != null
-          ? DateTime.parse(row['date_retenue'] as String)
+          ? lireInstant(row['date_retenue'] as String)
           : null,
       nombreEchangesDate: row['nombre_echanges_date'] as int,
       dateMinimale: dateMinimaleDepuis(row['date_minimale']),
@@ -252,9 +253,7 @@ class PacteRepository {
         .insert({
           'type': type.name,
           'statut': StatutPacte.enAttenteChoixDateDestinataire.name,
-          'dates_proposees': datesProposees
-              .map((d) => d.toIso8601String())
-              .toList(),
+          'dates_proposees': datesProposees.map(isoInstant).toList(),
           'restaurant_id': restau.id,
           'initiateur_id': initiateurId,
           'initiateur_nom': initiateurNom,
@@ -413,6 +412,8 @@ class PacteRepository {
       'modification_interdite',
       'swend_passe',
       'date_trop_proche',
+      'date_sans_fuseau',
+      'date_non_proposee',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;
@@ -488,7 +489,7 @@ class PacteRepository {
     await _client
         .from('pactes')
         .update({
-          'date_retenue': date.toIso8601String(),
+          'date_retenue': isoInstant(date),
           'statut': StatutPacte.enAttenteReponse.name,
         })
         .eq('id', pacteId);
@@ -503,7 +504,7 @@ class PacteRepository {
     await _client
         .from('pactes')
         .update({
-          'dates_proposees': dates.map((d) => d.toIso8601String()).toList(),
+          'dates_proposees': dates.map(isoInstant).toList(),
           'nombre_echanges_date': nombreEchangesDate,
           'statut':
               (jeSuisInitiateur
@@ -745,7 +746,7 @@ class PacteRepository {
           dateNonLu: evenementEnTete?.createdAt ?? dernierMessageNonLu,
           jeSuisLeTiers: estMoiLeRemplacant,
           dateConcernee: dateRetenue != null
-              ? DateTime.parse(dateRetenue)
+              ? lireInstant(dateRetenue)
               : null,
           restaurantNom: restau.nom,
           autrePartieNom: autrePartieNom,
