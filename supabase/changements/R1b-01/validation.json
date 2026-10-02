@@ -3,7 +3,11 @@
   "go": "Go R1b-01",
   "empreinte_paquet": "85819e728b923364dd93578572b9a6c0abdb167018b4f4e42ac4408a9be9fdea",
   "valide_par": [
-    "Kevin"
+    "Eliot"
   ],
-  "valide_le": "2026-10-02T17:07:13Z"
+  "valide_le": "2026-10-02T17:07:13Z",
+  "correction": {
+    "le": "2026-10-02T17:12:15Z",
+    "motif": "Attribution déclarative corrigée : le Go R1b-01 a été donné par Eliot, pas Kevin. Aucun autre champ modifié."
+  }
 }
