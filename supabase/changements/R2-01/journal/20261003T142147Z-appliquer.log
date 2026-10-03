@@ -1,0 +1,22 @@
+PAQUET: R2-01
+MODE: appliquer
+NIVEAU: 2
+EMPREINTE: 1b8c2366d48eee42bbf4af9f25e3430043e56cbf9bdae0e79603366be27fa31a
+VALIDATION: {"go":"Go R2-01","valide_par":["Eliot"],"valide_le":"2026-10-03T10:40:27Z"}
+COMMIT: 0eebd2c518cf7c984889cd45fd7a155057924222
+DEBUT: 2026-10-03T14:21:48Z
+PLAN:
+  1. sauvegarde — sql_ecriture — sauvegarde.sql — sha256 5f7b554a6acfef4ca99577b718be9ad8d60ccac28ff78b101b2bee5114c2878d
+  2. appliquer — sql_ecriture — appliquer.sql — sha256 a916716ddcc66f2c610239caf4eaa75bcf296ef555bf72538793a1f293853817
+  3. verifier — sql_lecture — verifier.sql — sha256 a6b090194145ff35e651efa6a736494090708ad3a5a7a2d6d1f9270ee1ac510f
+ETAPE 1: sauvegarde (sql_ecriture, sauvegarde.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: []
+ETAPE 2: appliquer (sql_ecriture, appliquer.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: []
+ETAPE 3: verifier (sql_lecture, verifier.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only
+  HTTP: 201
+  REPONSE: [{"rendez_vous_paris":"17/11 19:00","texte_push":"mardi 17 novembre à 19h00","heure_rappels":"19h00","rappel_j7":"10/11 18:00","rappel_j1":"16/11 18:00","rappel_jour_j":"17/11 16:00","ouverture_chat":"17/11 22:00","heure_reservation":"19:00","swends":2,"declencheur_d025":"O","date_minimale_6cb94c32":"2026-10-17"}]
+RESULTAT: SUCCES
+FIN: 2026-10-03T14:21:52Z
