@@ -55,4 +55,18 @@ if comm -3 "$T/ecarts_d" "$T/admis_d" | grep -q .; then
 else
   echo "PASS — [parite_schema] déclencheurs et leur état : aucun écart hors de la liste admise ($(wc -l < "$T/admis_d") écarts connus)"
 fi
+# 4. D-025b sans exception : aucune fonction (base neuve : migrations seules)
+#    n'écrit date_retenue ni dates_proposees, hormis le déclencheur qui met
+#    les dates proposées en forme canonique. Une nouvelle fonction qui les
+#    écrirait doit être revue (D-025b s'applique à toute écriture).
+ECRIVAINS="$(qa_psql "$BASE" -tA -c "select string_agg(p.proname, ', ' order by p.proname) from pg_proc p
+  join pg_namespace n on n.oid = p.pronamespace
+  where n.nspname not in ('pg_catalog', 'information_schema', 'qa')
+    and (p.prosrc ~* 'set[^;]*\\m(date_retenue|dates_proposees)\\M\\s*=' or p.prosrc ~* 'new\\.(date_retenue|dates_proposees)\\s*:=')
+    and p.proname <> 'verifier_dates_swend'")"
+if [ -n "$ECRIVAINS" ]; then
+  echo "FAIL — [parite_schema] fonctions qui écrivent date_retenue / dates_proposees (revoir D-025b) : $ECRIVAINS"; KO=1
+else
+  echo "PASS — [parite_schema] aucune fonction n'écrit date_retenue ni dates_proposees (D-025b sans exception)"
+fi
 exit "$KO"

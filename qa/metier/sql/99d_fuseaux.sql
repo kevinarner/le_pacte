@@ -101,8 +101,63 @@ select verifier('B', 'création avec une date retenue non proposée → refusée
      initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'enAttenteReponse',
      '["2031-11-18T18:00:00.000Z"]', '2031-11-18T19:00:00', '00000000-0000-0000-0000-0000000000aa',
      '00000000-0000-0000-0000-00000000000e', 'X', 'Y', '0600000002') returning 'OK'$q$) like '%date_non_proposee%');
-with u as (update pactes set date_retenue = fz_paris('2031-11-21 19:00') where id = :'b' returning 1)
-select verifier('B', 'SQL Editor non concerné par D-025b (comme D-025)', (select count(*) from u) = 1);
+-- D-025b est un invariant : aussi pour le SQL Editor et les fonctions serveur.
+do $$
+declare v text; w text; x text;
+begin
+  begin
+    update pactes set date_retenue = fz_paris('2031-11-21 19:00') where dates_proposees = '["2031-11-18T18:00:00.000Z", "2031-11-19T18:00:00.000Z"]';
+    v := 'accepté';
+  exception when others then v := sqlerrm;
+  end;
+  perform verifier('B', 'SQL Editor / fonction serveur : date retenue hors des dates proposées refusée', v = 'date_non_proposee', v);
+  begin
+    insert into pactes (type, statut, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
+    values ('diner', 'confirme', '[]', fz_paris('2031-11-18 19:00'), '00000000-0000-0000-0000-0000000000aa',
+            '00000000-0000-0000-0000-00000000000e', 'Eliot E', 'David D', '0600000002');
+    w := 'accepté';
+  exception when others then w := sqlerrm;
+  end;
+  perform verifier('B', 'SQL Editor : Swend scellé sans date proposée refusé', w = 'date_non_proposee', w);
+  -- Swend en négociation portant déjà une date retenue (état cohérent) : une
+  -- contre-proposition qui ne la contient plus est refusée.
+  insert into pactes (id, type, statut, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
+  values ('00000000-0000-4000-9d00-000000000003', 'diner', 'enAttenteChoixDateDestinataire', '["2031-11-18T18:00:00.000Z"]',
+          fz_paris('2031-11-18 19:00'), '00000000-0000-0000-0000-0000000000aa', '00000000-0000-0000-0000-00000000000e', 'Eliot E', 'David D', '0600000002');
+  begin
+    update pactes set dates_proposees = '["2031-11-19T18:00:00.000Z"]', nombre_echanges_date = 1
+    where id = '00000000-0000-4000-9d00-000000000003';
+    x := 'accepté';
+  exception when others then x := sqlerrm;
+  end;
+  perform verifier('B', 'retirer la date retenue des dates proposées : refusé (D-025b vérifié aussi sur ce changement)', x = 'date_non_proposee', x);
+end $$;
+select qa.deplacer_swend(:'b', fz_paris('2031-11-21 19:00'));
+select verifier('B', 'outil de test qa.deplacer_swend : date retenue et dates proposées déplacées ensemble',
+  (select date_retenue = fz_paris('2031-11-21 19:00') and dates_proposees = '["2031-11-21T18:00:00.000Z"]' from pactes where id = :'b'));
+-- ===================================================================
+-- M. D-025 : Swend d'un utilisateur standard créé pendant que le déclencheur
+--    était désactivé (cas de production 6cb94c32, date_minimale NULL)
+-- ===================================================================
+insert into pactes (id, type, statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
+                    destinataire_id, destinataire_nom, destinataire_telephone)
+values ('00000000-0000-4000-9d00-000000000010', 'diner', 'enAttenteChoixDateDestinataire',
+        to_jsonb(array[dm_jour(60)]), '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '0600000002');
+select verifier('M', 'date_minimale NULL (créé hors app / déclencheur désactivé) : contre-proposition à J+3 acceptée (contournement)',
+  fz_contre('00000000-0000-4000-9d00-000000000010', format('[%s]', to_json(dm_jour(3)))) = 'OK');
+-- Correction R2-01 : seule date_minimale est posée (jour de création à Paris
+-- + 15), hors app ; la négociation continue là où elle en est.
+update pactes set date_minimale = date_minimale_swend(created_at)
+where id = '00000000-0000-4000-9d00-000000000010';
+select verifier('M', 'après correction : contre-proposition à J+3 refusée (date_trop_proche)',
+  fz_contre('00000000-0000-4000-9d00-000000000010', format('[%s]', to_json(dm_jour(3)))) like '%date_trop_proche%');
+select verifier('M', 'après correction : contre-proposition à J+20 acceptée',
+  fz_contre('00000000-0000-4000-9d00-000000000010', format('[%s]', to_json(dm_jour(20)))) = 'OK');
+select verifier('M', 'après correction : choix d''une date proposée à J+20 accepté (D-025 et D-025b)',
+  fz_choisir('00000000-0000-4000-9d00-000000000010', to_json(dm_jour(20)) #>> '{}') = 'OK');
+select verifier('M', 'l''app ne peut pas effacer ni modifier date_minimale',
+  dm_lire(:'D', $q$update pactes set date_minimale = null where id = '00000000-0000-4000-9d00-000000000010' returning 'OK'$q$)
+    like '%modification_interdite%');
 
 -- ===================================================================
 -- H. Un Swend choisi à 19:00 à Paris reste à 19:00 partout

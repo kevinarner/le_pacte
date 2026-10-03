@@ -132,11 +132,11 @@ select verifier('S', 'vue : Swend supprimé réservé, à annuler au restaurant'
 -- R. Rattrapage des Swends déjà scellés
 -- ===================================================================
 alter table pactes disable trigger trg_creer_suivi_reservation_insert;
-insert into pactes (id, statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
-  ('00000000-0000-4000-9500-000000000001', 'confirme', now() + interval '10 days', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9500-000000000002', 'confirme', now() - interval '10 days', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9500-000000000003', 'confirme', now() + interval '12 days', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9500-000000000004', 'enAttenteChoixDateDestinataire', null, '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
+insert into pactes (id, statut, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
+  ('00000000-0000-4000-9500-000000000001', 'confirme', now() + interval '10 days', to_jsonb(array[now() + interval '10 days']), '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9500-000000000002', 'confirme', now() - interval '10 days', to_jsonb(array[now() - interval '10 days']), '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9500-000000000003', 'confirme', now() + interval '12 days', to_jsonb(array[now() + interval '12 days']), '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9500-000000000004', 'enAttenteChoixDateDestinataire', null, '["2031-12-01T19:30:00.000Z"]', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
 alter table pactes enable trigger trg_creer_suivi_reservation_insert;
 insert into reservations_suivi (pacte_id, statut_reservation, note) values ('00000000-0000-4000-9500-000000000003', 'reservee', 'déjà suivi');
 select verifier('R', 'avant rattrapage : Swends scellés sans ligne de suivi',

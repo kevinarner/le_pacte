@@ -1,6 +1,7 @@
 -- R2-01 — rollback : fonctions d'origine à l'identique (définitions relues en
--- production le 03/10/2026), objets R2 supprimés, les 2 Swends remis dans
--- l'état sauvegardé. Une transaction. Refuse si l'un des 2 Swends a changé
+-- production le 03/10/2026), objets R2 supprimés, déclencheur D-025 remis dans
+-- son état d'origine (désactivé), les 2 Swends remis dans l'état sauvegardé
+-- (dates et date_minimale). Une transaction. Refuse si l'un des 2 Swends a changé
 -- depuis R2-01 (décision humaine). La sauvegarde est conservée. À combiner
 -- avec le retour à l'app précédente (gh-pages), voir paquet.md.
 begin;
@@ -18,7 +19,8 @@ begin
       where (id = '8c6c9d64-d13d-44c6-8d0a-dec7eae430d6' and dates_proposees = '["2026-11-17T18:00:00.000Z"]'::jsonb
              and date_retenue = '2026-11-17T18:00:00Z' and statut = 'confirme')
          or (id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf' and dates_proposees = '["2026-12-01T19:00:00.000Z"]'::jsonb
-             and date_retenue is null and statut = 'enAttenteChoixDateDestinataire')) <> 2 then
+             and date_retenue is null and statut = 'enAttenteChoixDateDestinataire'
+             and date_minimale = '2026-10-17')) <> 2 then
     raise exception 'R2-01 rollback : un des 2 Swends a changé depuis R2-01 (décision humaine, rien n''est modifié)';
   end if;
 end $$;
@@ -75,8 +77,10 @@ end;
 $function$
 ;
 
--- 2. Objets R2.
+-- 2. Objets R2, et déclencheur D-025 dans son état d'origine (désactivé : avec
+--    les fonctions d'origine, unnest(jsonb) ferait échouer les créations).
 drop trigger if exists trg_verrou_zz_dates_swend on public.pactes;
+alter table public.pactes disable trigger trg_verrou_delai_minimum_swend;
 drop function if exists public.verifier_dates_swend();
 drop function if exists public.dates_proposees_canoniques(jsonb);
 drop function if exists public.instants_proposes(jsonb);
@@ -86,7 +90,7 @@ drop function if exists public.instant_date_proposee(jsonb);
 --    déclencheur de négociation que dans appliquer.sql).
 alter table public.pactes disable trigger trg_verifier_negociation_date;
 update public.pactes p
-set dates_proposees = s.dates_proposees, date_retenue = s.date_retenue
+set dates_proposees = s.dates_proposees, date_retenue = s.date_retenue, date_minimale = s.date_minimale
 from sauvegarde.r2_01_pactes_20261003 s
 where s.id = p.id;
 alter table public.pactes enable trigger trg_verifier_negociation_date;
@@ -105,8 +109,8 @@ begin
     raise exception 'R2-01 rollback : objets R2 encore présents';
   end if;
   if exists (select 1 from public.pactes p join sauvegarde.r2_01_pactes_20261003 s using (id)
-             where (p.statut, p.dates_proposees, p.date_retenue, p.nombre_echanges_date, p.scelle_le)
-                   is distinct from (s.statut, s.dates_proposees, s.date_retenue, s.nombre_echanges_date, s.scelle_le)) then
+             where (p.statut, p.dates_proposees, p.date_retenue, p.date_minimale, p.nombre_echanges_date, p.scelle_le)
+                   is distinct from (s.statut, s.dates_proposees, s.date_retenue, s.date_minimale, s.nombre_echanges_date, s.scelle_le)) then
     raise exception 'R2-01 rollback : Swends non rétablis';
   end if;
   if (select tgenabled from pg_trigger where tgname = 'trg_verifier_negociation_date' and tgrelid = 'public.pactes'::regclass) <> 'O'

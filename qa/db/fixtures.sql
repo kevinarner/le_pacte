@@ -24,6 +24,26 @@ create or replace function qa.date_swend() returns timestamptz language sql stab
   select date_trunc('day', now()) + interval '30 days 19 hours 30 minutes'
 $$;
 
+-- Déplace un Swend dans le temps (outil de TEST, schéma qa, jamais en
+-- production) : date retenue ET dates proposées ensemble, si bien que D-025b
+-- reste vrai. Seul le déclencheur de négociation (dates proposées figées hors
+-- négociation) l'empêcherait sur un Swend scellé ; il est contourné pour cette
+-- seule mise à jour (session_replication_role, réservé au superutilisateur du
+-- banc), puis la forme canonique et D-025b sont revérifiés.
+create or replace function qa.deplacer_swend(p_id uuid, p_date timestamptz) returns void language plpgsql as $$
+begin
+  perform set_config('session_replication_role', 'replica', true);
+  update public.pactes
+  set date_retenue = p_date, dates_proposees = public.dates_proposees_canoniques(to_jsonb(array[p_date]))
+  where id = p_id;
+  perform set_config('session_replication_role', 'origin', true);
+  if exists (select 1 from public.pactes p where p.id = p_id
+             and (p.dates_proposees is distinct from public.dates_proposees_canoniques(p.dates_proposees)
+                  or not (p.date_retenue = any (public.instants_proposes(p.dates_proposees))))) then
+    raise exception 'qa.deplacer_swend : Swend % incohérent', p_id;
+  end if;
+end $$;
+
 -- Base vide + restaurant + les quatre comptes.
 create or replace function qa.reinitialiser() returns void language plpgsql as $$
 declare t text;

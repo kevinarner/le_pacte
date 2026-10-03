@@ -146,11 +146,11 @@ select verifier('N', 'un nouveau Swend peut être créé ensuite (compteur à z�
 -- R. Rattrapage des Swends existants (migration)
 -- ===================================================================
 alter table pactes disable trigger trg_marquer_scellement;
-insert into pactes (id, statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
-  ('00000000-0000-4000-9000-000000000001', 'confirme', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000003', 'annule', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
-  ('00000000-0000-4000-9000-000000000004', 'annule', '2031-12-01 19:30+00', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
+insert into pactes (id, statut, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values
+  ('00000000-0000-4000-9000-000000000001', 'confirme', '2031-12-01 19:30+00', '["2031-12-01T19:30:00.000Z"]', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000002', 'enAttenteReponse', '2031-12-01 19:30+00', '["2031-12-01T19:30:00.000Z"]', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000003', 'annule', '2031-12-01 19:30+00', '["2031-12-01T19:30:00.000Z"]', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02'),
+  ('00000000-0000-4000-9000-000000000004', 'annule', '2031-12-01 19:30+00', '["2031-12-01T19:30:00.000Z"]', '00000000-0000-0000-0000-0000000000aa', :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02');
 alter table pactes enable trigger trg_marquer_scellement;
 select ajouter_fiche(:'D', '00000000-0000-4000-9000-000000000004', 'destinataire', 'Camille', '0600000004') as x \gset
 -- Même expression que la ligne de vérification finale de la migration.

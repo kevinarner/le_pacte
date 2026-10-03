@@ -20,17 +20,18 @@ delete from test_resultats;
 create or replace function g_swend(p_date timestamptz) returns uuid language plpgsql as $$
 declare v uuid;
 begin
-  insert into pactes (statut, type, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+  insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
                       destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('confirme', 'diner', p_date, '00000000-0000-0000-0000-0000000000aa',
+  values ('confirme', 'diner', p_date, to_jsonb(array[p_date]), '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
   returning id into v;
   return v;
 end $$;
--- Change l'heure d'un Swend (en postgres : l'app ne le peut plus).
+-- Change l'heure d'un Swend (outil de test : l'app ne le peut plus) ; date
+-- retenue et dates proposées ensemble (D-025b), voir qa.deplacer_swend().
 create or replace function g_dater(p uuid, p_date timestamptz) returns void language sql as $$
-  update pactes set date_retenue = p_date where id = p
+  select qa.deplacer_swend(p, p_date)
 $$;
 create or replace function g_rpc(p_user uuid, p_fonction text, p_arg uuid, p_arg2 text default null) returns text language sql as $$
   select en_tant_que(p_user, case when p_arg2 is null

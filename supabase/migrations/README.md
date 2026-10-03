@@ -45,9 +45,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `trg_verrou_delai_minimum_swend` est **désactivé** en production (`D`,
   origine inconnue) ; D-025 n'y est donc pas appliqué.
   `20261003000000_fuseaux_horaires.sql` : **préparée, non exécutée** (R2,
-  convention temporelle, et D-025b). Exécution prévue par le change packet
+  convention temporelle ; D-025 corrigé et son déclencheur réactivé ; D-025b,
+  invariant pour toute écriture). Exécution prévue par le change packet
   `supabase/changements/R2-01/` (niveau 2), après le déploiement de l'app
-  correspondante ; la conversion des 2 Swends existants est dans le paquet.
+  correspondante ; la correction des 2 Swends existants (dates, et
+  `date_minimale` du Swend créé après D-025 pendant que le déclencheur était
+  désactivé) est dans le paquet.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

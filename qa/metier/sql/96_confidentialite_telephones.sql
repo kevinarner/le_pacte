@@ -90,7 +90,7 @@ begin
   update remplacants set demande_statut = 'acceptee', selectionne = true where pacte_id = v and prenom = 'Thomas';
 
   if p_etat = 'apres_h' then
-    update pactes set date_retenue = now() - interval '1 hour' where id = v;
+    perform qa.deplacer_swend(v, now() - interval '1 hour');
   elsif p_etat = 'annule' then
     update pactes set statut = 'annule' where id = v;
   elsif p_etat = 'double' then

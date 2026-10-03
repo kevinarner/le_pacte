@@ -1,9 +1,9 @@
--- R2-01 — convention temporelle (R2) et D-025b, puis conversion des 2 Swends
--- existants. Une seule transaction : préconditions, migration
--- supabase/migrations/20261003000000_fuseaux_horaires.sql (sections 1 à 4,
--- copie exacte), conversion des données, assertions. Toute assertion fausse
--- annule tout. Prérequis : sauvegarde.sql exécuté (même porte, étape
--- précédente).
+-- R2-01 — convention temporelle (R2), D-025b, réactivation de D-025, puis
+-- correction des 2 Swends existants. Une seule transaction : préconditions,
+-- migration supabase/migrations/20261003000000_fuseaux_horaires.sql
+-- (sections 1 à 4, copie exacte), corrections de données, assertions. Toute
+-- assertion fausse annule tout. Prérequis : sauvegarde.sql exécuté (même
+-- porte, étape précédente).
 begin;
 
 -- 0. Préconditions --------------------------------------------------------------
@@ -16,17 +16,46 @@ begin
     raise exception 'R2-01 : sauvegarde absente ou incomplète';
   end if;
   if exists (select 1 from sauvegarde.r2_01_pactes_20261003 s join public.pactes p using (id)
-             where (p.statut, p.dates_proposees, p.date_retenue, p.nombre_echanges_date)
-                   is distinct from (s.statut, s.dates_proposees, s.date_retenue, s.nombre_echanges_date))
+             where (p.statut, p.dates_proposees, p.date_retenue, p.date_minimale, p.nombre_echanges_date)
+                   is distinct from (s.statut, s.dates_proposees, s.date_retenue, s.date_minimale, s.nombre_echanges_date))
      or (select count(*) from public.pactes where id in ('8c6c9d64-d13d-44c6-8d0a-dec7eae430d6', '6cb94c32-f2d7-49e8-9fec-24cff795cccf')) <> 2 then
     raise exception 'R2-01 : un des 2 Swends a changé depuis la sauvegarde (paquet à refaire)';
   end if;
-  -- Tout autre Swend (créé par la nouvelle app) a déjà des dates avec fuseau.
+  -- D-025 (pas de rétroactivité) : 8c6c9d64 créé avant la règle (exécutée le
+  -- 01/10/2026 à 16:33 UTC) par des fondateurs, date_minimale NULL conforme ;
+  -- 6cb94c32 créé après la règle par un utilisateur non fondateur, pendant
+  -- que le déclencheur était désactivé : sa date_minimale aurait dû être
+  -- posée (jour de création à Paris + 15 = 17/10/2026).
+  if not exists (select 1 from public.pactes p where p.id = '8c6c9d64-d13d-44c6-8d0a-dec7eae430d6'
+                 and p.created_at < '2026-10-01 16:33:21+00' and exists (select 1 from auth.users u join public.comptes_fondateurs f on f.email = lower(btrim(u.email))
+                      where u.id = p.initiateur_id and u.email_confirmed_at is not null)) then
+    raise exception 'R2-01 : 8c6c9d64 n''est plus antérieur à D-025 ni créé par un fondateur';
+  end if;
+  if not exists (select 1 from public.pactes p where p.id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf'
+                 and p.created_at > '2026-10-01 16:33:21+00' and not exists (select 1 from auth.users u join public.comptes_fondateurs f on f.email = lower(btrim(u.email))
+                      where u.id = p.initiateur_id and u.email_confirmed_at is not null)
+                 and public.date_minimale_swend(p.created_at) = '2026-10-17') then
+    raise exception 'R2-01 : 6cb94c32 n''est plus un Swend non fondateur créé après D-025 (date minimale 17/10)';
+  end if;
+  -- Aucun autre Swend non fondateur créé après D-025 sans date_minimale (le
+  -- déclencheur était désactivé) : sinon, paquet à refaire pour le corriger.
+  if exists (select 1 from public.pactes p
+             where p.id not in ('8c6c9d64-d13d-44c6-8d0a-dec7eae430d6', '6cb94c32-f2d7-49e8-9fec-24cff795cccf')
+               and p.created_at > '2026-10-01 16:33:21+00' and p.date_minimale is null and not exists (select 1 from auth.users u join public.comptes_fondateurs f on f.email = lower(btrim(u.email))
+                      where u.id = p.initiateur_id and u.email_confirmed_at is not null)) then
+    raise exception 'R2-01 : un autre Swend non fondateur créé après D-025 n''a pas de date_minimale : paquet à refaire';
+  end if;
+  -- Tout autre Swend (créé par la nouvelle app entre-temps) a déjà des dates
+  -- avec fuseau, et une date retenue parmi ses dates proposées.
   if exists (select 1 from public.pactes p, jsonb_array_elements(p.dates_proposees) e
              where p.id not in ('8c6c9d64-d13d-44c6-8d0a-dec7eae430d6', '6cb94c32-f2d7-49e8-9fec-24cff795cccf')
                and (jsonb_typeof(e) <> 'string'
-                    or (e #>> '{}') !~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}(:?\d{2})?)$')) then
-    raise exception 'R2-01 : un autre Swend a une date sans fuseau (ancienne app) : paquet à refaire';
+                    or (e #>> '{}') !~ '^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}(:\d{2}(\.\d{1,6})?)?(Z|[+-]\d{2}(:?\d{2})?)$'))
+     or exists (select 1 from public.pactes p
+             where p.id not in ('8c6c9d64-d13d-44c6-8d0a-dec7eae430d6', '6cb94c32-f2d7-49e8-9fec-24cff795cccf')
+               and p.date_retenue is not null
+               and not exists (select 1 from jsonb_array_elements_text(p.dates_proposees) e where e::timestamptz = p.date_retenue)) then
+    raise exception 'R2-01 : un autre Swend a une date sans fuseau ou une date retenue hors des dates proposées : paquet à refaire';
   end if;
   -- Fonctions et déclencheurs dans l'état relu le 03/10.
   if (select md5(regexp_replace(prosrc, '\s+', ' ', 'g')) from pg_proc
@@ -85,15 +114,20 @@ begin
 end;
 $$;
 
--- Forme canonique enregistrée : UTC, millisecondes, suffixe Z (celle que
--- l'app envoie : DateTime.toUtc().toIso8601String()).
+-- Forme canonique enregistrée : UTC, suffixe Z, sans perte — millisecondes
+-- (« 2026-11-17T18:00:00.000Z », ce que l'app envoie), microsecondes si
+-- l'instant en a ; comme DateTime.toUtc().toIso8601String() en Dart.
 create or replace function public.dates_proposees_canoniques(p_dates jsonb)
 returns jsonb
 language sql
 stable
 set search_path = public
 as $$
-  select coalesce(jsonb_agg(to_jsonb(to_char(i at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) order by n), '[]'::jsonb)
+  select coalesce(jsonb_agg(to_jsonb(
+           to_char(i at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.')
+           || case when extract(microseconds from i)::bigint % 1000 = 0
+                   then to_char(i at time zone 'UTC', 'MS') else to_char(i at time zone 'UTC', 'US') end
+           || 'Z') order by n), '[]'::jsonb)
   from unnest(public.instants_proposes(p_dates)) with ordinality as t(i, n);
 $$;
 
@@ -151,7 +185,12 @@ begin
 end;
 $$;
 
--- 4. Forme canonique (tous les rôles) et D-025b (app) ------------------------------
+-- État cible du déclencheur D-025 : actif. Il avait été désactivé en
+-- production à cause du bug unnest(jsonb) corrigé ci-dessus (sans effet au
+-- banc QA, où il est déjà actif).
+alter table public.pactes enable trigger trg_verrou_delai_minimum_swend;
+
+-- 4. Forme canonique et D-025b (toute écriture) -----------------------------------
 
 create or replace function public.verifier_dates_swend()
 returns trigger
@@ -164,8 +203,7 @@ begin
   end if;
 
   -- D-025b : la date retenue est l'une des dates proposées (même instant).
-  if current_user in ('authenticated', 'anon')
-     and new.date_retenue is not null
+  if new.date_retenue is not null
      and (tg_op = 'INSERT'
           or new.date_retenue is distinct from old.date_retenue
           or new.dates_proposees is distinct from old.dates_proposees)
@@ -187,13 +225,13 @@ create trigger trg_verrou_zz_dates_swend
 -- Fin de la copie de la migration
 -- ================================================================================
 
--- 5. Conversion des 2 Swends existants -------------------------------------------
--- Chaînes sans fuseau = heure murale de Paris choisie dans l'app. La date
--- retenue avait été lue en UTC : 19:00 choisi → 19:00 UTC (20:00 à Paris) ;
--- elle redevient 19:00 à Paris = 18:00 UTC. Le déclencheur de négociation
--- (dates modifiables seulement pendant la négociation, compteur + 1) est
--- suspendu le temps de ces 2 mises à jour, dans cette transaction ; le
--- nouveau déclencheur des dates les contrôle (forme canonique).
+-- 5. Correction des 2 Swends existants -------------------------------------------
+-- a) Dates : chaînes sans fuseau = heure murale de Paris choisie dans l'app.
+--    La date retenue avait été lue en UTC : 19:00 choisi → 19:00 UTC (20:00 à
+--    Paris) ; elle redevient 19:00 à Paris = 18:00 UTC. Le déclencheur de
+--    négociation (dates modifiables seulement pendant la négociation, compteur
+--    + 1) est suspendu le temps de ces 2 mises à jour, dans cette transaction ;
+--    le nouveau déclencheur des dates les contrôle (forme canonique, D-025b).
 alter table public.pactes disable trigger trg_verifier_negociation_date;
 update public.pactes
 set dates_proposees = '["2026-11-17T18:00:00.000Z"]', date_retenue = '2026-11-17T18:00:00Z'
@@ -202,21 +240,30 @@ update public.pactes
 set dates_proposees = '["2026-12-01T19:00:00.000Z"]'
 where id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf';
 alter table public.pactes enable trigger trg_verifier_negociation_date;
+-- b) D-025 : date_minimale de 6cb94c32, que le déclencheur désactivé n'avait
+--    pas posée (jour de création à Paris, 02/10/2026, + 15). Pas de
+--    rétroactivité : 8c6c9d64, antérieur à la règle, garde NULL.
+update public.pactes
+set date_minimale = '2026-10-17'
+where id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf' and date_minimale is null;
 
 -- 6. Assertions avant validation de la transaction --------------------------------
 do $$
 begin
-  -- Données converties, et rien d'autre de ces Swends n'a changé.
-  if (select count(*) from public.pactes p join sauvegarde.r2_01_pactes_20261003 s using (id)
+  -- Données corrigées, et rien d'autre de ces Swends n'a changé.
+  if (select count(*) from public.pactes p
       where (p.id = '8c6c9d64-d13d-44c6-8d0a-dec7eae430d6'
              and p.dates_proposees = '["2026-11-17T18:00:00.000Z"]'::jsonb and p.date_retenue = '2026-11-17T18:00:00Z'
-             and to_char(p.date_retenue at time zone 'Europe/Paris', 'YYYY-MM-DD HH24:MI') = '2026-11-17 19:00')
+             and to_char(p.date_retenue at time zone 'Europe/Paris', 'YYYY-MM-DD HH24:MI') = '2026-11-17 19:00'
+             and p.date_minimale is null)
          or (p.id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf'
              and p.dates_proposees = '["2026-12-01T19:00:00.000Z"]'::jsonb and p.date_retenue is null
-             and to_char((public.instants_proposes(p.dates_proposees))[1] at time zone 'Europe/Paris', 'YYYY-MM-DD HH24:MI') = '2026-12-01 20:00')) <> 2
+             and to_char((public.instants_proposes(p.dates_proposees))[1] at time zone 'Europe/Paris', 'YYYY-MM-DD HH24:MI') = '2026-12-01 20:00'
+             and p.date_minimale = '2026-10-17' and p.date_minimale = public.date_minimale_swend(p.created_at))) <> 2
      or exists (select 1 from public.pactes p join sauvegarde.r2_01_pactes_20261003 s using (id)
-                where (p.statut, p.nombre_echanges_date, p.scelle_le) is distinct from (s.statut, s.nombre_echanges_date, s.scelle_le)) then
-    raise exception 'R2-01 : conversion des 2 Swends inattendue';
+                where (p.statut, p.nombre_echanges_date, p.scelle_le, p.created_at)
+                      is distinct from (s.statut, s.nombre_echanges_date, s.scelle_le, s.created_at)) then
+    raise exception 'R2-01 : correction des 2 Swends inattendue';
   end if;
   -- Tous les Swends : dates canoniques, date retenue parmi les dates proposées.
   if exists (select 1 from public.pactes p
@@ -224,14 +271,27 @@ begin
                 or (p.date_retenue is not null and not (p.date_retenue = any (public.instants_proposes(p.dates_proposees))))) then
     raise exception 'R2-01 : un Swend n''est pas conforme (forme canonique ou D-025b)';
   end if;
+  -- D-025 : chaque Swend avec une date minimale la respecte (dates proposées et
+  -- date retenue, jour de Paris) ; aucun Swend non fondateur créé après la
+  -- règle n'en est dépourvu.
+  if exists (select 1 from public.pactes p
+             where p.date_minimale is not null
+               and (exists (select 1 from unnest(public.instants_proposes(p.dates_proposees)) d
+                            where (d at time zone 'Europe/Paris')::date < p.date_minimale)
+                    or (p.date_retenue at time zone 'Europe/Paris')::date < p.date_minimale))
+     or exists (select 1 from public.pactes p
+                where p.created_at > '2026-10-01 16:33:21+00' and p.date_minimale is null and not exists (select 1 from auth.users u join public.comptes_fondateurs f on f.email = lower(btrim(u.email))
+                      where u.id = p.initiateur_id and u.email_confirmed_at is not null)) then
+    raise exception 'R2-01 : un Swend ne respecte pas D-025 (date minimale)';
+  end if;
   -- Fonctions : corps attendus (identiques au banc QA), propriétaire postgres.
   if (select string_agg(p.proname || '=' || md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')), ',' order by p.proname)
       from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.proname in ('formater_date_heure_fr', 'verifier_delai_minimum_swend', 'instant_date_proposee',
                                                      'instants_proposes', 'dates_proposees_canoniques', 'verifier_dates_swend'))
-     <> 'dates_proposees_canoniques=74bd927bd042b082699f4d9a72bc85d8,formater_date_heure_fr=c38b9d67f08572b22fa96c33153bbf42,'
+     <> 'dates_proposees_canoniques=eec10cbf27f05c2b8bf8749007be663a,formater_date_heure_fr=c38b9d67f08572b22fa96c33153bbf42,'
         'instant_date_proposee=8302057a73139ee506783f0887a1621b,instants_proposes=fa81b5417d7dbb2d0589c8fcdb96ec0d,'
-        'verifier_dates_swend=2453821d31ee487e399693f9ff161710,verifier_delai_minimum_swend=9df0eb6611672569e597b2d011060380' then
+        'verifier_dates_swend=be75596df53c4514298a4d9a76b14e0f,verifier_delai_minimum_swend=9df0eb6611672569e597b2d011060380' then
     raise exception 'R2-01 : corps de fonction inattendu';
   end if;
   if exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace
@@ -244,10 +304,10 @@ begin
   if public.formater_date_heure_fr('2026-11-17T18:00:00Z') <> 'mardi 17 novembre à 19h00' then
     raise exception 'R2-01 : formater_date_heure_fr ne formate pas à l''heure de Paris';
   end if;
-  -- Déclencheurs : nouveau actif, négociation réactivé, D-025 inchangé.
+  -- Déclencheurs : dates (nouveau) actif, négociation réactivé, D-025 réactivé.
   if (select tgenabled from pg_trigger where tgname = 'trg_verrou_zz_dates_swend' and tgrelid = 'public.pactes'::regclass) is distinct from 'O'
      or (select tgenabled from pg_trigger where tgname = 'trg_verifier_negociation_date' and tgrelid = 'public.pactes'::regclass) <> 'O'
-     or (select tgenabled from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend' and tgrelid = 'public.pactes'::regclass) <> 'D' then
+     or (select tgenabled from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend' and tgrelid = 'public.pactes'::regclass) <> 'O' then
     raise exception 'R2-01 : état des déclencheurs inattendu';
   end if;
 end $$;

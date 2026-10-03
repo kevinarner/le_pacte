@@ -20,8 +20,20 @@ begin
     raise exception 'R2-01 vérification : texte des push inattendu';
   end if;
   if (select tgenabled from pg_trigger where tgname = 'trg_verrou_zz_dates_swend' and tgrelid = 'public.pactes'::regclass) is distinct from 'O'
-     or (select tgenabled from pg_trigger where tgname = 'trg_verifier_negociation_date' and tgrelid = 'public.pactes'::regclass) <> 'O' then
-    raise exception 'R2-01 vérification : déclencheurs inattendus';
+     or (select tgenabled from pg_trigger where tgname = 'trg_verifier_negociation_date' and tgrelid = 'public.pactes'::regclass) <> 'O'
+     or (select tgenabled from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend' and tgrelid = 'public.pactes'::regclass) <> 'O' then
+    raise exception 'R2-01 vérification : déclencheurs inattendus (dates, négociation et D-025 doivent être actifs)';
+  end if;
+  if (select date_minimale from public.pactes where id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf') is distinct from '2026-10-17'
+     or (select date_minimale from public.pactes where id = '8c6c9d64-d13d-44c6-8d0a-dec7eae430d6') is not null then
+    raise exception 'R2-01 vérification : date_minimale inattendue (6cb94c32 : 17/10 ; 8c6c9d64 : NULL, antérieur à D-025)';
+  end if;
+  if exists (select 1 from public.pactes p
+             where p.date_minimale is not null
+               and (exists (select 1 from unnest(public.instants_proposes(p.dates_proposees)) d
+                            where (d at time zone 'Europe/Paris')::date < p.date_minimale)
+                    or (p.date_retenue at time zone 'Europe/Paris')::date < p.date_minimale)) then
+    raise exception 'R2-01 vérification : un Swend ne respecte pas sa date minimale (D-025)';
   end if;
 end $$;
 
@@ -37,6 +49,7 @@ select
   to_char(public.ouverture_chat_apres_swend(p.date_retenue) at time zone 'Europe/Paris', 'DD/MM HH24:MI') as ouverture_chat,
   (select heure_rdv from public.reservations_a_suivre where swend_id = p.id) as heure_reservation,
   (select count(*) from public.pactes) as swends,
-  (select tgenabled::text from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend' and tgrelid = 'public.pactes'::regclass) as declencheur_d025
+  (select tgenabled::text from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend' and tgrelid = 'public.pactes'::regclass) as declencheur_d025,
+  (select date_minimale::text from public.pactes where id = '6cb94c32-f2d7-49e8-9fec-24cff795cccf') as date_minimale_6cb94c32
 from public.pactes p
 where p.id = '8c6c9d64-d13d-44c6-8d0a-dec7eae430d6';

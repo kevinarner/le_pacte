@@ -2,13 +2,13 @@
   "id": "R2-01",
   "niveau": 2,
   "projet": "ssciqjpaibdorvnkkhsk",
-  "objectif": "Convention temporelle R2 (heure de Paris, instants absolus, dates proposées avec fuseau explicite), push à l heure de Paris, correction jsonb de D-025, D-025b (date retenue parmi les dates proposées), conversion des 2 Swends existants (17/11 de nouveau à 19:00 à Paris).",
+  "objectif": "Convention temporelle R2 (heure de Paris, instants absolus, dates proposées avec fuseau explicite), push à l heure de Paris, D-025 corrigé (jsonb) et réactivé, D-025b invariant pour toute écriture (date retenue parmi les dates proposées), correction des 2 Swends existants (17/11 de nouveau à 19:00 à Paris ; date_minimale du Swend 6cb94c32 créé après D-025).",
   "sauvegardes": [
     {
       "nom": "sauvegarde",
       "type": "sql_ecriture",
       "fichier": "sauvegarde.sql",
-      "sha256": "d70c35b6ba073ffae8003d89fcc7f92b8bfd9988c36c45ebb256d993560b232f"
+      "sha256": "5f7b554a6acfef4ca99577b718be9ad8d60ccac28ff78b101b2bee5114c2878d"
     }
   ],
   "etapes": [
@@ -16,13 +16,13 @@
       "nom": "appliquer",
       "type": "sql_ecriture",
       "fichier": "appliquer.sql",
-      "sha256": "be47725e93e2db0dbdb99344d349fa004e8a47cf78997fd11043e55102c2e823"
+      "sha256": "a916716ddcc66f2c610239caf4eaa75bcf296ef555bf72538793a1f293853817"
     },
     {
       "nom": "verifier",
       "type": "sql_lecture",
       "fichier": "verifier.sql",
-      "sha256": "29254e017596aef9dcb72b1a0ad0ff948d59f171eccbdd729edaadae5f088140"
+      "sha256": "a6b090194145ff35e651efa6a736494090708ad3a5a7a2d6d1f9270ee1ac510f"
     }
   ],
   "rollback": [
@@ -30,7 +30,7 @@
       "nom": "rollback",
       "type": "sql_ecriture",
       "fichier": "rollback.sql",
-      "sha256": "170c038351115ca557753b7bef080c62921db056b8ff34c586f32258b97de44d"
+      "sha256": "d86879121723f24426d92eca468584b3ee0a25c0f30470ff6d5e0283683b161e"
     }
   ]
 }

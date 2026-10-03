@@ -73,8 +73,8 @@ insert into restaurants (id, nom) values ('00000000-0000-0000-0000-0000000000aa'
 create or replace function nouveau_swend() returns uuid language plpgsql as $$
 declare v uuid;
 begin
-  insert into pactes (statut, date_retenue, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('confirme', '2031-10-13 20:00+02', '00000000-0000-0000-0000-0000000000aa',
+  insert into pactes (statut, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
+  values ('confirme', '2031-10-13 20:00+02', '["2031-10-13T18:00:00.000Z"]', '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
   returning id into v;

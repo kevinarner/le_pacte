@@ -42,7 +42,7 @@ export default {
     });
 
     await ex.etape('H passe pendant que Kevin regarde la demande : refus propre', async () => {
-      sql(`update pactes set date_retenue = now() - interval '1 minute'`);
+      sql(`select qa.deplacer_swend(id, now() - interval '1 minute') from pactes`);
       await A.validerReponse(kevin, true);
       await ex.verifierTexte(kevin, 'L’heure du Swend est passée : cette action n’est plus possible.', 'Kevin : message propre (swend_passe)');
       await ex.verifier('Kevin n\'a pas pris la place', () => demande(FICHES.kevin) === 'envoyee|f', { obtenu: () => demande(FICHES.kevin) });

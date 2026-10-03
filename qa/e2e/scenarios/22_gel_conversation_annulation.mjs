@@ -58,7 +58,7 @@ export default {
       await ex.verifier('API : écriture d\'Eliot refusée', () => !r.ok, { obtenu: () => `${r.statut} ${r.corps}` });
       await ex.verifier('pas d\'événement de fin pour un Swend annulé',
         () => sql(`select count(*) from evenements_fil where code = 'swend_commence'`) === '0');
-      sql(`update pactes set date_retenue = now() - interval '1 minute'`);
+      sql(`select qa.deplacer_swend(id, now() - interval '1 minute') from pactes`);
       sql('select figer_swends_passes()');
       await ex.verifier('Swend annulé puis passé : ignoré par le moteur',
         () => sql(`select count(*) from swends_figes`) === '0' && sql(`select count(*) from evenements_fil where code = 'swend_commence'`) === '0');

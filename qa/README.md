@@ -202,10 +202,16 @@ Journaux de la pile : `qa/stack.sh logs`.
   Pacific/Auckland, et compare la conversion de l'app à PostgreSQL pour
   chaque créneau de chaque jour (2026-2029). Les bases du banc sont en UTC,
   comme la production.
+- **D-025b** (date retenue parmi les dates proposées) vaut pour toute
+  écriture, fixtures et tests compris : un Swend inséré avec une date retenue
+  porte aussi ses dates proposées, et un Swend scellé se déplace dans le temps
+  avec `qa.deplacer_swend(id, instant)` (les deux colonnes ensemble).
 - **Parité** (`qa/metier/parite_schema.sh`, lancé avant les tests SQL) :
   types des colonnes identiques à la production (aucune exception), autres
   écarts de colonnes et de déclencheurs (dont leur état actif / désactivé)
-  limités à `qa/db/parite/*_admis.tsv`. Instantanés de production :
+  limités à `qa/db/parite/*_admis.tsv` ; aucune fonction n'écrit
+  `date_retenue` ni `dates_proposees` (D-025b sans exception). Instantanés de
+  production :
   `qa/db/parite/*_production.tsv`, à rafraîchir en lecture seule
   (`colonnes.sql`, `declencheurs.sql`) après chaque changement de production.
 

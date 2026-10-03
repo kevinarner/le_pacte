@@ -15,9 +15,9 @@ create or replace function swend_rappels(p_date timestamptz default '2037-10-12 
 returns uuid language plpgsql as $$
 declare v uuid;
 begin
-  insert into pactes (statut, type, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+  insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
                       destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('confirme', p_type, p_date, '00000000-0000-0000-0000-0000000000aa',
+  values ('confirme', p_type, p_date, to_jsonb(array[p_date]), '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
   returning id into v;

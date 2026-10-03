@@ -17,9 +17,9 @@ create or replace function swend_annulable(p_date timestamptz default '2031-10-1
 returns uuid language plpgsql as $$
 declare v uuid;
 begin
-  insert into pactes (statut, type, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+  insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
                       destinataire_id, destinataire_nom, destinataire_telephone)
-  values ('confirme', 'diner', p_date, '00000000-0000-0000-0000-0000000000aa',
+  values ('confirme', 'diner', p_date, to_jsonb(array[p_date]), '00000000-0000-0000-0000-0000000000aa',
           '00000000-0000-0000-0000-00000000000e', 'Eliot E',
           '00000000-0000-0000-0000-00000000000d', 'David D', '06 00 00 00 02')
   returning id into v;
@@ -334,9 +334,9 @@ select verifier('Q', 'double remplacement : annulé automatiquement, auteur non 
   d22_statut(:'pd') = 'annuleDoubleAbsence' and d22_auteur(:'pd') = 'null|null');
 
 -- Anciennes annulations (avant D-022) : auteur et date inconnus, restent NULL.
-insert into pactes (statut, type, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
+insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
                     destinataire_id, destinataire_nom, destinataire_telephone)
-values ('confirme', 'diner', '2031-11-03 19:00+00', '00000000-0000-0000-0000-0000000000aa',
+values ('confirme', 'diner', '2031-11-03 19:00+00', '["2031-11-03T19:00:00.000Z"]', '00000000-0000-0000-0000-0000000000aa',
         :'E', 'Eliot E', :'D', 'David D', '06 00 00 00 02')
 returning id as ph \gset
 update pactes set statut = 'annule' where id = :'ph';

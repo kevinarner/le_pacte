@@ -36,7 +36,7 @@ async function ouvrirLien(a, url) {
 // Swend passé depuis deux jours, figé par D-023a ; mise en service du chat
 // avant (la fixture vide toutes les tables).
 function swendPasseEtFige() {
-  sql(`update pactes set date_retenue = now() - interval '2 days'`);
+  sql(`select qa.deplacer_swend(id, now() - interval '2 days') from pactes`);
   sql(`insert into chat_apres_swend_service (id, mise_en_service) values (true, now() - interval '30 days')
        on conflict (id) do update set mise_en_service = excluded.mise_en_service`);
   sql('select figer_swends_passes()');

@@ -23,10 +23,10 @@ export default {
 
     await ex.etape('Après l\'heure du rendez-vous : plus d\'annulation possible', async () => {
       const date = sql('select date_retenue from pactes');
-      sql(`update pactes set date_retenue = now() - interval '1 minute'`);
+      sql(`select qa.deplacer_swend(id, now() - interval '1 minute') from pactes`);
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await ex.verifier('Eliot : pas de bouton "Annuler le Swend"', async () => (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
-      sql(`update pactes set date_retenue = '${date}'`);
+      sql(`select qa.deplacer_swend(id, '${date}') from pactes`);
     });
 
     await ex.etape('Cas normal : proposer d\'abord un remplaçant', async () => {

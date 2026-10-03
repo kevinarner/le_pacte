@@ -18,15 +18,16 @@
 --     choisie » / « Pacte confirmé » à l'heure de Paris (formatait en UTC).
 --  3. verifier_delai_minimum_swend() (D-025) : lisait dates_proposees avec
 --     unnest(), qui n'existe pas pour un jsonb (toute création par un
---     utilisateur non fondateur échouait).
---  4. Déclencheur verifier_dates_swend() : forme canonique des dates
---     proposées (tous les rôles), et D-025b pour les écritures de l'app
---     (authenticated / anon, comme D-025) — la date retenue doit être l'une
---     des dates proposées (même instant), refus `date_non_proposee`. Une app
---     périmée ne peut donc pas réenregistrer une heure décalée. Le SQL
---     Editor et les fonctions serveur ne sont pas concernés par D-025b.
---     Nommé pour passer après tous les gardes existants : leurs erreurs
---     restent prioritaires.
+--     utilisateur non fondateur échouait) ; son déclencheur, désactivé en
+--     production à cause de ce bug, est réactivé (état cible : actif).
+--  4. Déclencheur verifier_dates_swend(), pour TOUTE écriture (app, fonctions
+--     serveur, SQL Editor) : forme canonique des dates proposées, et D-025b —
+--     la date retenue doit être l'une des dates proposées (même instant),
+--     refus `date_non_proposee`. Aucune exception : aucune fonction serveur
+--     n'écrit ces colonnes (vérifié le 03/10) ; déplacer un Swend revient à
+--     changer les deux colonnes ensemble. Une app périmée ne peut donc pas
+--     réenregistrer une heure décalée. Nommé pour passer après tous les gardes
+--     existants : leurs erreurs restent prioritaires.
 --
 -- Inchangés (déjà corrects sur des instants, conversion explicite en Paris) :
 -- echeance_rappel, date_rappel_fr, heure_rappel_fr, texte_rappel,
@@ -69,15 +70,20 @@ begin
 end;
 $$;
 
--- Forme canonique enregistrée : UTC, millisecondes, suffixe Z (celle que
--- l'app envoie : DateTime.toUtc().toIso8601String()).
+-- Forme canonique enregistrée : UTC, suffixe Z, sans perte — millisecondes
+-- (« 2026-11-17T18:00:00.000Z », ce que l'app envoie), microsecondes si
+-- l'instant en a ; comme DateTime.toUtc().toIso8601String() en Dart.
 create or replace function public.dates_proposees_canoniques(p_dates jsonb)
 returns jsonb
 language sql
 stable
 set search_path = public
 as $$
-  select coalesce(jsonb_agg(to_jsonb(to_char(i at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')) order by n), '[]'::jsonb)
+  select coalesce(jsonb_agg(to_jsonb(
+           to_char(i at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.')
+           || case when extract(microseconds from i)::bigint % 1000 = 0
+                   then to_char(i at time zone 'UTC', 'MS') else to_char(i at time zone 'UTC', 'US') end
+           || 'Z') order by n), '[]'::jsonb)
   from unnest(public.instants_proposes(p_dates)) with ordinality as t(i, n);
 $$;
 
@@ -135,7 +141,12 @@ begin
 end;
 $$;
 
--- 4. Forme canonique (tous les rôles) et D-025b (app) ------------------------------
+-- État cible du déclencheur D-025 : actif. Il avait été désactivé en
+-- production à cause du bug unnest(jsonb) corrigé ci-dessus (sans effet au
+-- banc QA, où il est déjà actif).
+alter table public.pactes enable trigger trg_verrou_delai_minimum_swend;
+
+-- 4. Forme canonique et D-025b (toute écriture) -----------------------------------
 
 create or replace function public.verifier_dates_swend()
 returns trigger
@@ -148,8 +159,7 @@ begin
   end if;
 
   -- D-025b : la date retenue est l'une des dates proposées (même instant).
-  if current_user in ('authenticated', 'anon')
-     and new.date_retenue is not null
+  if new.date_retenue is not null
      and (tg_op = 'INSERT'
           or new.date_retenue is distinct from old.date_retenue
           or new.dates_proposees is distinct from old.dates_proposees)
@@ -174,6 +184,8 @@ select 'R2 : 19:00 à Paris en hiver = 18:00 UTC, push « mardi 17 novembre à 1
   and public.dates_proposees_canoniques('["2026-11-17T19:00:00+01:00"]') = '["2026-11-17T18:00:00.000Z"]'::jsonb
   as ok
 union all
-select 'R2 : déclencheur des dates en place, après les gardes existants',
+select 'R2 : déclencheur des dates en place (après les gardes existants), déclencheur D-025 actif',
   exists (select 1 from pg_trigger where tgname = 'trg_verrou_zz_dates_swend'
-            and tgrelid = 'public.pactes'::regclass and not tgisinternal);
+            and tgrelid = 'public.pactes'::regclass and not tgisinternal)
+  and (select tgenabled = 'O' from pg_trigger where tgname = 'trg_verrou_delai_minimum_swend'
+         and tgrelid = 'public.pactes'::regclass);
