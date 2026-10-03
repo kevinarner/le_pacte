@@ -625,7 +625,7 @@ Préserver le principe du silence avant un Swend : deux personnes qui ont scell�
 D-023b (chat après le Swend), D-024 (aucun numéro), D-025 (délai minimum), D-019 (scellement).
 
 ### Mise en production
-Pas en production. QA OK le 03/10 (voir `PRODUCT_STATUS.md`). Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
+Pas en production. QA OK le 03/10 (régression complète : métier 1526/0, E2E 783/0, 30/30 scénarios ; garde-fous 147/0). Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
 
 ---
 
