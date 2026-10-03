@@ -13,7 +13,7 @@
 import * as A from '../lib/actions.mjs';
 import { sql, FICHES, appelerComme, insererComme, chargerFixture } from '../lib/donnees.mjs';
 import { COMPTES, CONTACTS_SANS_COMPTE as C } from '../lib/config.mjs';
-import { numerosNonAutorises } from '../lib/numeros.mjs';
+import { numerosNonAutorises, reponses } from '../lib/numeros.mjs';
 
 const SYSTEME = 'Un nouveau Swend a été scellé.\nCe chat est désormais fermé pour préserver le silence.';
 const SYSTEME_UNE_LIGNE = 'Un nouveau Swend a été scellé. Ce chat est désormais fermé pour préserver le silence.';
@@ -121,6 +121,43 @@ export default {
       });
       await ex.verifier('API : David ne peut pas en créer un second (swend_deja_en_cours)',
         () => !r.ok && r.corps.includes('swend_deja_en_cours'), { obtenu: () => r.corps });
+    });
+
+    await ex.etape('Règle globale : « Créer un Swend » depuis l\'accueil refusé aussi (serveur)', async () => {
+      const avant = sql(`select count(*) from pactes`);
+      const d1 = david;
+      await d1.accueil({ rafraichir: false });
+      await d1.cliquer('Créer un Swend');
+      await d1.taper('Prénom', 'Eliot');
+      await d1.taper('Nom', 'Martin');
+      await d1.taper('Numéro de mobile', COMPTES.eliot.tel);
+      await d1.cliquer('Suivant');
+      await d1.cliquer('Ajouter une date');
+      await d1.cliquer('OK');
+      await d1.cliquer('Suivant');
+      await A.remplirPersonnes(d1, [C.leo, C.nina]);
+      await d1.cliquer('Envoyer le Swend');
+      // Le refus vient du serveur (réponse reçue par l'app) ; l'écran reste sur
+      // la création et affiche « Un Swend est déjà en cours entre vous. »
+      // (texte non exposé par l'arbre d'accessibilité de Flutter web ici).
+      await ex.verifier('David (accueil) : refus serveur swend_deja_en_cours reçu par l\'app',
+        () => reponses(d1, /\/rest\/v1\/pactes/, 'POST').some((x) => x.corps.includes('swend_deja_en_cours')),
+        { obtenu: () => reponses(d1, /\/rest\/v1\/pactes/, 'POST').map((x) => x.corps).join(' | ') });
+      await ex.verifierTexte(d1, 'Envoyer le Swend', 'David : reste sur la création');
+      await ex.verifier('aucun Swend créé', () => sql(`select count(*) from pactes`) === avant, { obtenu: () => sql(`select count(*) from pactes`) });
+      const r = await insererComme('eliot', 'pactes', {
+        type: 'diner', statut: 'enAttenteChoixDateDestinataire', dates_proposees: [instant(21)], restaurant_id: restaurant(),
+        initiateur_id: COMPTES.eliot.id, initiateur_nom: COMPTES.eliot.nomComplet,
+        destinataire_nom: COMPTES.david.nomComplet, destinataire_telephone: COMPTES.david.tel,
+      });
+      await ex.verifier('API (accueil) : Eliot → David refusé (swend_deja_en_cours)',
+        () => !r.ok && r.corps.includes('swend_deja_en_cours'), { obtenu: () => r.corps });
+      const autre = await insererComme('eliot', 'pactes', {
+        type: 'diner', statut: 'enAttenteChoixDateDestinataire', dates_proposees: [instant(21)], restaurant_id: restaurant(),
+        initiateur_id: COMPTES.eliot.id, initiateur_nom: COMPTES.eliot.nomComplet,
+        destinataire_nom: COMPTES.sylvain.nomComplet, destinataire_telephone: COMPTES.sylvain.tel,
+      });
+      await ex.verifier('API (accueil) : autre paire (Eliot → Sylvain) acceptée', () => autre.ok, { obtenu: () => autre.corps });
     });
 
     await ex.etape('David accepte : scellé → chat fermé, un message système, aucune push', async () => {

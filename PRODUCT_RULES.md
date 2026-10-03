@@ -346,7 +346,7 @@ Fermeture par un nouveau Swend scellé : §3.8 (D-023c).
 - Sous `Discuter`, une action secondaire `Faire un nouveau Swend` (sur la fiche, jamais dans le fil du chat).
 - Chat à 2 : directement `Quand et où ?` avec l’autre personne (pas d’étape `Avec qui ?`) ; date, restaurant et personnes de confiance repartent de zéro. La personne est désignée par son identité serveur, jamais par un numéro (D-024). Si un Swend est déjà en cours entre les deux : `Un Swend est déjà en cours entre vous.`
 - Chat à 3 : `Avec qui veux-tu faire un nouveau Swend ?` avec seulement les deux autres personnes, au même niveau (aucun libellé titulaire ou remplaçant), sans recherche, sans ajout, sans bouton `Continuer`. Toucher une personne disponible mène à `Quand et où ?`. Une personne avec qui un Swend est déjà en cours est désactivée : `Tu as déjà un Swend en cours avec Kevin.` ; l’autre reste choisissable.
-- Un seul Swend en cours par paire, vérifié par la base paire par paire (pas seulement à l’écran). En cours : en négociation avec au moins une date proposée à venir, ou scellé et pas encore passé.
+- Un seul Swend en cours par paire, règle globale garantie par la base, quel que soit le point d’entrée : `Faire un nouveau Swend` comme `Créer un Swend` depuis l’accueil (une personne sans compte est reconnue par son numéro). Toute tentative de doublon est refusée, dans un sens comme dans l’autre ; textes : `Un Swend est déjà en cours entre vous.` (création à 2 ou depuis l’accueil), `Tu as déjà un Swend en cours avec Kevin.` (choix à 3). En cours : en négociation avec au moins une date proposée à venir, ou scellé et pas encore passé ; une fois le Swend précédent passé ou annulé, un nouveau peut être créé.
 
 #### Après la fermeture
 

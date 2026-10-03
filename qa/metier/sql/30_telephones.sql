@@ -3,6 +3,10 @@
 \set ON_ERROR_STOP 1
 \pset footer off
 delete from test_resultats;
+-- Cette suite crée plusieurs Swends Eliot ↔ David au nom des utilisateurs :
+-- la règle « un Swend en cours par paire » (D-023c, testée par
+-- 99e_nouveau_swend.sql) est suspendue le temps de la suite, puis rétablie.
+alter table pactes disable trigger trg_verrou_un_swend_par_paire;
 
 \set E '00000000-0000-0000-0000-00000000000e'
 \set D '00000000-0000-0000-0000-00000000000d'
@@ -162,6 +166,7 @@ select ajouter_fiche(:'E', :'p', 'initiateur', 'Zoé', '+33 692 12 34 56') as zf
 select verifier('T10', 'Zoé (inscrite "0692 12 34 56") saisie "+33 692 12 34 56" : reconnue',
   (select profil_id from remplacants where id = :'zf') = :'ZR');
 
+alter table pactes enable trigger trg_verrou_un_swend_par_paire;
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail
 from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

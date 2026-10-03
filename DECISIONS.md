@@ -605,17 +605,16 @@ Un nouveau Swend scellé entre deux personnes ferme le chat après le Swend où 
 - Jamais de réouverture : l’annulation du nouveau Swend, même immédiate, ne change rien et n’ajoute aucun message. Négociations parallèles : non annulées, le premier scellement ferme.
 - Chat pas encore ouvert : si le nouveau Swend est scellé avant l’heure d’ouverture du chat d’un Swend précédent dont les deux sont participants potentiels, ce chat ne s’ouvre jamais (aucun faux chat fermé, aucun message, aucun accès). Participants potentiels : une seule fonction, partagée par le moteur d’ouverture et la fermeture (deux titulaires + remplaçant sélectionné).
 - `Faire un nouveau Swend` sur la fiche du Swend passé (sous `Discuter`, chat ouvert seulement) : à 2, directement `Quand et où ?` ; à 3, choix entre les deux autres personnes (même niveau, sans rôle, sans recherche ni `Continuer`). Personne désignée par son identité serveur, jamais par un numéro (D-024) ; tout repart de zéro (date, restaurant, personnes de confiance).
-- Un seul Swend en cours par paire, vérifié par la base paire par paire : `Un Swend est déjà en cours entre vous.` (à 2) ; carte désactivée `Tu as déjà un Swend en cours avec Kevin.` (à 3).
+- Un seul Swend en cours par paire, règle globale garantie par la base quel que soit le point d’entrée (`Faire un nouveau Swend`, `Créer un Swend` depuis l’accueil) : `Un Swend est déjà en cours entre vous.` (à 2, et depuis l’accueil) ; carte désactivée `Tu as déjà un Swend en cours avec Kevin.` (à 3).
 - Après fermeture : `Voir la conversation`, `Conversation fermée`, plus de création ; pas de statut lourd dans Mes Swends. Textes nouveaux au tutoiement.
 
 ### Choix techniques (03/10)
 - « Swend en cours » entre deux personnes : un Swend dont elles sont les deux titulaires, en négociation avec au moins une date proposée à venir, ou scellé (`confirme`) et pas encore passé. Une invitation dont toutes les dates sont passées ne bloque pas.
 - « Swend précédent » (chat pas encore ouvert) : un Swend scellé dont la date est antérieure à celle du nouveau Swend. Un Swend scellé plus tardif que le nouveau garde son chat.
 - Création depuis le chat : fonction serveur `creer_swend_depuis_chat()` (numéro du profil recopié par la base, jamais renvoyé ; D-025 appliqué ; personnes de confiance dans la même transaction, tout ou rien) ; `options_nouveau_swend()` pour l’écran (prénom, identifiant de participant, Swend en cours).
-- La règle « un Swend en cours par paire » est vérifiée sur le parcours `Faire un nouveau Swend` ; `Créer un Swend` depuis l’accueil (par numéro) est inchangé (écart signalé, voir ci-dessous).
+- Règle « un Swend en cours par paire » (précisée le 03/10 : globale) : déclencheur `trg_verrou_un_swend_par_paire` sur toute création au nom d’un utilisateur (app : accueil et chat), refus `swend_deja_en_cours`, verrou par paire contre les créations simultanées ; destinataire sans compte reconnu par son numéro canonique. Les écritures de service (SQL Editor, moteurs) ne sont pas concernées. Définition unique de « en cours » : `swend_en_cours()`.
 
 ### Écarts signalés (03/10)
-- `Créer un Swend` depuis l’accueil ne vérifie pas « un Swend en cours par paire » (règle demandée pour `Faire un nouveau Swend` ; l’étendre à l’accueil changerait un parcours existant : à décider).
 - Textes anciens au vouvoiement, non modifiés (D-023c ne réécrit pas l’existant) : push « Alors, ce Swend ? / Le silence est levé. Vous pouvez maintenant en reparler dans le chat. », « [Prénom] vous a écrit », état vide « À vous de débriefer. », révélation « Kevin a pris votre place. », « Réessayez », message D-025 « Choisissez une date… », entre autres.
 
 ### Raison

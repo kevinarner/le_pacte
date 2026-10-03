@@ -7,7 +7,7 @@ Niveau : 1 — préparé le 03/10/2026. Empreinte : donnée par
 
 Mettre en production le côté serveur de **D-023c** (« Faire un nouveau
 Swend » et fermeture du chat après le Swend), décrit dans `DECISIONS.md` et
-`PRODUCT_RULES.md` §3.7 :
+`PRODUCT_RULES.md` §3.8 :
 
 1. **Fermeture au scellement, côté base.** Dès qu'un Swend devient scellé
    (`scelle_le` passe de NULL à une date, à l'insertion ou à la
@@ -25,8 +25,18 @@ Swend » et fermeture du chat après le Swend), décrit dans `DECISIONS.md` et
    fonction, `participants_potentiels_chat_apres_swend()`, utilisée par le
    moteur d'ouverture ET par la fermeture (logique inchangée du moteur : les
    deux titulaires et le remplaçant sélectionné non retiré).
-3. **Un Swend actif par paire** (`swend_actif_entre()`, interne) et deux
-   fonctions pour l'app, depuis un chat ouvert seulement :
+3. **Un seul Swend en cours par paire, règle globale garantie par la
+   base.** Toute création d'un Swend au nom d'un utilisateur (« Créer un
+   Swend » depuis l'accueil, « Faire un nouveau Swend », tout autre point
+   d'entrée de l'app) est refusée (`swend_deja_en_cours`) si un Swend est
+   déjà en cours entre les deux personnes, dans un sens ou dans l'autre
+   (déclencheur `trg_verrou_un_swend_par_paire`, verrou par paire contre
+   les créations simultanées ; destinataire sans compte reconnu par son
+   numéro canonique). En cours : en négociation avec au moins une date
+   proposée à venir, ou scellé et pas encore passé (`swend_en_cours()`,
+   définition unique). Les écritures de service (SQL Editor, moteurs) ne
+   sont pas concernées.
+4. **Deux fonctions pour l'app**, depuis un chat ouvert seulement :
    `options_nouveau_swend(chat)` (autres participants, prénom, « Swend déjà
    en cours ») et `creer_swend_depuis_chat(…)` (personne désignée par son
    identifiant de participant ; numéro recopié par la base, jamais renvoyé,
@@ -47,14 +57,19 @@ Objets de production :
   aucun droit pour `public`, `anon`, `authenticated`) ; fonctions
   `participants_potentiels_chat_apres_swend(uuid)`,
   `fermer_chats_apres_nouveau_swend()` (déclencheur, SECURITY DEFINER),
-  `swend_actif_entre(uuid, uuid)` (internes, non exécutables par l'app),
+  `swend_en_cours(text, jsonb, timestamptz)`, `swend_actif_entre(uuid, uuid)`,
+  `verifier_un_swend_par_paire()` (déclencheur, SECURITY DEFINER)
+  (internes, non exécutables par l'app),
   `options_nouveau_swend(uuid)` et
   `creer_swend_depuis_chat(uuid, uuid, text, jsonb, uuid, jsonb)` (SECURITY
   DEFINER, `authenticated` seulement) ; déclencheurs AFTER sur `pactes` :
   `trg_fermer_chats_nouveau_swend_insert` (`WHEN new.scelle_le IS NOT
   NULL`) et `trg_fermer_chats_nouveau_swend_update` (`WHEN old.scelle_le IS
   NULL AND new.scelle_le IS NOT NULL`), même forme que
-  `trg_creer_suivi_reservation_*` ;
+  `trg_creer_suivi_reservation_*` ; déclencheur BEFORE INSERT sur `pactes` :
+  `trg_verrou_un_swend_par_paire` (après `trg_normaliser_nouveau_pacte` et
+  `trg_verrou_delai_minimum_swend`, ordre alphabétique : leurs erreurs
+  restent prioritaires) ;
 - remplacé : `ouvrir_chats_apres_swend(timestamptz)` (mêmes droits ;
   participants lus par la fonction commune ; Swends « jamais ouverts »
   ignorés, avant et après le verrou du Swend).
@@ -89,9 +104,15 @@ objets D-023b et R2 présents, corps du moteur inchangé (md5 ci-dessus),
 D-023c pas encore appliqué.
 
 Tests (banc QA, 03/10/2026) : suite `qa/metier/sql/99e_nouveau_swend.sql`
-(56 vérifications), concurrence (3 cas D-023c : scellements simultanés,
-moteur et scellement simultanés, créations simultanées), scénario E2E
-`28_nouveau_swend` (82 vérifications), régression complète (voir
+(75 vérifications, dont la règle par paire : doublon refusé depuis le chat
+et depuis l'accueil, dans les deux sens et quel que soit le format du
+numéro, autre paire autorisée, nouveau Swend accepté une fois le précédent
+annulé, passé, ou sans date proposée à venir, destinataire sans compte,
+écritures de service non concernées), concurrence (4 cas D-023c :
+scellements simultanés, moteur et scellement simultanés, créations
+simultanées depuis le chat, créations simultanées depuis l'accueil),
+scénario E2E `28_nouveau_swend` (87 vérifications, dont « Créer un Swend »
+depuis l'accueil refusé par le serveur), régression complète (voir
 `DECISIONS.md`, D-023c).
 
 Répétition sur une base locale reproduisant la production avant D-023c
@@ -99,24 +120,33 @@ Répétition sur une base locale reproduisant la production avant D-023c
 `appliquer.sql` OK ; seconde exécution refusée ; `verifier.sql` OK ;
 `rollback.sql` OK (md5 du moteur d'origine retrouvé, objets supprimés),
 puis `verifier.sql` refuse ; rollback sans D-023c refusé ; réapplication
-OK ; toutes les suites SQL (860/0) et la concurrence (12/12) ensuite ;
+OK ; toutes les suites SQL (879/0) et la concurrence (13/13) ensuite ;
 rollback refusé une fois un chat marqué « jamais ouvert ».
 
 ## Impact attendu
 
-- Immédiat : aucun changement visible. Aucune donnée modifiée.
+- Immédiat : aucune donnée modifiée. Seul effet visible : une nouvelle
+  création en doublon d'une paire qui a déjà un Swend en cours est refusée.
+  En production le 03/10 (lecture seule, sans numéro) : 2 Swends en cours,
+  de 2 paires différentes, aucun doublon existant. La paire du Swend du
+  17/11 (comptes fondateurs) ne pourra pas en créer un second avant que
+  celui-ci soit passé ou annulé ; de même pour l'initiateur du Swend
+  6cb94c32 vers le même numéro tant que sa date proposée du 01/12 est à
+  venir. L'app actuelle affiche alors son message générique d'échec ; la
+  nouvelle app affiche « Un Swend est déjà en cours entre vous. ».
 - Ensuite, à chaque scellement : fermeture des chats concernés et message
   système (aucun chat en production aujourd'hui).
 - Les fonctions de l'app ne servent qu'à la nouvelle version de l'app
   (« Faire un nouveau Swend »). L'app actuelle ne les appelle pas ; elle
   affiche déjà un chat fermé en lecture seule (D-023b).
-- Durée : une transaction courte (création de fonctions et de 2
+- Durée : une transaction courte (création de fonctions et de 3
   déclencheurs ; verrou bref sur `pactes`).
 
 ## Vérifications après exécution
 
 `verifier.sql` (lecture seule) ne lève aucune erreur et affiche :
-`declencheurs_fermeture = 2`, `fonctions_d023c = 5`, `chats = 0`,
+`declencheurs_fermeture = 2`, `declencheur_paire = 1`, `fonctions_d023c = 7`,
+`swends_en_doublon_existants = 0`, `chats = 0`,
 `chats_fermes = 0`, `messages_systeme = 0`, `chats_jamais_ouverts = 0`,
 `swends = 2` (ou plus si des Swends ont été créés entre-temps),
 `job_chat_actif = 1`.
@@ -132,7 +162,8 @@ Ordre : d'abord remettre l'app précédente (gh-pages), qui n'appelle pas les
 nouvelles fonctions, puis `scripts/prod_ecrire.sh D-023c-01 <empreinte>
 --rollback`.
 
-Effet : déclencheurs et fonctions D-023c supprimés, moteur d'ouverture remis
+Effet : déclencheurs et fonctions D-023c supprimés (règle par paire
+comprise), moteur d'ouverture remis
 à l'identique (définition relue en production le 03/10/2026, md5 du corps
 contrôlé), table `chats_apres_swend_jamais_ouverts` supprimée.
 

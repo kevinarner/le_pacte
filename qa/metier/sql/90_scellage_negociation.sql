@@ -4,6 +4,10 @@
 \set ON_ERROR_STOP 1
 \pset footer off
 delete from test_resultats;
+-- Cette suite crée plusieurs Swends Eliot ↔ David au nom des utilisateurs :
+-- la règle « un Swend en cours par paire » (D-023c, testée par
+-- 99e_nouveau_swend.sql) est suspendue le temps de la suite, puis rétablie.
+alter table pactes disable trigger trg_verrou_un_swend_par_paire;
 \set E '00000000-0000-0000-0000-00000000000e'
 \set D '00000000-0000-0000-0000-00000000000d'
 \set K '00000000-0000-0000-0000-00000000000a'
@@ -176,5 +180,6 @@ select verifier('R', 'après rattrapage : la vérification finale de la migratio
 select verifier('X', 'aucune notification à Kevin pendant tout ce fichier',
   (select count(*) from notifications_log where id > :debut and profile_id = :'K') = 0);
 
+alter table pactes enable trigger trg_verrou_un_swend_par_paire;
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

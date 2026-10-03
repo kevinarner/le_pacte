@@ -20,10 +20,13 @@ end $$;
 
 drop trigger trg_fermer_chats_nouveau_swend_insert on public.pactes;
 drop trigger trg_fermer_chats_nouveau_swend_update on public.pactes;
+drop trigger trg_verrou_un_swend_par_paire on public.pactes;
 drop function public.fermer_chats_apres_nouveau_swend();
+drop function public.verifier_un_swend_par_paire();
 drop function public.creer_swend_depuis_chat(uuid, uuid, text, jsonb, uuid, jsonb);
 drop function public.options_nouveau_swend(uuid);
 drop function public.swend_actif_entre(uuid, uuid);
+drop function public.swend_en_cours(text, jsonb, timestamptz);
 
 -- Moteur d'origine (copie exacte de pg_get_functiondef en production).
 CREATE OR REPLACE FUNCTION public.ouvrir_chats_apres_swend(p_maintenant timestamp with time zone DEFAULT now())
@@ -142,10 +145,12 @@ begin
   if (select md5(prosrc) from pg_proc where oid = 'public.ouvrir_chats_apres_swend(timestamptz)'::regprocedure)
      <> '77ab4ee095fefb3a47f11a722ec9adc9'
      or has_function_privilege('authenticated', 'public.ouvrir_chats_apres_swend(timestamptz)', 'execute')
-     or exists (select 1 from pg_trigger where tgrelid = 'public.pactes'::regclass and tgname like 'trg_fermer_chats%')
+     or exists (select 1 from pg_trigger where tgrelid = 'public.pactes'::regclass
+                and (tgname like 'trg_fermer_chats%' or tgname = 'trg_verrou_un_swend_par_paire'))
      or exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
                 and proname in ('participants_potentiels_chat_apres_swend', 'fermer_chats_apres_nouveau_swend',
-                                'swend_actif_entre', 'options_nouveau_swend', 'creer_swend_depuis_chat'))
+                                'swend_en_cours', 'swend_actif_entre', 'verifier_un_swend_par_paire',
+                                'options_nouveau_swend', 'creer_swend_depuis_chat'))
      or to_regclass('public.chats_apres_swend_jamais_ouverts') is not null then
     raise exception 'D-023c-01 rollback : état d''origine non retrouvé';
   end if;

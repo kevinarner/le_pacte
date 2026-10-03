@@ -285,3 +285,24 @@ SQL
   if [ "$crees" = 1 ] && [ "$refus" = 1 ] && [ "$actifs" = 1 ]; then ok=$((ok+1)); else detail="essai $i : créés=$crees refusés=$refus actifs=$actifs"; fi
 done
 resultat "nouveau Swend : créations simultanées par les deux personnes, un seul Swend en cours" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 13. « Créer un Swend » depuis l'accueil (INSERT de l'app) : les deux
+#     personnes s'invitent en même temps → un seul Swend en cours, l'autre
+#     refusé (swend_deja_en_cours). Règle globale, comme depuis le chat.
+accueil() { # utilisateur, numéro de l'autre → id du Swend ou code d'erreur
+  P -c "set role authenticated; select set_config('request.jwt.claim.sub', '$1', false); insert into pactes (type, statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values ('diner', 'enAttenteChoixDateDestinataire', to_jsonb(array[now() + interval '20 days']), '00000000-0000-0000-0000-0000000000aa', '$1', 'Initiateur', 'Destinataire', '$2') returning id;" 2>&1 \
+    | grep -vx "$1" | grep -oE "swend_deja_en_cours|ERROR.*|^[0-9a-f-]{36}$" | head -1 || true
+}
+ok=0; detail=""
+for i in $(seq 1 10); do
+  P -c "update pactes set statut = 'annule' where statut <> 'annule'
+    and ((initiateur_id = '$R' and destinataire_id = '$S') or (initiateur_id = '$S' and destinataire_id = '$R'))" >/dev/null
+  f1=$(mktemp); f2=$(mktemp)
+  accueil $R 0614000003 > "$f1" & accueil $S 0614000002 > "$f2" & wait
+  crees=$(cat "$f1" "$f2" | grep -cE '^[0-9a-f-]{36}$'); refus=$(cat "$f1" "$f2" | grep -c swend_deja_en_cours)
+  actifs=$(P -c "select count(*) from pactes where statut = 'enAttenteChoixDateDestinataire'
+    and ((initiateur_id = '$R' and destinataire_id = '$S') or (initiateur_id = '$S' and destinataire_id = '$R'))")
+  rm -f "$f1" "$f2"
+  if [ "$crees" = 1 ] && [ "$refus" = 1 ] && [ "$actifs" = 1 ]; then ok=$((ok+1)); else detail="essai $i : créés=$crees refusés=$refus actifs=$actifs"; fi
+done
+resultat "accueil : créations simultanées pour la même paire, un seul Swend en cours" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"

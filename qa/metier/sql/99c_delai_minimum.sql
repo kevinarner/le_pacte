@@ -3,6 +3,10 @@
 \set ON_ERROR_STOP 1
 \pset footer off
 delete from test_resultats;
+-- Cette suite crée plusieurs Swends Eliot ↔ David au nom des utilisateurs :
+-- la règle « un Swend en cours par paire » (D-023c, testée par
+-- 99e_nouveau_swend.sql) est suspendue le temps de la suite, puis rétablie.
+alter table pactes disable trigger trg_verrou_un_swend_par_paire;
 \set E '00000000-0000-0000-0000-00000000000e'
 \set D '00000000-0000-0000-0000-00000000000d'
 \set F '00000000-0000-0000-0000-000000000251'
@@ -180,4 +184,5 @@ select verifier('G', 'Swend scellé avec une date passée : toujours swend_passe
 select verifier('G', 'numéro invalide : toujours telephone_invalide',
   dm_creer(:'E', array[dm_jour(2)], '0123') like '%telephone_invalide%');
 
+alter table pactes enable trigger trg_verrou_un_swend_par_paire;
 select case when ok then 'PASS' else 'FAIL' end as r, scenario, verif, detail from test_resultats order by id;

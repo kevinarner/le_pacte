@@ -27,3 +27,4 @@ qa	pactes	trg_verrou_delai_minimum_swend	O
 # lignes et rafraîchir l'instantané après l'exécution de son paquet.
 qa	pactes	trg_fermer_chats_nouveau_swend_insert	O
 qa	pactes	trg_fermer_chats_nouveau_swend_update	O
+qa	pactes	trg_verrou_un_swend_par_paire	O

@@ -31,7 +31,10 @@ begin
                 and tgname in ('trg_fermer_chats_nouveau_swend_insert', 'trg_fermer_chats_nouveau_swend_update'))
      or exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
                 and proname in ('participants_potentiels_chat_apres_swend', 'fermer_chats_apres_nouveau_swend',
-                                'swend_actif_entre', 'options_nouveau_swend', 'creer_swend_depuis_chat')) then
+                                'swend_en_cours', 'swend_actif_entre', 'verifier_un_swend_par_paire',
+                                'options_nouveau_swend', 'creer_swend_depuis_chat'))
+     or exists (select 1 from pg_trigger where tgrelid = 'public.pactes'::regclass
+                and tgname = 'trg_verrou_un_swend_par_paire') then
     raise exception 'D-023c-01 : déjà appliqué (en tout ou partie)';
   end if;
 end $$;
@@ -288,6 +291,18 @@ create trigger trg_fermer_chats_nouveau_swend_update
 -- (confirme) et pas encore passé. Les deux titulaires, dans un sens ou dans
 -- l'autre. Annulé, double remplacement, maintenu, passé : pas actif.
 
+create or replace function public.swend_en_cours(p_statut text, p_dates_proposees jsonb, p_date_retenue timestamptz)
+returns boolean
+language sql
+stable
+set search_path = public
+as $$
+  select (p_statut in ('enAttenteChoixDateDestinataire', 'enAttenteChoixDateInitiateur', 'enAttenteReponse')
+          and exists (select 1 from unnest(instants_proposes(p_dates_proposees)) d where d > now()))
+      or (p_statut = 'confirme' and p_date_retenue > now())
+$$;
+revoke execute on function public.swend_en_cours(text, jsonb, timestamptz) from public, anon, authenticated;
+
 create or replace function public.swend_actif_entre(p_a uuid, p_b uuid)
 returns boolean
 language sql
@@ -298,11 +313,62 @@ as $$
     select 1 from pactes p
     where ((p.initiateur_id = p_a and p.destinataire_id = p_b)
         or (p.initiateur_id = p_b and p.destinataire_id = p_a))
-      and ((p.statut in ('enAttenteChoixDateDestinataire', 'enAttenteChoixDateInitiateur', 'enAttenteReponse')
-            and exists (select 1 from unnest(instants_proposes(p.dates_proposees)) d where d > now()))
-        or (p.statut = 'confirme' and p.date_retenue > now())))
+      and swend_en_cours(p.statut, p.dates_proposees, p.date_retenue))
 $$;
 revoke execute on function public.swend_actif_entre(uuid, uuid) from public, anon, authenticated;
+
+-- Règle globale, quel que soit le point d'entrée (« Créer un Swend » depuis
+-- l'accueil, « Faire un nouveau Swend », tout autre) : toute création d'un
+-- Swend au nom d'un utilisateur (auth.uid() connu : app, fonctions appelées
+-- par l'app) est refusée (`swend_deja_en_cours`) si un Swend est déjà en
+-- cours entre les deux personnes. Destinataire sans compte : même règle, la
+-- personne étant reconnue par son numéro canonique (mêmes initiateur et
+-- numéro). Les écritures de service (SQL Editor, moteurs planifiés) ne sont
+-- pas concernées. Verrou consultatif par paire : deux créations simultanées
+-- se sérialisent, la seconde voit la première. Après
+-- trg_normaliser_nouveau_pacte (destinataire retrouvé par son numéro) et
+-- trg_verrou_delai_minimum_swend (ordre alphabétique) : leurs erreurs
+-- restent prioritaires.
+create or replace function public.verifier_un_swend_par_paire()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_e164 text;
+begin
+  if auth.uid() is null then
+    return new;
+  end if;
+  if new.destinataire_id is not null then
+    perform pg_advisory_xact_lock(hashtextextended(
+      'nouveau_swend:' || least(new.initiateur_id, new.destinataire_id)::text
+      || ':' || greatest(new.initiateur_id, new.destinataire_id)::text, 0));
+    if swend_actif_entre(new.initiateur_id, new.destinataire_id) then
+      raise exception 'swend_deja_en_cours';
+    end if;
+  else
+    v_e164 := normaliser_telephone(new.destinataire_telephone);
+    perform pg_advisory_xact_lock(hashtextextended(
+      'nouveau_swend:' || new.initiateur_id::text || ':' || coalesce(v_e164, ''), 0));
+    if exists (
+      select 1 from pactes p
+      where p.initiateur_id = new.initiateur_id and p.destinataire_id is null
+        and normaliser_telephone(p.destinataire_telephone) = v_e164
+        and swend_en_cours(p.statut, p.dates_proposees, p.date_retenue)) then
+      raise exception 'swend_deja_en_cours';
+    end if;
+  end if;
+  return new;
+end;
+$$;
+revoke execute on function public.verifier_un_swend_par_paire() from public, anon, authenticated;
+
+drop trigger if exists trg_verrou_un_swend_par_paire on public.pactes;
+create trigger trg_verrou_un_swend_par_paire
+  before insert on public.pactes
+  for each row execute function public.verifier_un_swend_par_paire();
 
 -- 6. Fonctions de l'app ---------------------------------------------------------------
 
@@ -446,12 +512,20 @@ begin
          where oid = 'public.fermer_chats_apres_nouveau_swend()'::regprocedure) then
     raise exception 'D-023c-01 : déclencheurs de fermeture absents, ou fermeture qui notifie';
   end if;
+  if not exists (select 1 from pg_trigger where not tgisinternal and tgrelid = 'public.pactes'::regclass
+                 and tgname = 'trg_verrou_un_swend_par_paire' and tgenabled = 'O') then
+    raise exception 'D-023c-01 : règle « un Swend en cours par paire » absente';
+  end if;
   if has_table_privilege('authenticated', 'public.chats_apres_swend_jamais_ouverts', 'select')
      or has_table_privilege('anon', 'public.chats_apres_swend_jamais_ouverts', 'select')
      or has_function_privilege('authenticated', 'public.participants_potentiels_chat_apres_swend(uuid)', 'execute')
      or has_function_privilege('anon', 'public.participants_potentiels_chat_apres_swend(uuid)', 'execute')
      or has_function_privilege('authenticated', 'public.swend_actif_entre(uuid, uuid)', 'execute')
      or has_function_privilege('anon', 'public.swend_actif_entre(uuid, uuid)', 'execute')
+     or has_function_privilege('authenticated', 'public.swend_en_cours(text, jsonb, timestamptz)', 'execute')
+     or has_function_privilege('anon', 'public.swend_en_cours(text, jsonb, timestamptz)', 'execute')
+     or has_function_privilege('authenticated', 'public.verifier_un_swend_par_paire()', 'execute')
+     or has_function_privilege('anon', 'public.verifier_un_swend_par_paire()', 'execute')
      or has_function_privilege('authenticated', 'public.fermer_chats_apres_nouveau_swend()', 'execute')
      or has_function_privilege('authenticated', 'public.ouvrir_chats_apres_swend(timestamptz)', 'execute')
      or has_function_privilege('anon', 'public.options_nouveau_swend(uuid)', 'execute')

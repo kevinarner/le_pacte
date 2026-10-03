@@ -7,6 +7,10 @@
 \set ON_ERROR_STOP 1
 \pset footer off
 delete from test_resultats;
+-- Cette suite crée plusieurs Swends Eliot ↔ David au nom des utilisateurs :
+-- la règle « un Swend en cours par paire » (D-023c, testée par
+-- 99e_nouveau_swend.sql) est suspendue le temps de la suite, puis rétablie.
+alter table pactes disable trigger trg_verrou_un_swend_par_paire;
 \set E '00000000-0000-0000-0000-00000000000e'
 \set D '00000000-0000-0000-0000-00000000000d'
 
@@ -308,4 +312,5 @@ select verifier('F', 'oracle personne_est_participant : comportement connu, acce
     (select id from pactes where initiateur_id = :'E' and statut = 'confirme' and date_retenue > now()
      order by created_at desc limit 1))) like '%personne_est_participant%');
 
+alter table pactes enable trigger trg_verrou_un_swend_par_paire;
 select case when ok then 'PASS' else 'FAIL' end as r, scenario, verif, detail from test_resultats order by id;

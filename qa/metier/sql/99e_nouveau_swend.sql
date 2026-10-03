@@ -342,13 +342,100 @@ update pactes set statut = 'annule' where id = :'f3';
 select verifier('F', 'annulé : pas actif', not swend_actif_entre(:'J', :'M'));
 
 -- ===================================================================
+-- H. Un Swend en cours par paire : règle globale (accueil comme chat)
+-- ===================================================================
+insert into profiles (id, prenom, nom, telephone) values
+ ('00000000-0000-0000-0000-000000000311', 'Xénia', 'X', '0613000015'),
+ ('00000000-0000-0000-0000-000000000312', 'Yanis', 'Y', '0613000016'),
+ ('00000000-0000-0000-0000-000000000313', 'Zélie', 'Z', '0613000017')
+on conflict do nothing;
+\set X1 '00000000-0000-0000-0000-000000000311'
+\set Y1 '00000000-0000-0000-0000-000000000312'
+\set Z1 '00000000-0000-0000-0000-000000000313'
+-- « Créer un Swend » depuis l'accueil, exactement comme l'app (INSERT en tant
+-- que l'utilisateur, destinataire désigné par son numéro) : id ou erreur.
+create or replace function nv_accueil(p_user uuid, p_tel text, p_jours int default 20) returns text
+language sql as $$
+  select cs_lire(p_user, format(
+    $q$insert into pactes (type, statut, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,
+                          destinataire_nom, destinataire_telephone)
+       values ('diner', 'enAttenteChoixDateDestinataire', %L::jsonb, '00000000-0000-0000-0000-0000000000aa',
+               %L, 'Initiateur', 'Destinataire', %L) returning id::text$q$,
+    to_jsonb(array[now() + make_interval(days => p_jours)])::text, p_user, p_tel))
+$$;
+
+select verifier('H', 'règle active pour toute création au nom d''un utilisateur (déclencheur présent et actif)',
+  exists (select 1 from pg_trigger where tgrelid = 'pactes'::regclass
+          and tgname = 'trg_verrou_un_swend_par_paire' and tgenabled = 'O'));
+
+-- Accueil : doublon refusé, dans les deux sens et quel que soit le format.
+select nv_accueil(:'X1', '0613000016') as h1 \gset
+select verifier('H', 'accueil : Xénia → Yanis, premier Swend : accepté', :'h1' ~ '^[0-9a-f-]{36}$', :'h1');
+select verifier('H', 'accueil : Xénia → Yanis une seconde fois : refusé (swend_deja_en_cours)',
+  nv_accueil(:'X1', '0613000016', 30) like 'ERR:%swend_deja_en_cours%', nv_accueil(:'X1', '0613000016', 30));
+select verifier('H', 'accueil : autre format du même numéro (+33 6 13 00 00 16) : refusé',
+  nv_accueil(:'X1', '+33 6 13 00 00 16', 30) like 'ERR:%swend_deja_en_cours%');
+select verifier('H', 'accueil : dans l''autre sens (Yanis → Xénia) : refusé',
+  nv_accueil(:'Y1', '0613000015', 30) like 'ERR:%swend_deja_en_cours%');
+select verifier('H', 'refus : aucun Swend ajouté entre eux',
+  (select count(*) from pactes where (initiateur_id, destinataire_id) in ((:'X1'::uuid, :'Y1'::uuid), (:'Y1'::uuid, :'X1'::uuid))) = 1);
+
+-- Une autre paire reste autorisée.
+select verifier('H', 'autre paire : Xénia → Zélie et Yanis → Zélie acceptés',
+  nv_accueil(:'X1', '0613000017') ~ '^[0-9a-f-]{36}$' and nv_accueil(:'Y1', '0613000017') ~ '^[0-9a-f-]{36}$');
+
+-- Chat ↔ accueil : un Swend en cours créé par un chemin bloque l'autre.
+-- Chat ouvert Xénia / Yanis (Swend passé), Swend en cours créé depuis l'accueil.
+select nv_swend(:'X1', :'Y1', now() - interval '40 days') as hs \gset
+select nv_ouvrir(:'hs') as hc \gset
+select verifier('H', 'chat : création avec Yanis refusée (Swend en cours créé depuis l''accueil)',
+  nv_creer(:'X1', :'hc', nv_participant(:'hc', :'Y1'), now() + interval '20 days') like 'ERR:%swend_deja_en_cours%');
+select verifier('H', 'options du chat : Yanis en cours', nv_options(:'X1', :'hc') = 'Yanis:en_cours', nv_options(:'X1', :'hc'));
+-- Le Swend en cours est annulé : la paire est libre ; création depuis le chat.
+update pactes set statut = 'annule' where id = :'h1';
+select nv_creer(:'Y1', :'hc', nv_participant(:'hc', :'X1'), now() + interval '20 days') as h2 \gset
+select verifier('H', 'Swend précédent annulé : création depuis le chat acceptée', :'h2' ~ '^[0-9a-f-]{36}$', :'h2');
+select verifier('H', 'accueil : doublon d''un Swend créé depuis le chat refusé (deux sens)',
+  nv_accueil(:'X1', '0613000016', 30) like 'ERR:%swend_deja_en_cours%'
+  and nv_accueil(:'Y1', '0613000015', 30) like 'ERR:%swend_deja_en_cours%');
+select verifier('H', 'chat : doublon refusé', nv_creer(:'X1', :'hc', nv_participant(:'hc', :'Y1'), now() + interval '21 days')
+  like 'ERR:%swend_deja_en_cours%');
+
+-- Swend précédent réellement passé : scellé, puis son heure passée.
+select nv_sceller(:'h2'::uuid);
+select verifier('H', 'Swend scellé à venir : toujours en cours (accueil refusé)',
+  nv_accueil(:'X1', '0613000016', 30) like 'ERR:%swend_deja_en_cours%');
+select qa.deplacer_swend(:'h2'::uuid, now() - interval '1 hour');
+select nv_accueil(:'X1', '0613000016', 30) as h3 \gset
+select verifier('H', 'Swend précédent passé : nouveau Swend depuis l''accueil accepté', :'h3' ~ '^[0-9a-f-]{36}$', :'h3');
+-- Négociation dont toutes les dates proposées sont passées : terminée de fait.
+select qa.deplacer_swend(:'h3'::uuid, now() - interval '2 days');
+update pactes set date_retenue = null where id = :'h3';
+select nv_accueil(:'Y1', '0613000015', 30) as h4 \gset
+select verifier('H', 'invitation dont toutes les dates sont passées : nouveau Swend accepté', :'h4' ~ '^[0-9a-f-]{36}$', :'h4');
+
+-- Destinataire sans compte : reconnu par son numéro canonique.
+select nv_accueil(:'Z1', '0613000099') as h5 \gset
+select verifier('H', 'sans compte : premier Swend accepté', :'h5' ~ '^[0-9a-f-]{36}$', :'h5');
+select verifier('H', 'sans compte : même numéro (autre format) refusé',
+  nv_accueil(:'Z1', '+33 6 13 00 00 99', 30) like 'ERR:%swend_deja_en_cours%');
+select verifier('H', 'sans compte : autre numéro accepté', nv_accueil(:'Z1', '0613000098') ~ '^[0-9a-f-]{36}$');
+
+-- Écritures de service (SQL Editor, moteurs) : non concernées.
+select verifier('H', 'écriture de service (sans utilisateur) : non concernée',
+  nv_swend(:'Z1', :'X1', now() + interval '30 days', 'enAttenteChoixDateDestinataire') is not null
+  and nv_swend(:'Z1', :'X1', now() + interval '31 days', 'enAttenteChoixDateDestinataire') is not null);
+
+-- ===================================================================
 -- G. Droits et logique unique
 -- ===================================================================
 select verifier('G', 'l''app ne lit pas les chats « jamais ouverts » et n''exécute pas les outils internes',
   cs_lire(:'J', 'select count(*)::text from chats_apres_swend_jamais_ouverts') = 'REFUS'
   and not has_function_privilege('authenticated', 'public.swend_actif_entre(uuid, uuid)', 'execute')
   and not has_function_privilege('authenticated', 'public.participants_potentiels_chat_apres_swend(uuid)', 'execute')
-  and not has_function_privilege('authenticated', 'public.fermer_chats_apres_nouveau_swend()', 'execute'));
+  and not has_function_privilege('authenticated', 'public.fermer_chats_apres_nouveau_swend()', 'execute')
+  and not has_function_privilege('authenticated', 'public.swend_en_cours(text, jsonb, timestamptz)', 'execute')
+  and not has_function_privilege('authenticated', 'public.verifier_un_swend_par_paire()', 'execute'));
 select verifier('G', 'l''app ne peut ni fermer ni rouvrir un chat, ni écrire un message système',
   en_tant_que(:'D', format('update chats_apres_swend set ferme_le = null, motif_fermeture = null where id = %L', :'c5')) <> 'OK'
   and en_tant_que(:'D', format('insert into messages_apres_swend (chat_id, genre, contenu) values (%L, ''systeme'', ''x'')', :'c5')) <> 'OK'
