@@ -45,8 +45,10 @@ Aucun autre fichier n'est admis dans le dossier.
 ```
 
 - `niveau` : 1 ou 2 (le niveau 3 n'est jamais un paquet, voir `CLAUDE.md`).
-  Niveau 2 : `sauvegardes` non vide (ou `sauvegarde_justification`) et Go des
-  **deux** fondateurs.
+  Niveaux 1 et 2 : Go d’Eliot obligatoire et suffisant. Kevin peut être
+  consulté, sans approbation bloquante. Niveau 2 : sauvegarde adaptée
+  (`sauvegardes` non vide ou `sauvegarde_justification` motivée), rollback,
+  tests et préconditions restent obligatoires. Le niveau 3 reste humain uniquement.
 - Étapes :
   - `sql_ecriture` : endpoint d'écriture. Le SQL **doit commencer par
     `begin;` et finir par `commit;`**, sauf `"transaction": false` justifié
@@ -78,17 +80,20 @@ Le dossier `_modele/` contient un paquet vide à copier.
 
 1. **Préparation** (session de travail, lecture seule) : écrire le paquet,
    calculer les SHA-256 (`sha256sum`), répéter le SQL en local (banc QA ou
-   données fictives), committer. Puis
+   données fictives), vérifier les préconditions et documenter les résultats
+   des tests, la sauvegarde adaptée et le rollback, puis committer. Le Go
+   d’Eliot ne dispense jamais de ces contrôles. Puis
    `scripts/paquet_controler.sh <ID> --avant-go` affiche l'**empreinte** du
    paquet : sha256 de tous ses fichiers. Présenter le paquet et ses 12
    premiers caractères.
-2. **Go** : un fondateur écrit `Go <ID>` dans la conversation. Puis
-   `scripts/paquet_controler.sh <ID> --enregistrer-go "Go <ID>" --par Kevin`
-   (et `--par Eliot` pour le niveau 2) écrit `validation.json` avec cette
+2. **Go** : Eliot écrit `Go <ID>` dans la conversation. Puis
+   `scripts/paquet_controler.sh <ID> --enregistrer-go "Go <ID>" --par Eliot` écrit `validation.json` avec cette
    empreinte, à committer. Un paquet validé ne se modifie plus : toute
    correction = nouvel identifiant (`R1b-02`).
    **`--par` est déclaratif** : il trace qui a donné le Go, il **n'authentifie
-   personne**. Claude ne peut pas vérifier qui a écrit dans la conversation,
+   personne**. Ajouter `--par Kevin` seulement si Kevin a réellement approuvé.
+   Les reçus reprennent uniquement les approbateurs enregistrés, sans ajout
+   automatique. Claude ne peut pas vérifier qui a écrit dans la conversation,
    et rien n'empêche techniquement d'écrire `validation.json` à la main. Le
    contrôle humain effectif est le **clic d'approbation** que Claude Code
    demande avant d'exécuter la porte (règle `ask`).
@@ -127,3 +132,12 @@ Le dossier `_modele/` contient un paquet vide à copier.
 Les tests de ces garde-fous, sans production, sont dans
 `scripts/tests/test_garde_prod.sh` (paquets fictifs, faux serveur local,
 cas du hook dans `scripts/tests/cas_hook.tsv`).
+
+Le contrôleur valide les artefacts et la présence des sections obligatoires ;
+la pertinence de la sauvegarde, les résultats des tests et la satisfaction
+des préconditions doivent être vérifiés avant le Go et avant exécution.
+
+Pour un environnement sans serveur localhost :
+`scripts/tests/test_garde_prod.sh --validation-only` teste les validations
+aux niveaux 1/2 et les obligations du niveau 2 sans réseau. La suite complète
+reste nécessaire pour les envois HTTP fictifs, les reçus et les déploiements.

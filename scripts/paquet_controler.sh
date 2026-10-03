@@ -5,7 +5,7 @@
 #       contrôle le paquet (format, artefacts, SHA-256, commit) et affiche son
 #       empreinte : à présenter avec le paquet pour obtenir « Go <ID> ».
 #   scripts/paquet_controler.sh <ID> --enregistrer-go "Go <ID>" --par <Prénom> [--par <Prénom>]
-#       après le Go écrit par un fondateur dans la conversation : crée
+#       après le Go écrit par Eliot dans la conversation : crée
 #       validation.json pour l'empreinte actuelle (à committer ensuite).
 #       --par est DÉCLARATIF : il trace qui a donné le Go, il n'authentifie
 #       personne. Le contrôle humain effectif est le clic d'approbation que
@@ -41,6 +41,7 @@ case "$MODE" in
       printf '%s\n' "${PAQUET_FONDATEURS[@]}" | grep -qx "$p" \
         || paquet_refus "« $p » n'est pas un fondateur (${PAQUET_FONDATEURS[*]})"
     done
+    paquet_controler_approbateurs "$(jq -cn --args '$ARGS.positional' "${PAR[@]}")"
     [ ! -e "$PAQUET_DIR/validation.json" ] \
       || paquet_refus "validation.json existe déjà : un paquet validé ne se revalide pas, créer un nouvel identifiant"
     jq -n --arg id "$ID" --arg go "$GO" --arg e "$PAQUET_EMPREINTE" \

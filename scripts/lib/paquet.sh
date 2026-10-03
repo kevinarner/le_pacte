@@ -152,7 +152,7 @@ paquet_controler() {
       *) paquet_fichiers "$PAQUET_DIR" | grep -qx "$present" \
            || paquet_refus "fichier inattendu dans le paquet : $present" ;;
     esac
-  done < <(find "$PAQUET_DIR" -mindepth 1 -maxdepth 1 -not -name journal -printf '%f\n')
+  done < <(find "$PAQUET_DIR" -mindepth 1 -maxdepth 1 -not -name journal -exec basename {} \;)
 
   # Versionné et immuable : tout est suivi par git et sans modification locale.
   local rel="supabase/changements/$id"
@@ -178,16 +178,20 @@ paquet_controler() {
   [ "$(jq -r '.go' "$v")" = "Go $id" ] || paquet_refus "validation.json : le texte du Go doit être exactement « Go $id »"
   [ "$(jq -r '.empreinte_paquet' "$v")" = "$PAQUET_EMPREINTE" ] \
     || paquet_refus "le paquet a changé depuis le Go : empreinte actuelle $PAQUET_EMPREINTE ≠ empreinte validée $(jq -r '.empreinte_paquet' "$v")"
-  local par nb_fondateurs=0 fondateur
-  for fondateur in "${PAQUET_FONDATEURS[@]}"; do
-    jq -e --arg f "$fondateur" '.valide_par | type == "array" and index($f) != null' "$v" >/dev/null && nb_fondateurs=$((nb_fondateurs + 1))
-  done
-  par="$(jq -r '.valide_par | if type == "array" then join(", ") else "" end' "$v")"
-  [ "$nb_fondateurs" -ge 1 ] || paquet_refus "validation.json : valide_par doit nommer un fondateur (${PAQUET_FONDATEURS[*]})"
-  if [ "$PAQUET_NIVEAU" = 2 ] && [ "$nb_fondateurs" -lt 2 ]; then
-    paquet_refus "niveau 2 : Go des deux fondateurs obligatoire (actuellement : $par)"
-  fi
+  paquet_controler_approbateurs "$(jq -c '.valide_par' "$v")"
   return 0
+}
+
+# Même autorité pour l'enregistrement du Go et la lecture d'une validation.
+# Les noms sont déclaratifs : ne renseigner que les approbations réelles.
+paquet_controler_approbateurs() {
+  local approbateurs="$1"
+  jq -e 'type == "array" and length > 0 and
+    all(.[]; . == "Eliot" or . == "Kevin") and
+    (length == (unique | length))' <<<"$approbateurs" >/dev/null \
+    || paquet_refus "validation : approbateurs invalides ou dupliqués (Eliot, Kevin)"
+  jq -e 'index("Eliot") != null' <<<"$approbateurs" >/dev/null \
+    || paquet_refus "validation : Go d'Eliot obligatoire pour les niveaux 1 et 2"
 }
 
 # Plan d'exécution lisible, une ligne par étape : « N. nom — type [fonction] —

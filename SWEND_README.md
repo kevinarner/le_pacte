@@ -642,9 +642,13 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
 
 ## 12. Règles de travail sur ce projet
 
-- **Ne jamais écrire dans la base de production.** Les migrations SQL sont
-  écrites dans `supabase/migrations/` puis **exécutées par le propriétaire du
-  projet** dans l'éditeur SQL de Supabase, jamais par l'assistant.
+- **Production :** suivre `CLAUDE.md` et `supabase/changements/README.md`.
+  Eliot est l’autorité d’approbation aux niveaux 1 et 2 : son Go suffit.
+  Au niveau 2, sauvegarde adaptée, rollback, tests et préconditions restent
+  obligatoires. Kevin peut être consulté sans approbation bloquante.
+  Le niveau 3 reste exclusivement humain. Les journaux ne nomment que les
+  personnes ayant réellement approuvé. La porte et la session dédiée restent
+  obligatoires pour toute exécution par Claude.
 - Ne jamais transmettre ni demander la clé `service_role` ou une clé privée
   Firebase.
 - Rien de spécifique aux tests ne doit entrer dans la build de production :

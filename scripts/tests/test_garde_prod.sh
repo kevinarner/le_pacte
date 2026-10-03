@@ -3,7 +3,8 @@
 #  - porte scripts/prod_ecrire.sh et contrôleur, sur des paquets fictifs dans
 #    un dépôt git temporaire, avec un faux serveur HTTP local (127.0.0.1) ;
 #  - hook .claude/hooks/garde_prod.py, sur les cas de scripts/tests/cas_hook.tsv.
-# Usage : scripts/tests/test_garde_prod.sh      (sortie 0 si tout passe)
+# Usage : scripts/tests/test_garde_prod.sh [--validation-only]
+# --validation-only : contrôles locaux des niveaux 1/2, sans serveur ni réseau.
 set -uo pipefail
 
 SOURCE="$(git -C "$(dirname "$0")" rev-parse --show-toplevel)"
@@ -75,6 +76,60 @@ attendre() {
   fi
 }
 
+# Mode ciblé utilisable dans un sandbox interdisant les serveurs localhost.
+if [ "${1:-}" = --validation-only ]; then
+  CTRL="$R/scripts/paquet_controler.sh"
+  PORTE="$R/scripts/prod_ecrire.sh"
+  for niveau in 1 2; do
+    id="CIBLE-$niveau-01"
+    creer_paquet "$id" "$niveau"
+    attendre "niveau $niveau : sans validation → refus" 1 "paquet non validé" -- "$CTRL" "$id"
+    attendre "niveau $niveau : Kevin seul → refus" 1 "Go d'Eliot obligatoire" -- "$CTRL" "$id" --enregistrer-go "Go $id" --par Kevin
+    [ ! -e "$R/supabase/changements/$id/validation.json" ] && reussi "niveau $niveau : refus sans création de validation" || rate "validation" "créée après refus"
+    valider "$id" Eliot
+    attendre "niveau $niveau : Eliot seul → OK" 0 "contrôles OK" -- "$CTRL" "$id"
+    jq -e '.valide_par == ["Eliot"]' "$R/supabase/changements/$id/validation.json" >/dev/null && reussi "niveau $niveau : aucun approbateur ajouté" || rate "approbateurs" "inattendus"
+    attendre "niveau $niveau : hors session → aucun envoi" 3 "absent" -- "$PORTE" "$id" "$(empreinte "$id")"
+    # Une validation commitée sans Eliot doit aussi être refusée à la lecture.
+    d="$R/supabase/changements/$id"
+    jq '.valide_par = ["Kevin"]' "$d/validation.json" > "$T/v" && mv "$T/v" "$d/validation.json"
+    git -C "$R" commit -qam "validation sans Eliot"
+    attendre "niveau $niveau : validation sans Eliot → refus" 1 "Go d'Eliot obligatoire" -- "$CTRL" "$id"
+  done
+  creer_paquet CIBLE-02-02 2; valider CIBLE-02-02 Kevin Eliot
+  attendre "Kevin et Eliot : approbations explicites acceptées" 0 "contrôles OK" -- "$CTRL" CIBLE-02-02
+  creer_paquet CIBLE-02-03 2
+  attendre "approbateur dupliqué → refus" 1 "dupliqués" -- "$CTRL" CIBLE-02-03 --enregistrer-go "Go CIBLE-02-03" --par Eliot --par Eliot
+  for cas in sauvegardes rollback preconditions verifications niveau3; do
+    case "$cas" in
+      sauvegardes) id=CIBLE-02-04; motif=sauvegardes ;;
+      rollback) id=CIBLE-02-05; motif=rollback ;;
+      preconditions) id=CIBLE-02-06; motif=Préconditions ;;
+      verifications) id=CIBLE-02-07; motif=Vérifications ;;
+      niveau3) id=CIBLE-02-08; motif="niveau doit être 1 ou 2" ;;
+    esac
+    creer_paquet "$id" 2
+    python3 - "$R/supabase/changements/$id" "$cas" <<'PYTEST'
+import json, pathlib, sys
+p, cas = pathlib.Path(sys.argv[1]), sys.argv[2]
+if cas in ("sauvegardes", "rollback", "niveau3"):
+    m = p / "manifeste.json"
+    data = json.loads(m.read_text())
+    if cas == "niveau3": data["niveau"] = 3
+    else: data.pop(cas)
+    m.write_text(json.dumps(data))
+else:
+    m = p / "paquet.md"
+    section = "Préconditions" if cas == "preconditions" else "Vérifications après exécution"
+    m.write_text(m.read_text().replace("## " + section + "\n", ""))
+PYTEST
+    git -C "$R" commit -qam "garde-fou $cas"
+    attendre "niveau 2 : garde-fou $cas → refus" 1 "$motif" -- "$CTRL" "$id" --avant-go
+  done
+  echo "Résultat ciblé : $OK réussis, $KO échoués (aucun serveur, aucun réseau)"
+  [ "$KO" = 0 ]; exit $?
+fi
+
 # --- Faux serveur local ------------------------------------------------------
 cat > "$T/serveur.py" <<'PY'
 import http.server, json, os, sys
@@ -123,11 +178,11 @@ echo "== Porte et contrôleur (paquets fictifs)"
 creer_paquet TEST-01 1
 attendre "avant Go : contrôle affiche l'empreinte" 0 "empreinte" -- "$CTRL" TEST-01 --avant-go
 attendre "paquet non validé → refus" 1 "paquet non validé" -- "$PORTE" TEST-01 000000000000
-attendre "Go mal libellé → refus" 1 "exactement" -- "$CTRL" TEST-01 --enregistrer-go "go TEST-01" --par Kevin
+attendre "Go mal libellé → refus" 1 "exactement" -- "$CTRL" TEST-01 --enregistrer-go "go TEST-01" --par Eliot
 attendre "Go par un non-fondateur → refus" 1 "pas un fondateur" -- "$CTRL" TEST-01 --enregistrer-go "Go TEST-01" --par Martin
-valider TEST-01 Kevin
+valider TEST-01 Eliot
 E1="$(empreinte TEST-01)"
-attendre "Go déjà enregistré → pas de revalidation" 1 "existe déjà" -- "$CTRL" TEST-01 --enregistrer-go "Go TEST-01" --par Kevin
+attendre "Go déjà enregistré → pas de revalidation" 1 "existe déjà" -- "$CTRL" TEST-01 --enregistrer-go "Go TEST-01" --par Eliot
 attendre "contrôle complet d'un paquet validé" 0 "contrôles OK" -- "$CTRL" TEST-01
 attendre "paquet conforme, hors session d'écriture → arrêt avant envoi" 3 "SWEND_SESSION_ECRITURE=1 absent" -- "$PORTE" TEST-01 "$E1"
 [ ! -d "$R/supabase/changements/TEST-01/journal" ] && reussi "hors session d'écriture : aucun journal, aucune requête" \
@@ -175,7 +230,7 @@ grep -qx "  1. rollback — sql_ecriture — rollback.sql — sha256 $(jq -r '.r
   "$R"/supabase/changements/TEST-01/journal/*-rollback.log \
   && reussi "reçu de rollback : PLAN contient l'étape de rollback" || rate "PLAN du rollback" "ligne absente"
 
-creer_paquet TEST-02 1; valider TEST-02 Kevin; E2="$(empreinte TEST-02)"
+creer_paquet TEST-02 1; valider TEST-02 Eliot; E2="$(empreinte TEST-02)"
 demarrer_serveur echec
 attendre "erreur HTTP à la 1re étape → arrêt immédiat" 1 "HTTP 400" -- \
   env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-02 "$E2"
@@ -184,7 +239,7 @@ attendre "erreur HTTP à la 1re étape → arrêt immédiat" 1 "HTTP 400" -- \
 grep -q '^RESULTAT: ECHEC$' "$R"/supabase/changements/TEST-02/journal/*-appliquer.log \
   && reussi "reçu d'échec journalisé" || rate "reçu d'échec" "absent"
 
-creer_paquet TEST-03 1; valider TEST-03 Kevin; E3="$(empreinte TEST-03)"
+creer_paquet TEST-03 1; valider TEST-03 Eliot; E3="$(empreinte TEST-03)"
 echo "-- ajout" >> "$R/supabase/changements/TEST-03/appliquer.sql"
 attendre "artefact modifié, non commité → refus" 1 "modifié" -- "$PORTE" TEST-03 "$E3"
 git -C "$R" commit -qam "modif TEST-03"
@@ -194,7 +249,7 @@ jq --arg s "$(sha "$D3/appliquer.sql")" '.etapes[0].sha256 = $s' "$D3/manifeste.
 git -C "$R" commit -qam "manifeste TEST-03 réaligné"
 attendre "SHA réalignés après le Go → refus (empreinte ≠ Go)" 1 "a changé depuis le Go" -- "$PORTE" TEST-03 "$E3"
 
-creer_paquet TEST-04 1; valider TEST-04 Kevin; E4="$(empreinte TEST-04)"
+creer_paquet TEST-04 1; valider TEST-04 Eliot; E4="$(empreinte TEST-04)"
 jq '.go = "Go TEST-99"' "$R/supabase/changements/TEST-04/validation.json" > "$T/v" && mv "$T/v" "$R/supabase/changements/TEST-04/validation.json"
 git -C "$R" commit -qam "Go falsifié"
 attendre "validation.json falsifiée → refus" 1 "Go doit être exactement" -- "$PORTE" TEST-04 "$E4"
@@ -218,14 +273,50 @@ casser TEST-13 "projet inattendu → refus" "projet inattendu" 'jq ".projet = \"
 casser TEST-14 "sha256 absent → refus" "sha256 manquant" 'jq "del(.etapes[0].sha256)" manifeste.json > m && mv m manifeste.json'
 
 creer_paquet TEST-20 2
-valider TEST-20 Kevin; E20="$(empreinte TEST-20)"
-attendre "niveau 2 avec un seul fondateur → refus" 1 "deux fondateurs" -- "$PORTE" TEST-20 "$E20"
-creer_paquet TEST-21 2; valider TEST-21 Kevin Eliot
-attendre "niveau 2 avec les deux fondateurs → contrôle OK" 0 "contrôles OK" -- "$CTRL" TEST-21
+attendre "niveau 2 sans Go → refus" 1 "paquet non validé" -- "$CTRL" TEST-20
+attendre "niveau 2 avec Kevin seul → refus à l'enregistrement" 1 "Go d'Eliot obligatoire" -- "$CTRL" TEST-20 --enregistrer-go "Go TEST-20" --par Kevin
+[ ! -e "$R/supabase/changements/TEST-20/validation.json" ] \
+  && reussi "Go refusé : aucune validation créée" || rate "Go refusé" "validation créée"
+# Même refus pour une validation écrite à la main et commitée.
+E20="$(empreinte TEST-20)"
+jq -n --arg e "$("$CTRL" TEST-20 --avant-go | sed -n 's/^  empreinte  : //p')" \
+  '{id:"TEST-20", go:"Go TEST-20", empreinte_paquet:$e, valide_par:["Kevin"]}' > "$R/supabase/changements/TEST-20/validation.json"
+git -C "$R" add -A && git -C "$R" commit -qm "validation Kevin seul"
+attendre "niveau 2 sans validation d'Eliot → refus par la porte" 1 "Go d'Eliot obligatoire" -- "$PORTE" TEST-20 "$E20"
+creer_paquet TEST-21 2; valider TEST-21 Eliot
+attendre "niveau 2 avec Eliot seul → contrôle OK" 0 "contrôles OK" -- "$CTRL" TEST-21
+demarrer_serveur ok
+attendre "niveau 2 avec Eliot seul → exécution fictive OK" 0 "SUCCÈS : 3 étape" -- \
+  env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-21 "$(empreinte TEST-21)"
+[ "$(head -n1 "$T/requetes.jsonl" | jq -r '.corps | fromjson | .query')" = "$(cat "$R/supabase/changements/TEST-21/sauvegarde.sql")" ] \
+  && reussi "niveau 2 : sauvegarde exécutée avant application" \
+  || rate "ordre de sauvegarde" "sauvegarde absente en première étape"
+jq -e '.valide_par == ["Eliot"]' "$R/supabase/changements/TEST-21/validation.json" >/dev/null \
+  && grep -q '"valide_par":\["Eliot"\]' "$R"/supabase/changements/TEST-21/journal/*-appliquer.log \
+  && reussi "validation et reçu : Eliot seul, aucun approbateur ajouté" \
+  || rate "approbateurs du reçu" "ne reflètent pas Eliot seul"
+creer_paquet TEST-23 2; valider TEST-23 Kevin Eliot
+attendre "niveau 2 avec Kevin et Eliot réellement enregistrés → OK" 0 "contrôles OK" -- "$CTRL" TEST-23
+creer_paquet TEST-24 1
+attendre "niveau 1 avec Kevin seul → refus" 1 "Go d'Eliot obligatoire" -- "$CTRL" TEST-24 --enregistrer-go "Go TEST-24" --par Kevin
+attendre "approbateur dupliqué → refus" 1 "dupliqués" -- "$CTRL" TEST-24 --enregistrer-go "Go TEST-24" --par Eliot --par Eliot
 creer_paquet TEST-22 2
 jq 'del(.sauvegardes)' "$R/supabase/changements/TEST-22/manifeste.json" > "$T/m" && mv "$T/m" "$R/supabase/changements/TEST-22/manifeste.json"
 rm "$R/supabase/changements/TEST-22/sauvegarde.sql"; git -C "$R" add -A; git -C "$R" commit -qm x
 attendre "niveau 2 sans sauvegarde → refus" 1 "sauvegardes" -- "$CTRL" TEST-22 --avant-go
+
+creer_paquet TEST-25 2
+jq 'del(.rollback)' "$R/supabase/changements/TEST-25/manifeste.json" > "$T/m" && mv "$T/m" "$R/supabase/changements/TEST-25/manifeste.json"
+git -C "$R" commit -qam "sans rollback"
+attendre "niveau 2 sans rollback → refus" 1 "rollback" -- "$CTRL" TEST-25 --avant-go
+creer_paquet TEST-26 2
+sed -i '/^## Préconditions$/d' "$R/supabase/changements/TEST-26/paquet.md"
+git -C "$R" commit -qam "sans préconditions"
+attendre "niveau 2 sans préconditions → refus" 1 "Préconditions" -- "$CTRL" TEST-26 --avant-go
+creer_paquet TEST-27 2
+sed -i '/^## Vérifications après exécution$/d' "$R/supabase/changements/TEST-27/paquet.md"
+git -C "$R" commit -qam "sans vérifications"
+attendre "niveau 2 sans vérifications → refus" 1 "Vérifications" -- "$CTRL" TEST-27 --avant-go
 
 mkdir -p "$R/supabase/changements/TEST-30"; cp "$R"/supabase/changements/TEST-01/{paquet.md,manifeste.json,appliquer.sql,verifier.sql,rollback.sql} "$R/supabase/changements/TEST-30/"
 attendre "paquet non commité → refus" 1 "" -- "$CTRL" TEST-30 --avant-go
@@ -268,7 +359,7 @@ creer_paquet_fn() {
 
 creer_paquet_fn TEST-40 fn-test
 attendre "edge_function conforme : contrôle avant Go" 0 "contrôles OK" -- "$CTRL" TEST-40 --avant-go
-valider TEST-40 Kevin; E40="$(empreinte TEST-40)"
+valider TEST-40 Eliot; E40="$(empreinte TEST-40)"
 attendre "edge_function hors session d'écriture → arrêt avant envoi" 3 "absent" -- "$PORTE" TEST-40 "$E40"
 demarrer_serveur ok
 attendre "edge_function conforme en session d'écriture → déployée et contrôlée" 0 "SUCCÈS : 1 étape" -- \
@@ -295,14 +386,14 @@ CORPS="$(head -n1 "$T/requetes.jsonl" | jq -r .corps)"
 grep -qF "version precedente (v1)" <<<"$CORPS" && ! grep -qF "version approuvee (v2)" <<<"$CORPS" \
   && reussi "rollback : envoie exactement la version précédente" || rate "rollback Edge Function" "mauvais contenu"
 
-creer_paquet_fn TEST-41 fn-test; valider TEST-41 Kevin; E41="$(empreinte TEST-41)"
+creer_paquet_fn TEST-41 fn-test; valider TEST-41 Eliot; E41="$(empreinte TEST-41)"
 demarrer_serveur echec
 attendre "erreur de déploiement → arrêt" 1 "HTTP 400" -- \
   env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-41 "$E41"
 [ "$(wc -l < "$T/requetes.jsonl")" = 1 ] && reussi "après l'échec du déploiement : aucun contrôle ni étape suivante" \
   || rate "arrêt après échec de déploiement" "$(wc -l < "$T/requetes.jsonl") requêtes"
 
-creer_paquet_fn TEST-42 fn-test; valider TEST-42 Kevin; E42="$(empreinte TEST-42)"
+creer_paquet_fn TEST-42 fn-test; valider TEST-42 Eliot; E42="$(empreinte TEST-42)"
 demarrer_serveur jwt_faux
 attendre "verify_jwt non confirmé après déploiement → échec" 1 "non confirmés" -- \
   env SWEND_SESSION_ECRITURE=1 SWEND_API_BASE="$BASE" "$PORTE" TEST-42 "$E42"
@@ -313,7 +404,7 @@ printf "// autre contenu\n" >> "$D43/fonction.ts"
 jq --arg s "$(sha "$D43/fonction.ts")" '.etapes[0].sha256 = $s' "$D43/manifeste.json" > "$T/m" && mv "$T/m" "$D43/manifeste.json"
 git -C "$R" commit -qam "TEST-43 artefact différent de la source"
 attendre "hash de l'artefact ≠ source versionnée de la fonction → refus" 1 "ne correspond pas à la source versionnée" -- "$CTRL" TEST-43 --avant-go
-creer_paquet_fn TEST-44 fn-test; valider TEST-44 Kevin; E44="$(empreinte TEST-44)"
+creer_paquet_fn TEST-44 fn-test; valider TEST-44 Eliot; E44="$(empreinte TEST-44)"
 attendre "artefact Edge Function modifié après le Go → refus" 1 "" -- bash -c "
   printf '// ajout\n' >> '$R/supabase/changements/TEST-44/fonction.ts' && git -C '$R' commit -qam modif &&
   '$PORTE' TEST-44 '$E44'"
@@ -327,7 +418,7 @@ creer_paquet_fn TEST-48 fn-test 'del(.etapes[0].verify_jwt)'
 attendre "verify_jwt absent → refus" 1 "verify_jwt" -- "$CTRL" TEST-48 --avant-go
 creer_paquet_fn TEST-49 fn-test '.etapes[0].fonction = "fn-autre"'
 attendre "fonction du manifeste ≠ source de l'artefact (fn-autre inconnue) → refus" 1 "inconnue" -- "$CTRL" TEST-49 --avant-go
-creer_paquet_fn TEST-50 fn-test; valider TEST-50 Kevin; E50="$(empreinte TEST-50)"
+creer_paquet_fn TEST-50 fn-test; valider TEST-50 Eliot; E50="$(empreinte TEST-50)"
 printf "// nouvelle version poussée après le Go\n" >> "$R/supabase/functions/fn-test/index.ts"
 git -C "$R" commit -qam "source de fn-test modifiée après le Go"
 attendre "source de la fonction modifiée après le Go → refus" 1 "ne correspond pas à la source versionnée" -- "$PORTE" TEST-50 "$E50"

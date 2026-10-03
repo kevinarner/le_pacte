@@ -465,3 +465,14 @@ Sylvain. Tout est dans `qa/` (mode d'emploi complet : `qa/README.md`).
   des messages dans `lib/utils/textes_invitation.dart`, construction des
   liens Messages / WhatsApp exposée (`lienMessages`, `lienWhatsApp` dans
   `lib/widgets/envoi_invitation.dart`).
+
+## Gouvernance des écritures de production
+
+Les niveaux 1 et 2 exigent le Go d’Eliot ; son approbation seule suffit.
+Kevin peut être consulté sans approbation bloquante. Le niveau 2 conserve
+ses obligations de sauvegarde adaptée, rollback, tests et préconditions.
+Le niveau 3 reste humain uniquement. Le contrôleur vérifie la présence
+explicite d’Eliot lors de l’enregistrement et de la lecture du Go. Les reçus
+reprennent les approbateurs déclarés, sans ajout automatique de Kevin.
+Voir `CLAUDE.md` et `supabase/changements/README.md` ; tests locaux :
+`scripts/tests/test_garde_prod.sh` (aucun accès à la production).
