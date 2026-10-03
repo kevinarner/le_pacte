@@ -53,6 +53,23 @@ class ChatApresSwendRepository {
     );
   }
 
+  /// « Faire un nouveau Swend » (D-023c) : les autres participants de ce
+  /// chat ouvert, et si un Swend est déjà en cours avec chacun.
+  static Future<List<OptionNouveauSwend>> optionsNouveauSwend(
+    String chatId,
+  ) async {
+    final rows =
+        await _client.rpc(
+              'options_nouveau_swend',
+              params: {'p_chat_id': chatId},
+            )
+            as List<dynamic>;
+    return [
+      for (final r in rows)
+        OptionNouveauSwend.depuis(r as Map<String, dynamic>),
+    ];
+  }
+
   /// Code métier d'un refus de la base, ou null (erreur technique).
   static String? codeErreur(Object erreur) {
     if (erreur is! PostgrestException) return null;

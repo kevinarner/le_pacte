@@ -22,3 +22,8 @@ qa	pactes	trg_verrou_zz_dates_swend	O
 # actif). Retirer ces lignes et rafraîchir l'instantané après R2-01.
 production	pactes	trg_verrou_delai_minimum_swend	D
 qa	pactes	trg_verrou_delai_minimum_swend	O
+#
+# D-023c (migration nouveau_swend) : pas encore en production. Retirer ces
+# lignes et rafraîchir l'instantané après l'exécution de son paquet.
+qa	pactes	trg_fermer_chats_nouveau_swend_insert	O
+qa	pactes	trg_fermer_chats_nouveau_swend_update	O

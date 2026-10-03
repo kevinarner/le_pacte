@@ -51,6 +51,14 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   correspondante ; la correction des 2 Swends existants (dates, et
   `date_minimale` du Swend créé après D-025 pendant que le déclencheur était
   désactivé) est dans le paquet.
+  `20261003010000_nouveau_swend.sql` : **préparée, non exécutée** (D-023c,
+  « Faire un nouveau Swend » et fermeture du chat après le Swend au
+  scellement ; aucune donnée existante modifiée). Exécution prévue par le
+  change packet `supabase/changements/D-023c-01/` (niveau 1), AVANT le
+  déploiement de l'app correspondante. Elle redéfinit
+  `ouvrir_chats_apres_swend()` : ne plus ré-exécuter
+  `20260930010000_chat_apres_swend.sql` seule après elle (le moteur
+  reviendrait à la version D-023b ; la rejouer ensuite).
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

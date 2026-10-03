@@ -16,10 +16,21 @@ RoleChat? _role(String? code) => switch (code) {
   _ => null,
 };
 
-/// Texte d'un chat fermé plus tard par D-023c (non implémenté ici) : prévu
-/// pour l'affichage en lecture seule.
+/// Chat fermé par le scellement d'un nouveau Swend entre deux de ses
+/// participants (D-023c). Même texte que le message système écrit par la
+/// base dans la conversation.
 const texteChatFermeNouveauSwend =
-    'Un nouveau Swend a été scellé.\nLe chat est désormais fermé pour préserver le silence.';
+    'Un nouveau Swend a été scellé.\nCe chat est désormais fermé pour préserver le silence.';
+
+/// Fiche d'un Swend passé dont le chat est fermé (D-023c).
+const titreConversationFermee = 'Conversation fermée';
+
+/// « Faire un nouveau Swend » depuis la fiche (D-023c).
+const libelleNouveauSwend = 'Faire un nouveau Swend';
+const titreChoixNouveauSwend = 'Avec qui veux-tu faire un nouveau Swend ?';
+const texteSwendDejaEnCoursEntreVous = 'Un Swend est déjà en cours entre vous.';
+String texteSwendDejaEnCoursAvec(String prenom) =>
+    'Tu as déjà un Swend en cours avec $prenom.';
 
 /// État vide, avant le premier message.
 const texteChatVide = 'À vous de débriefer.';
@@ -153,20 +164,25 @@ class ChatApresSwend {
       ? '$dernierExpediteur vous a écrit'
       : null;
 
-  /// Action de la fiche : « Discuter », « David vous a écrit »,
-  /// « Conversation terminée » (D-023c).
+  /// Action de la fiche : « Discuter », « David vous a écrit » ; chat fermé
+  /// (D-023c) : « Voir la conversation ».
   String get libelleFiche => switch (etat) {
-    EtatChatApres.termine => 'Conversation terminée',
+    EtatChatApres.termine => 'Voir la conversation',
     EtatChatApres.nonLu => libelleNonLu ?? 'Discuter',
     EtatChatApres.disponible => 'Discuter',
   };
 
-  /// Ligne de la carte dans « Mes Swends ».
+  /// Ligne de la carte dans « Mes Swends » : pas de statut lourd pour un
+  /// chat fermé (D-023c).
   String get libelleMesSwends => switch (etat) {
-    EtatChatApres.termine => 'Conversation terminée',
+    EtatChatApres.termine => 'Voir la conversation',
     EtatChatApres.nonLu => '● ${libelleNonLu ?? 'Nouveau message'}',
     EtatChatApres.disponible => 'Discuter',
   };
+
+  /// « Faire un nouveau Swend » : seulement tant que le chat est ouvert
+  /// (D-023c). La base le vérifie aussi.
+  bool get peutFaireNouveauSwend => !ferme;
 
   /// Carte d'accueil : un message non lu, ou l'invitation tant que je n'ai
   /// jamais ouvert le chat. Null : pas de carte.
@@ -188,8 +204,7 @@ class ChatApresSwend {
     return [
       'Après le Swend',
       if (restaurant != null && restaurant.isNotEmpty) restaurant,
-      if (date != null)
-        formaterJourEtMois(date),
+      if (date != null) formaterJourEtMois(date),
     ].join(' · ');
   }
 
@@ -204,6 +219,29 @@ List<ChatApresSwend> cartesAccueilApresSwend(List<ChatApresSwend> chats) =>
           ..sort((a, b) => b.dateTri.compareTo(a.dateTri)))
         .take(2)
         .toList();
+
+/// Une personne du chat avec qui faire un nouveau Swend (D-023c) : son
+/// identifiant de participant et son prénom, jamais un numéro (D-024).
+/// [dejaEnCours] : un Swend est déjà en cours avec elle (vérifié par la base,
+/// paire par paire).
+class OptionNouveauSwend {
+  final String participantId;
+  final String prenom;
+  final bool dejaEnCours;
+
+  const OptionNouveauSwend({
+    required this.participantId,
+    required this.prenom,
+    this.dejaEnCours = false,
+  });
+
+  factory OptionNouveauSwend.depuis(Map<String, dynamic> j) =>
+      OptionNouveauSwend(
+        participantId: j['participant_id'] as String,
+        prenom: j['prenom'] as String? ?? '',
+        dejaEnCours: j['deja_en_cours'] == true,
+      );
+}
 
 class MessageApresSwend {
   final String id;

@@ -5,14 +5,24 @@ import '../../theme/app_theme.dart';
 
 /// Fiche d'un Swend passé, une fois le chat après le Swend ouvert (D-023b) :
 /// révélation du remplacement, accès au chat (« Discuter », « David vous a
-/// écrit », plus tard « Conversation terminée »), participants. Jamais
-/// avant l'ouverture, jamais sur un Swend annulé (la base n'ouvre pas de
-/// chat).
+/// écrit »), participants, et « Faire un nouveau Swend » sous l'accès au
+/// chat (D-023c). Chat fermé par un nouveau Swend : « Voir la
+/// conversation » et « Conversation fermée », plus de création. Jamais avant
+/// l'ouverture, jamais sur un Swend annulé (la base n'ouvre pas de chat).
 class BlocApresSwend extends StatelessWidget {
   final ChatApresSwend chat;
   final VoidCallback onOuvrir;
 
-  const BlocApresSwend({super.key, required this.chat, required this.onOuvrir});
+  /// « Faire un nouveau Swend » (chat ouvert seulement) ; null : pas de
+  /// bouton.
+  final VoidCallback? onNouveauSwend;
+
+  const BlocApresSwend({
+    super.key,
+    required this.chat,
+    required this.onOuvrir,
+    this.onNouveauSwend,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -45,20 +55,35 @@ class BlocApresSwend extends StatelessWidget {
                 ),
               ),
             ],
+            if (chat.ferme) ...[
+              const SizedBox(height: 10),
+              const Text(
+                titreConversationFermee,
+                style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                texteChatFermeNouveauSwend.replaceAll('\n', ' '),
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  color: AppColors.texteAttenue,
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             SizedBox(
               width: double.infinity,
-              child: nonLu
-                  ? FilledButton.icon(
+              child: chat.ferme
+                  ? OutlinedButton.icon(
                       onPressed: onOuvrir,
-                      icon: const Icon(Icons.circle, size: 9),
+                      icon: const Icon(Icons.lock_outline, size: 16),
                       label: Text(chat.libelleFiche),
                     )
-                  : OutlinedButton.icon(
+                  : FilledButton.icon(
                       onPressed: onOuvrir,
                       icon: Icon(
-                        chat.ferme ? Icons.lock_outline : Icons.forum_outlined,
-                        size: 16,
+                        nonLu ? Icons.circle : Icons.forum_outlined,
+                        size: nonLu ? 9 : 16,
                       ),
                       label: Text(chat.libelleFiche),
                     ),
@@ -70,6 +95,16 @@ class BlocApresSwend extends StatelessWidget {
                 style: const TextStyle(
                   fontSize: 12.5,
                   color: AppColors.texteAttenue,
+                ),
+              ),
+            ],
+            if (chat.peutFaireNouveauSwend && onNouveauSwend != null) ...[
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: onNouveauSwend,
+                  child: const Text(libelleNouveauSwend),
                 ),
               ),
             ],

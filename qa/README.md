@@ -153,6 +153,18 @@ simultanés), scénario E2E `25_chat_apres_swend`. Dans les scénarios, la
 fixture vide `chat_apres_swend_service` : poser la mise en service avant
 d'appeler `ouvrir_chats_apres_swend(<instant>)`.
 
+Faire un nouveau Swend et fermeture du chat (D-023c) : tests SQL
+`99e_nouveau_swend.sql` (fermeture au scellement pour chaque paire d'un chat
+à 2 ou à 3, une seule personne en commun, invitation, négociation,
+annulation avant et après scellement, scellements successifs, chat pas
+encore ouvert, aucune push, Swend en cours par paire, création depuis le
+chat : D-024, D-025, tout ou rien, droits), concurrence (scellements
+simultanés, moteur et scellement simultanés, créations simultanées),
+scénario E2E `28_nouveau_swend`. `99b_chat_apres_swend.sql` teste D-023b
+seul : il désactive les déclencheurs de fermeture le temps de la suite (tous
+ses Swends sont entre Eliot et David) et les rétablit en rejouant la
+migration D-023c à la fin.
+
 Délai minimum (D-025) : tests SQL `99c_delai_minimum.sql` (J+14 / J+15 aux
 bornes du jour de Paris, valeur envoyée ignorée, fondateurs : email confirmé
 de `auth.users` seulement, exemption par Swend, date retenue, immuabilité,

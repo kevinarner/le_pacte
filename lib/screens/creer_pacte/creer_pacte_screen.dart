@@ -2,7 +2,9 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/chat_apres_swend.dart';
 import '../../models/delai_minimum.dart';
+import '../../models/nouveau_swend.dart';
 import '../../models/remplacant.dart';
 import '../../models/restaurant.dart';
 import '../../models/type_repas.dart';
@@ -20,13 +22,19 @@ import '../../widgets/statut_swend.dart';
 import '../contact/suggestion_restaurant_screen.dart';
 
 const _minimumRemplacants = 2;
-const _nombreEtapes = 3;
 
 /// Création d'un Swend en 3 étapes courtes (avec qui, quand et où, en
 /// cas d'imprévu) plutôt qu'un seul long formulaire — chaque étape se
 /// valide avant de passer à la suivante.
+///
+/// Depuis « Faire un nouveau Swend » ([depuisChat], D-023c) : la personne
+/// est déjà connue, « Avec qui ? » est sauté ; date, restaurant et
+/// personnes de confiance repartent de zéro. Renvoie `true` une fois le
+/// Swend créé.
 class CreerPacteScreen extends StatefulWidget {
-  const CreerPacteScreen({super.key});
+  final AvecQuiDepuisChat? depuisChat;
+
+  const CreerPacteScreen({super.key, this.depuisChat});
 
   @override
   State<CreerPacteScreen> createState() => _CreerPacteScreenState();
@@ -34,6 +42,13 @@ class CreerPacteScreen extends StatefulWidget {
 
 class _CreerPacteScreenState extends State<CreerPacteScreen> {
   int etape = 0;
+
+  AvecQuiDepuisChat? get _depuisChat => widget.depuisChat;
+
+  late final List<EtapeCreation> _etapes = etapesCreation(
+    depuisChat: _depuisChat != null,
+  );
+  int get _nombreEtapes => _etapes.length;
 
   TypeRepas type = TypeRepas.diner;
   final List<DateTime> datesProposees = [];
@@ -144,9 +159,11 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
               children: [
-                if (etape == 0) ..._etapeAvecQui(),
-                if (etape == 1) ..._etapeOuEtQuand(restau),
-                if (etape == 2) ..._etapeRemplacants(),
+                ...switch (_etapes[etape]) {
+                  EtapeCreation.avecQui => _etapeAvecQui(),
+                  EtapeCreation.quandEtOu => _etapeOuEtQuand(restau),
+                  EtapeCreation.remplacants => _etapeRemplacants(),
+                },
                 const SizedBox(height: 24),
                 if (erreur != null) ...[
                   Padding(
@@ -203,7 +220,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     );
   }
 
-  String get _prenomDestinataire => prenomDestinataireController.text.trim();
+  String get _prenomDestinataire =>
+      _depuisChat?.prenom ?? prenomDestinataireController.text.trim();
 
   List<Widget> _etapeAvecQui() {
     return [
@@ -305,7 +323,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     return [
       Text('Quand et où ?', style: Theme.of(context).textTheme.titleLarge),
       Text(
-        'Étape 2 sur $_nombreEtapes',
+        'Étape ${etape + 1} sur $_nombreEtapes',
         style: const TextStyle(color: AppColors.texteAttenue),
       ),
       const SizedBox(height: 4),
@@ -436,7 +454,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
     return [
       Text("En cas d'imprévu", style: Theme.of(context).textTheme.titleLarge),
       Text(
-        'Étape 3 sur $_nombreEtapes · minimum $_minimumRemplacants',
+        'Étape ${etape + 1} sur $_nombreEtapes · minimum $_minimumRemplacants',
         style: const TextStyle(color: AppColors.texteAttenue),
       ),
       const SizedBox(height: 4),
@@ -468,20 +486,18 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
   }
 
   bool _peutValiderEtape(int e) {
-    switch (e) {
-      case 0:
+    switch (_etapes[e]) {
+      case EtapeCreation.avecQui:
         return prenomDestinataireController.text.trim().isNotEmpty &&
             nomDestinataireController.text.trim().isNotEmpty &&
             _e164Destinataire != null &&
             _erreurTelephoneDestinataire == null;
-      case 1:
+      case EtapeCreation.quandEtOu:
         return datesProposees.isNotEmpty;
-      case 2:
+      case EtapeCreation.remplacants:
         return remplacants.where((r) => r.estRempli).length >=
                 _minimumRemplacants &&
             RemplacantsForm.listeValide(remplacants, _telephonesInterdits);
-      default:
-        return false;
     }
   }
 
@@ -537,17 +553,29 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
       erreur = null;
     });
     try {
-      await PacteRepository.creerPacte(
-        type: type,
-        datesProposees: List.of(datesProposees),
-        initiateurId: AppStore.moi.id,
-        initiateurNom: AppStore.moi.nomComplet,
-        destinataireNom: _nomCompletDestinataire,
-        destinataireTelephone: telephoneDestinataireController.text.trim(),
-        remplacantsInitiateur: remplacants,
-      );
+      final depuisChat = _depuisChat;
+      if (depuisChat != null) {
+        await PacteRepository.creerSwendDepuisChat(
+          chatId: depuisChat.chatId,
+          participantId: depuisChat.participantId,
+          type: type,
+          datesProposees: List.of(datesProposees),
+          restaurantId: restau.id,
+          remplacantsInitiateur: remplacants,
+        );
+      } else {
+        await PacteRepository.creerPacte(
+          type: type,
+          datesProposees: List.of(datesProposees),
+          initiateurId: AppStore.moi.id,
+          initiateurNom: AppStore.moi.nomComplet,
+          destinataireNom: _nomCompletDestinataire,
+          destinataireTelephone: telephoneDestinataireController.text.trim(),
+          remplacantsInitiateur: remplacants,
+        );
+      }
       if (!mounted) return;
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -567,6 +595,9 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
                 _dansQuinzeJours(),
           ),
           'date_sans_fuseau' || 'date_non_proposee' => messageDateRefusee,
+          'swend_deja_en_cours' => texteSwendDejaEnCoursEntreVous,
+          'chat_ferme' => texteChatFermeNouveauSwend,
+          'non_autorise' => "Tu ne peux pas créer ce Swend depuis ce chat.",
           _ => "Impossible d'envoyer le Swend pour le moment.\n$e",
         };
       });

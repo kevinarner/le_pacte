@@ -389,7 +389,8 @@ de l'appareil), l'état du rendez-vous est figé : on ne gère plus l'imprévu.
 app déployée, planification (job pg_cron `swend-gel-a-h`, toutes les
 5 minutes) active, exécutions vérifiées (`succeeded`). Test réel humain à
 faire. Le chat après le Swend (D-023b) est décrit en 5.12 ; « Faire un
-nouveau Swend » (D-023c) n'est **pas** implémenté.
+nouveau Swend » et la fermeture du chat (D-023c) sont implémentés, pas
+encore en production (`PRODUCT_RULES.md` §3.8, paquet `D-023c-01`).
 
 ### 5.12 Chat après le Swend (D-023b)
 
@@ -636,7 +637,8 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   rien ne le déclenche automatiquement aujourd'hui (volontairement : un Swend
   passé reste `confirme`, D-023a).
 - « Faire un nouveau Swend » et fermeture du chat après le Swend (D-023c) —
-  décidés, **non implémentés** (le modèle du chat le permet déjà).
+  implémentés, **pas encore en production** (paquet `D-023c-01` préparé,
+  app à déployer après la migration).
 
 ---
 

@@ -24,6 +24,12 @@ insert into profiles (id, prenom, nom, telephone) values
  ('00000000-0000-0000-0000-000000000245', 'Marc', 'M', '0611000015')
 on conflict do nothing;
 update chat_apres_swend_service set mise_en_service = '2031-01-01 00:00+00';
+-- D-023b seul : tous les Swends de cette suite sont entre Eliot et David ;
+-- la fermeture au scellement (D-023c, testée par 99e_nouveau_swend.sql)
+-- fermerait chaque chat au Swend suivant. Rétablie en fin de suite par la
+-- ré-exécution de sa migration (section M).
+alter table pactes disable trigger trg_fermer_chats_nouveau_swend_insert;
+alter table pactes disable trigger trg_fermer_chats_nouveau_swend_update;
 
 -- ---------- outils ----------
 create or replace function cs_swend(p_date timestamptz, p_statut text default 'confirme') returns uuid
@@ -354,7 +360,7 @@ select verifier('K', 'chat fermé : messages toujours lisibles par les participa
 select verifier('K', 'chat fermé : écriture refusée (chat_ferme)',
   cs_envoyer(:'D', :'ca', 'encore un mot') like '%chat_ferme%');
 insert into messages_apres_swend (chat_id, genre, contenu)
-values (:'ca', 'systeme', 'Un nouveau Swend a été scellé.' || chr(10) || 'Le chat est désormais fermé pour préserver le silence.');
+values (:'ca', 'systeme', 'Un nouveau Swend a été scellé.' || chr(10) || 'Ce chat est désormais fermé pour préserver le silence.');
 select verifier('K', 'message système possible sans auteur (réservé à D-023c)',
   (select count(*) = 1 from messages_apres_swend where chat_id = :'ca' and genre = 'systeme' and participant_id is null));
 select verifier('K', 'un message système ne compte pas comme non lu',
@@ -387,6 +393,8 @@ create publication supabase_realtime;
 \o /dev/null
 \ir ../../../supabase/migrations/20260930010000_chat_apres_swend.sql
 \ir ../../../supabase/migrations/20260930010000_chat_apres_swend.sql
+-- D-023c redéfinit le moteur et recrée ses déclencheurs (actifs).
+\ir ../../../supabase/migrations/20261003010000_nouveau_swend.sql
 \o
 select verifier('M', 'messages du chat ajoutés une fois à supabase_realtime (migration rejouée 2 fois)',
   (select count(*) from pg_publication_tables where pubname = 'supabase_realtime'

@@ -15,6 +15,7 @@ import '../../theme/app_theme.dart';
 import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
+import '../creer_pacte/nouveau_swend.dart';
 import 'annulation_swend_dialogues.dart';
 import 'bloc_apres_swend.dart';
 import 'bloc_attente.dart';
@@ -51,7 +52,8 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
   /// dans ce cas (et seulement à l'heure prévue).
   Future<void> _chargerChat() async {
     final p = _pacte;
-    if (p.statut != StatutPacte.confirme || !estPasse(p, DateTime.now())) return;
+    if (p.statut != StatutPacte.confirme || !estPasse(p, DateTime.now()))
+      return;
     try {
       final chat = await ChatApresSwendRepository.chatDuPacte(p.id);
       if (!mounted) return;
@@ -66,6 +68,13 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
       context,
       MaterialPageRoute(builder: (_) => ChatApresSwendScreen(chatId: chat.id)),
     );
+    await _chargerChat();
+  }
+
+  /// « Faire un nouveau Swend » (D-023c) ; au retour, l'état du chat est
+  /// relu (il a pu être fermé entre-temps).
+  Future<void> _nouveauSwend(ChatApresSwend chat) async {
+    await faireUnNouveauSwend(context, chat);
     await _chargerChat();
   }
 
@@ -256,7 +265,11 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
             // Après le Swend (D-023b) : au-dessus de la relecture de
             // l'imprévu ; il porte alors la révélation du remplacement.
             if (_chat case final chat?) ...[
-              BlocApresSwend(chat: chat, onOuvrir: () => _ouvrirChat(chat)),
+              BlocApresSwend(
+                chat: chat,
+                onOuvrir: () => _ouvrirChat(chat),
+                onNouveauSwend: () => _nouveauSwend(chat),
+              ),
               const SizedBox(height: 12),
             ],
             BlocConversationsTerminees(
@@ -347,7 +360,11 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
           onRecharger: _recharger,
           blocApresSwend: _chat == null
               ? null
-              : BlocApresSwend(chat: _chat!, onOuvrir: () => _ouvrirChat(_chat!)),
+              : BlocApresSwend(
+                  chat: _chat!,
+                  onOuvrir: () => _ouvrirChat(_chat!),
+                  onNouveauSwend: () => _nouveauSwend(_chat!),
+                ),
         ),
       ),
     );

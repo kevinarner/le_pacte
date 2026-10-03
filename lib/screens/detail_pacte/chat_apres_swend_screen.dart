@@ -282,9 +282,11 @@ class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
       color: AppColors.neutre,
+      // D-023c : le message système est dans le fil ; ici, seulement l'état,
+      // à la place de la saisie (aucun moyen de rouvrir).
       child: Text(
         chat.motifFermeture == 'nouveau_swend'
-            ? texteChatFermeNouveauSwend
+            ? titreConversationFermee
             : 'Cette conversation est terminée.',
         textAlign: TextAlign.center,
         style: const TextStyle(fontSize: 12.5, color: AppColors.texteAttenue),

@@ -87,3 +87,9 @@ qa	remplacants	prenom	text	YES
 qa	remplacants	telephone	text	YES
 qa	restaurants	lien	text	YES
 qa	restaurants	nom	text	YES
+# D-023c (migration nouveau_swend) : pas encore en production. Retirer ces
+# lignes et rafraîchir l'instantané après l'exécution de son paquet.
+qa	chats_apres_swend_jamais_ouverts	decide_le	timestamp with time zone	NO
+qa	chats_apres_swend_jamais_ouverts	motif	text	NO
+qa	chats_apres_swend_jamais_ouverts	nouveau_pacte_id	uuid	YES
+qa	chats_apres_swend_jamais_ouverts	pacte_id	uuid	NO

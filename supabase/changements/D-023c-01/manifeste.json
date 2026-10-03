@@ -1,0 +1,29 @@
+{
+  "id": "D-023c-01",
+  "niveau": 1,
+  "projet": "ssciqjpaibdorvnkkhsk",
+  "objectif": "D-023c : fermeture définitive des chats après le Swend au scellement d un nouveau Swend entre deux de leurs participants (message système unique, aucune push), chats pas encore ouverts jamais ouverts, un Swend actif par paire et création d un Swend depuis le chat sans exposer de numéro. Aucune donnée existante modifiée.",
+  "sauvegardes": [],
+  "etapes": [
+    {
+      "nom": "appliquer",
+      "type": "sql_ecriture",
+      "fichier": "appliquer.sql",
+      "sha256": "5ec3ef10dc3f767ed6b85e801c51be16a13164c8970fda7de4bb01bc38650fc5"
+    },
+    {
+      "nom": "verifier",
+      "type": "sql_lecture",
+      "fichier": "verifier.sql",
+      "sha256": "6e00d9a784c0ae77e102f1f50893488e093f683c2477d19c663e3bea7c6e3d0a"
+    }
+  ],
+  "rollback": [
+    {
+      "nom": "rollback",
+      "type": "sql_ecriture",
+      "fichier": "rollback.sql",
+      "sha256": "5b8d99020bff58c0bbb4b234bdccb4871cbcf7a86d6f4f7f7d30653594a84231"
+    }
+  ]
+}

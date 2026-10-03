@@ -261,7 +261,7 @@ select verifier('D', 'fonctions SECURITY DEFINER exécutables par l''app qui tou
      and p.prorettype <> 'trigger'::regtype
      and (has_function_privilege('authenticated', p.oid, 'execute') or has_function_privilege('anon', p.oid, 'execute'))
      and p.prosrc ~* 'telephone|phone')
-  = 'ajouter_et_demander_remplacement,destinataire_a_un_compte,telephone_titulaire_accessible',
+  = 'ajouter_et_demander_remplacement,creer_swend_depuis_chat,destinataire_a_un_compte,telephone_titulaire_accessible',
   (select string_agg(p.proname, ',' order by p.proname)
    from pg_proc p join pg_namespace n on n.oid = p.pronamespace
    where n.nspname = 'public' and p.prokind = 'f' and p.prosecdef
@@ -270,6 +270,8 @@ select verifier('D', 'fonctions SECURITY DEFINER exécutables par l''app qui tou
      and p.prosrc ~* 'telephone|phone'));
 select verifier('D', 'retours de ces fonctions : un seul numéro possible (telephone_titulaire_accessible)',
   pg_get_function_result('public.ajouter_et_demander_remplacement(uuid, text, text, text, text)'::regprocedure) = 'uuid'
+  -- D-023c : recopie le numéro du profil dans le Swend, ne renvoie que son id.
+  and pg_get_function_result('public.creer_swend_depuis_chat(uuid, uuid, text, jsonb, uuid, jsonb)'::regprocedure) = 'uuid'
   and pg_get_function_result('public.destinataire_a_un_compte(text)'::regprocedure) = 'boolean'
   and pg_get_function_result('public.telephone_titulaire_accessible(uuid)'::regprocedure) = 'text');
 select verifier('D', 'anciennes fonctions à numéro non exécutables par l''app',

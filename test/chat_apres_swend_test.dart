@@ -127,16 +127,16 @@ void main() {
     });
   });
 
-  test('état vide et chat fermé (D-023c, prévu)', () {
+  test('état vide et chat fermé (D-023c)', () {
     expect(texteChatVide, 'À vous de débriefer.');
     expect(
       texteChatFermeNouveauSwend,
-      'Un nouveau Swend a été scellé.\nLe chat est désormais fermé pour préserver le silence.',
+      'Un nouveau Swend a été scellé.\nCe chat est désormais fermé pour préserver le silence.',
     );
   });
 
   group('Fiche et Mes Swends', () {
-    test('Discuter / David vous a écrit / Conversation terminée', () {
+    test('Discuter / David vous a écrit / Voir la conversation (D-023c)', () {
       expect(chat(eliot).libelleFiche, 'Discuter');
       expect(
         chat(eliot, nonLus: 2, dernier: 'David').libelleFiche,
@@ -144,7 +144,7 @@ void main() {
       );
       expect(
         chat(eliot, fermeLe: DateTime.utc(2031, 11)).libelleFiche,
-        'Conversation terminée',
+        'Voir la conversation',
       );
       expect(chat(eliot).libelleMesSwends, 'Discuter');
       expect(
@@ -153,7 +153,7 @@ void main() {
       );
       expect(
         chat(eliot, fermeLe: DateTime.utc(2031, 11)).libelleMesSwends,
-        'Conversation terminée',
+        'Voir la conversation',
       );
     });
   });

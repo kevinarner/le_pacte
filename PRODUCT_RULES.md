@@ -270,7 +270,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Retirer une personne de confiance ne détruit jamais sa conversation : elle est archivée avec son historique.
 - Les Swends déjà passés au moment de la mise en place de cette règle sont considérés comme déjà traités : aucune push, aucun événement rétroactif.
 
-L’après-Swend : chat après le Swend (D-023b, §3.7, en production depuis le 30/09) ; « Faire un nouveau Swend » (D-023c) décidé, non implémenté.
+L’après-Swend : chat après le Swend (D-023b, §3.7, en production depuis le 30/09) ; « Faire un nouveau Swend » et fermeture du chat (D-023c, §3.8, implémenté, pas encore en production).
 
 ### 3.7 Chat après le Swend (D-023b)
 
@@ -306,8 +306,8 @@ Notification (une par participant, sans rappel) :
 
 Pas d’onglet ni de liste de conversations : accès depuis le Swend.
 
-- Fiche d’un Swend passé : bloc `APRÈS LE SWEND` (au-dessus de la relecture de l’imprévu), seulement une fois le chat ouvert : `Discuter` / `David vous a écrit` (plus tard `Conversation terminée`), puis `Avec David` / `Avec David et Kevin`.
-- Mes Swends : `Discuter`, `● David vous a écrit`, (plus tard `Conversation terminée`), `Annulé`. Aucun statut `Réalisé` / `Terminé` ; ordre chronologique inchangé.
+- Fiche d’un Swend passé : bloc `APRÈS LE SWEND` (au-dessus de la relecture de l’imprévu), seulement une fois le chat ouvert : `Discuter` / `David vous a écrit`, puis `Avec David` / `Avec David et Kevin`, puis `Faire un nouveau Swend` (D-023c, §3.8). Chat fermé : voir §3.8.
+- Mes Swends : `Discuter`, `● David vous a écrit`, `Voir la conversation` (chat fermé, D-023c), `Annulé`. Aucun statut `Réalisé` / `Terminé` ; ordre chronologique inchangé.
 - Accueil : tant que je n’ai jamais ouvert le chat, `Alors, ce Swend ?` / `Le silence est levé.` ; ensuite, s’il y a des messages non lus, `David vous a écrit` (ou `4 nouveaux messages` dans un chat à 2 ; dernier expéditeur dans un chat à 3) / `Après le Swend · Au Père Lapin · 13 octobre`. Jamais le contenu. 2 cartes au plus, triées par dernier message. Priorité : urgences des Swends en cours (y compris l’imprévu), puis après le Swend, puis prochain Swend.
 - Entre l’heure du Swend et l’ouverture : aucun nouveau libellé, aucun bloc.
 
@@ -321,7 +321,39 @@ Pas d’onglet ni de liste de conversations : accès depuis le Swend.
 - Nouveau message : `[Prénom] vous a écrit` / `Après le Swend · [Restaurant]`, à chacun des autres ; jamais le contenu, jamais de numéro. Le clic ouvre directement le chat (mobile et web) ; sans accès : `Cette conversation n’est plus accessible.`
 - Sans limite de temps côté produit ; historique conservé avec le Swend.
 
-D-023c (non implémenté) pourra fermer un chat en lecture seule avec : `Un nouveau Swend a été scellé. Le chat est désormais fermé pour préserver le silence.`
+Fermeture par un nouveau Swend scellé : §3.8 (D-023c).
+
+### 3.8 Faire un nouveau Swend, fermeture du chat (D-023c)
+
+#### Fermeture du chat, au scellement seulement
+
+- Dès qu’un nouveau Swend devient **scellé**, chaque chat après le Swend déjà ouvert où ses **deux** personnes sont participantes ensemble est fermé définitivement : titulaire ↔ titulaire, titulaire ↔ remplaçant, remplaçant ↔ autre participant, chat à 2 ou à 3. Un chat où une seule des deux participe reste ouvert.
+- Décidé par la base au scellement, quel que soit le point d’entrée (`Faire un nouveau Swend`, `Créer un Swend` depuis l’accueil, tout autre). Une invitation ou une négociation ne ferme rien.
+- Chat fermé : lecture seule définitive, historique entier conservé. Un message système, une seule fois, à sa place chronologique, sans heure dans le texte :
+  > Un nouveau Swend a été scellé.
+  > Ce chat est désormais fermé pour préserver le silence.
+  Un scellement ultérieur par une autre paire du même chat n’ajoute rien.
+- Définitive : jamais de réouverture, même si le nouveau Swend est annulé quelques secondes après ; le message système reste ; aucun message d’annulation dans l’ancien chat.
+- Négociations parallèles : le premier scellement ferme ; les autres négociations continuent normalement, peuvent être scellées plus tard, sans second message.
+- Aucune notification de fermeture : le message système suffit.
+
+#### Chat pas encore ouvert
+
+- Si un nouveau Swend est scellé entre deux personnes avant l’heure d’ouverture du chat d’un Swend précédent (date antérieure) dont elles sont participantes potentielles (les deux titulaires et le remplaçant sélectionné s’il existe, même règle que l’ouverture), ce chat ne s’ouvre jamais : aucun faux chat fermé, aucun message système, aucun accès à une conversation. Le Swend passé reste consultable.
+
+#### Faire un nouveau Swend (fiche « Après le Swend », chat ouvert)
+
+- Sous `Discuter`, une action secondaire `Faire un nouveau Swend` (sur la fiche, jamais dans le fil du chat).
+- Chat à 2 : directement `Quand et où ?` avec l’autre personne (pas d’étape `Avec qui ?`) ; date, restaurant et personnes de confiance repartent de zéro. La personne est désignée par son identité serveur, jamais par un numéro (D-024). Si un Swend est déjà en cours entre les deux : `Un Swend est déjà en cours entre vous.`
+- Chat à 3 : `Avec qui veux-tu faire un nouveau Swend ?` avec seulement les deux autres personnes, au même niveau (aucun libellé titulaire ou remplaçant), sans recherche, sans ajout, sans bouton `Continuer`. Toucher une personne disponible mène à `Quand et où ?`. Une personne avec qui un Swend est déjà en cours est désactivée : `Tu as déjà un Swend en cours avec Kevin.` ; l’autre reste choisissable.
+- Un seul Swend en cours par paire, vérifié par la base paire par paire (pas seulement à l’écran). En cours : en négociation avec au moins une date proposée à venir, ou scellé et pas encore passé.
+
+#### Après la fermeture
+
+- Fiche du Swend passé : `Voir la conversation` (au lieu de `Discuter`), plus de `Faire un nouveau Swend`, et sobrement `Conversation fermée` / `Un nouveau Swend a été scellé. Ce chat est désormais fermé pour préserver le silence.`
+- Conversation : historique lisible, message système dans le fil, aucune zone de saisie (`Conversation fermée` à sa place), aucun moyen de rouvrir.
+- Mes Swends passés : pas de statut lourd (`Voir la conversation`).
+- Textes de D-023c au tutoiement.
 
 ---
 
@@ -1119,7 +1151,7 @@ Le cœur de Swend comprend notamment :
 #### Après le Swend
 
 - chat après le Swend (D-023b, implémenté, voir §3.7) ;
-- `Faire un nouveau Swend` depuis ce chat (D-023c, décidé, non implémenté) ;
+- `Faire un nouveau Swend` depuis la fiche du Swend passé et fermeture du chat (D-023c, implémenté, voir §3.8) ;
 - historique détaillé.
 
 #### Recherche / contacts

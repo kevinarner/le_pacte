@@ -189,3 +189,99 @@ SQL
   if [ "$chats" = 1 ] && [ "$parts" = 3 ] && [ "$push" = 3 ]; then ok=$((ok+1)); else detail="essai $i : chats=$chats participants=$parts push=$push"; fi
 done
 resultat "chat après le Swend : 3 moteurs simultanés, un seul chat, une seule ouverture" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 10-12. Nouveau Swend (D-023c). Outils de sql/99e_nouveau_swend.sql
+#    (nv_swend, nv_remplacant, nv_ouvrir, nv_sceller) ; personnes propres.
+P >/dev/null <<'SQL'
+insert into profiles (id, prenom, nom, telephone) values
+ ('00000000-0000-0000-0000-000000000401', 'Oscar', 'O', '0614000001'),
+ ('00000000-0000-0000-0000-000000000402', 'Rose', 'R', '0614000002'),
+ ('00000000-0000-0000-0000-000000000403', 'Simon', 'S', '0614000003'),
+ ('00000000-0000-0000-0000-000000000404', 'Tina', 'T', '0614000004'),
+ ('00000000-0000-0000-0000-000000000405', 'Ugo', 'U', '0614000005')
+on conflict do nothing;
+SQL
+O=00000000-0000-0000-0000-000000000401; R=00000000-0000-0000-0000-000000000402
+S=00000000-0000-0000-0000-000000000403; TI=00000000-0000-0000-0000-000000000404
+U=00000000-0000-0000-0000-000000000405
+
+# 10. Chat à 3 (Oscar, Rose, Simon remplaçant de Rose) : deux nouveaux Swends
+#     de paires différentes scellés en même temps (une fois avec une
+#     transaction tenue ouverte) → chat fermé, un seul message système.
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read ch na nb <<< "$(P <<SQL | tail -1
+select nv_swend('$O', '$R', now() - interval '20 days' + interval '$i minutes') as s \gset
+select nv_remplacant(:'s', 'destinataire', '$S') \gset
+select nv_ouvrir(:'s') as ch \gset
+select nv_swend('$O', '$R', now() + interval '$((40 + i)) days', 'enAttenteChoixDateDestinataire') as na \gset
+select nv_swend('$S', '$O', now() + interval '$((60 + i)) days', 'enAttenteChoixDateDestinataire') as nb \gset
+select :'ch' || ' ' || :'na' || ' ' || :'nb';
+SQL
+)"
+  if [ "$i" = 1 ]; then
+    ( P -c "begin; select nv_sceller('$na'); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+    sleep 0.4; P -c "select nv_sceller('$nb')" >/dev/null 2>&1; wait
+  else
+    P -c "select nv_sceller('$na')" >/dev/null 2>&1 & P -c "select nv_sceller('$nb')" >/dev/null 2>&1 & wait
+  fi
+  etat=$(P -c "select nv_etat('$ch')")
+  scelles=$(P -c "select count(*) from pactes where id in ('$na', '$nb') and scelle_le is not null")
+  if [ "$etat" = "ferme:nouveau_swend|systeme=1" ] && [ "$scelles" = 2 ]; then ok=$((ok+1)); else detail="essai $i : $etat, scellés=$scelles"; fi
+done
+resultat "nouveau Swend : 2 scellements simultanés sur le même chat, une seule fermeture, un seul message" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 11. Chat pas encore ouvert : le moteur d'ouverture et un scellement entre
+#     les deux personnes lancés ensemble (une fois avec le scellement tenu
+#     ouvert). Deux issues seulement : jamais ouvert, ou ouvert puis fermé
+#     avec un message système. Jamais un chat resté ouvert.
+ok=0; detail=""; issues=""
+for i in $(seq 1 10); do
+  read s n <<< "$(P <<SQL | tail -1
+select nv_swend('$TI', '$U', now() - interval '1 hour' - interval '$i minutes') as s \gset
+select nv_ouvrir(:'s') \gset
+select nv_swend('$U', '$TI', now() + interval '$((40 + i)) days', 'enAttenteChoixDateDestinataire') as n \gset
+select :'s' || ' ' || :'n';
+SQL
+)"
+  if [ "$i" = 1 ]; then
+    ( P -c "begin; select nv_sceller('$n'); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+    sleep 0.4; P -c "select ouvrir_chats_apres_swend(now() + interval '2 days')" >/dev/null 2>&1; wait
+  else
+    P -c "select nv_sceller('$n')" >/dev/null 2>&1 & P -c "select ouvrir_chats_apres_swend(now() + interval '2 days')" >/dev/null 2>&1 & wait
+  fi
+  P -c "select ouvrir_chats_apres_swend(now() + interval '2 days')" >/dev/null 2>&1
+  etat=$(P -c "select coalesce((select nv_etat(id) from chats_apres_swend where pacte_id = '$s'), 'jamais')")
+  case "$etat" in
+    jamais|"ferme:nouveau_swend|systeme=1") ok=$((ok+1)); issues="$issues $etat" ;;
+    *) detail="essai $i : $etat" ;;
+  esac
+done
+resultat "chat pas encore ouvert : moteur et scellement simultanés, jamais un chat resté ouvert" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 12. « Faire un nouveau Swend » : les deux personnes d'un chat créent en
+#     même temps un Swend l'une avec l'autre → un seul Swend, l'autre refusé
+#     (swend_deja_en_cours).
+creer() { # utilisateur, chat, participant → id du Swend ou code d'erreur
+  P -c "set role authenticated; select set_config('request.jwt.claim.sub', '$1', false); select creer_swend_depuis_chat('$2', '$3', 'diner', to_jsonb(array[now() + interval '20 days']), '00000000-0000-0000-0000-0000000000aa', '[]');" 2>&1 \
+    | grep -vx "$1" | grep -oE "swend_deja_en_cours|ERROR.*|^[0-9a-f-]{36}$" | head -1 || true
+}
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read ch pr po <<< "$(P <<SQL | tail -1
+update pactes set statut = 'annule' where statut <> 'annule' and scelle_le is null
+  and ((initiateur_id = '$O' and destinataire_id = '$U') or (initiateur_id = '$U' and destinataire_id = '$O'));
+select nv_swend('$O', '$U', now() - interval '30 days' + interval '$i minutes') as s \gset
+select nv_ouvrir(:'s') as ch \gset
+select :'ch' || ' ' || nv_participant(:'ch', '$U') || ' ' || nv_participant(:'ch', '$O');
+SQL
+)"
+  f1=$(mktemp); f2=$(mktemp)
+  creer $O "$ch" "$pr" > "$f1" & creer $U "$ch" "$po" > "$f2" & wait
+  crees=$(cat "$f1" "$f2" | grep -cE '^[0-9a-f-]{36}$'); refus=$(cat "$f1" "$f2" | grep -c swend_deja_en_cours)
+  actifs=$(P -c "select count(*) from pactes where statut = 'enAttenteChoixDateDestinataire'
+    and ((initiateur_id = '$O' and destinataire_id = '$U') or (initiateur_id = '$U' and destinataire_id = '$O'))")
+  rm -f "$f1" "$f2"
+  if [ "$crees" = 1 ] && [ "$refus" = 1 ] && [ "$actifs" = 1 ]; then ok=$((ok+1)); else detail="essai $i : créés=$crees refusés=$refus actifs=$actifs"; fi
+done
+resultat "nouveau Swend : créations simultanées par les deux personnes, un seul Swend en cours" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"

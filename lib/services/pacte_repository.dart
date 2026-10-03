@@ -271,6 +271,43 @@ class PacteRepository {
     return _pacteDe(row, restau);
   }
 
+  /// « Faire un nouveau Swend » depuis un chat après le Swend ouvert
+  /// (D-023c). La personne est désignée par son identifiant de participant :
+  /// la base recopie son numéro sans jamais le renvoyer (D-024), vérifie
+  /// qu'aucun Swend n'est déjà en cours entre nous (`swend_deja_en_cours`),
+  /// applique le délai minimum (D-025) et enregistre mes personnes de
+  /// confiance dans la même transaction (tout ou rien). Renvoie l'id du
+  /// Swend créé.
+  static Future<String> creerSwendDepuisChat({
+    required String chatId,
+    required String participantId,
+    required TypeRepas type,
+    required List<DateTime> datesProposees,
+    required String? restaurantId,
+    required List<Remplacant> remplacantsInitiateur,
+  }) async {
+    final id = await _client.rpc(
+      'creer_swend_depuis_chat',
+      params: {
+        'p_chat_id': chatId,
+        'p_participant_id': participantId,
+        'p_type': type.name,
+        'p_dates_proposees': datesProposees.map(isoInstant).toList(),
+        'p_restaurant_id': restaurantId,
+        'p_remplacants': [
+          for (final r in remplacantsInitiateur.where((r) => r.estRempli))
+            {
+              'prenom': r.prenom,
+              'nom': r.nom,
+              'telephone': r.telephone,
+              'email': r.email,
+            },
+        ],
+      },
+    );
+    return id as String;
+  }
+
   static Future<Remplacant> _insererRemplacant(
     String pacteId,
     String cote,
@@ -414,6 +451,9 @@ class PacteRepository {
       'date_trop_proche',
       'date_sans_fuseau',
       'date_non_proposee',
+      'swend_deja_en_cours',
+      'chat_ferme',
+      'non_autorise',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;
@@ -745,9 +785,7 @@ class PacteRepository {
           evenementNonLu: evenementEnTete,
           dateNonLu: evenementEnTete?.createdAt ?? dernierMessageNonLu,
           jeSuisLeTiers: estMoiLeRemplacant,
-          dateConcernee: dateRetenue != null
-              ? lireInstant(dateRetenue)
-              : null,
+          dateConcernee: dateRetenue != null ? lireInstant(dateRetenue) : null,
           restaurantNom: restau.nom,
           autrePartieNom: autrePartieNom,
         ),

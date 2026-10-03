@@ -481,7 +481,7 @@ Laisser un titulaire mettre fin proprement à un Swend, en l’orientant d’abo
 
 - Accès (précisé le 30/09) : une fois le Swend passé ou annulé, seuls les deux titulaires (toutes les conversations actives de leur côté) et le remplaçant effectivement sélectionné (sa conversation) gardent l’accès ; les personnes seulement prévues, sollicitées, ayant refusé ou désistées le perdent, données conservées ; une personne retirée n’a plus accès ; avant H, chaque personne de confiance non retirée garde les accès de son rôle. Garanti par des fonctions et politiques RLS versionnées ; `est_remplacant_du_pacte()` (non versionnée en production) n’est pas modifiée. Même règle pour le numéro du titulaire : nouvelle fonction versionnée, l’ancienne `telephone_titulaire_du_pacte()` n’est plus exécutable par l’app (non réécrite).
 
-D-023b (chat après le Swend) est décrit ci-dessous ; D-023c (« Faire un nouveau Swend ») est décidé à part et **non implémenté**.
+D-023b (chat après le Swend) et D-023c (« Faire un nouveau Swend », fermeture du chat) sont décrits ci-dessous.
 
 Textes détaillés : `PRODUCT_RULES.md` §3.6.
 
@@ -545,7 +545,7 @@ Après un Swend qui a eu lieu, le silence est levé : un chat s’ouvre automati
 - Accueil : carte persistante « Alors, ce Swend ? » jusqu’à la première ouverture, puis non-lus (2 cartes au plus) ; priorité : urgences des Swends en cours, puis après le Swend, puis prochain Swend.
 - Messages : texte et emoji, 2 000 caractères ; une push par message aux autres participants, sans contenu ni numéro ; lecture individuelle ; clic → chat (mobile et web, Edge Function `lienWeb()`).
 - Séparation technique complète avec les conversations d’imprévu (aucune table ni fonction partagée) ; accès uniquement par la liste des participants ; l’app n’écrit que par des fonctions serveur.
-- Préparé pour D-023c (non implémenté) : `ferme_le`, `motif_fermeture`, messages système, lecture seule.
+- Préparé pour D-023c (utilisé par D-023c, voir plus bas) : `ferme_le`, `motif_fermeture`, messages système, lecture seule.
 
 ### Raison
 Un Swend réellement vécu mérite un débrief ; le mystère du remplacement n’a plus de raison d’être une fois le rendez-vous passé.
@@ -589,6 +589,43 @@ D-011 (négociation de date), D-020 (réservation manuelle), D-024 (lecture colo
 
 ### Mise en production
 QA OK le 01/10 (métier 895/0, E2E 677/0, 28/28 scénarios). Migration `20261001000000_delai_minimum_swend.sql` exécutée en production le 01/10/2026 (5/5 vérifications à true), puis app déployée le 01/10/2026 (gh-pages `34629e7`, source `79e542e`) — ordre respecté : l’app lit `date_minimale`, elle ne pouvait pas précéder la migration. Contrôle en lecture seule des 3 comptes fondateurs dans `auth.users` : 1 compte chacun, email confirmé — exemptions effectives. D-025 techniquement en production ; test réel humain à faire. D-025b non commencé.
+
+---
+
+## D-023c — Faire un nouveau Swend, fermeture du chat après le Swend
+
+**Statut : Validée**  
+**Décidée : 03/10/2026**
+
+### Décision
+Un nouveau Swend scellé entre deux personnes ferme le chat après le Swend où elles se parlent ensemble : le silence revient jusqu’au nouveau rendez-vous. Détails : `PRODUCT_RULES.md` §3.8.
+
+- Fermeture définitive au **scellement** seulement, décidée par la base (déclencheur sur `pactes`), quel que soit le point d’entrée ; une invitation ou une négociation ne ferme rien. Concerne tout chat déjà ouvert où les deux personnes du nouveau Swend participent ensemble (titulaires, remplaçant, chat à 2 ou à 3) ; pas un chat où une seule participe.
+- Chat fermé : `ferme_le`, `motif_fermeture = 'nouveau_swend'`, lecture seule, historique conservé ; un seul message système (« Un nouveau Swend a été scellé. / Ce chat est désormais fermé pour préserver le silence. »), daté de la fermeture, jamais un second (autre paire, scellements concurrents) ; aucune push.
+- Jamais de réouverture : l’annulation du nouveau Swend, même immédiate, ne change rien et n’ajoute aucun message. Négociations parallèles : non annulées, le premier scellement ferme.
+- Chat pas encore ouvert : si le nouveau Swend est scellé avant l’heure d’ouverture du chat d’un Swend précédent dont les deux sont participants potentiels, ce chat ne s’ouvre jamais (aucun faux chat fermé, aucun message, aucun accès). Participants potentiels : une seule fonction, partagée par le moteur d’ouverture et la fermeture (deux titulaires + remplaçant sélectionné).
+- `Faire un nouveau Swend` sur la fiche du Swend passé (sous `Discuter`, chat ouvert seulement) : à 2, directement `Quand et où ?` ; à 3, choix entre les deux autres personnes (même niveau, sans rôle, sans recherche ni `Continuer`). Personne désignée par son identité serveur, jamais par un numéro (D-024) ; tout repart de zéro (date, restaurant, personnes de confiance).
+- Un seul Swend en cours par paire, vérifié par la base paire par paire : `Un Swend est déjà en cours entre vous.` (à 2) ; carte désactivée `Tu as déjà un Swend en cours avec Kevin.` (à 3).
+- Après fermeture : `Voir la conversation`, `Conversation fermée`, plus de création ; pas de statut lourd dans Mes Swends. Textes nouveaux au tutoiement.
+
+### Choix techniques (03/10)
+- « Swend en cours » entre deux personnes : un Swend dont elles sont les deux titulaires, en négociation avec au moins une date proposée à venir, ou scellé (`confirme`) et pas encore passé. Une invitation dont toutes les dates sont passées ne bloque pas.
+- « Swend précédent » (chat pas encore ouvert) : un Swend scellé dont la date est antérieure à celle du nouveau Swend. Un Swend scellé plus tardif que le nouveau garde son chat.
+- Création depuis le chat : fonction serveur `creer_swend_depuis_chat()` (numéro du profil recopié par la base, jamais renvoyé ; D-025 appliqué ; personnes de confiance dans la même transaction, tout ou rien) ; `options_nouveau_swend()` pour l’écran (prénom, identifiant de participant, Swend en cours).
+- La règle « un Swend en cours par paire » est vérifiée sur le parcours `Faire un nouveau Swend` ; `Créer un Swend` depuis l’accueil (par numéro) est inchangé (écart signalé, voir ci-dessous).
+
+### Écarts signalés (03/10)
+- `Créer un Swend` depuis l’accueil ne vérifie pas « un Swend en cours par paire » (règle demandée pour `Faire un nouveau Swend` ; l’étendre à l’accueil changerait un parcours existant : à décider).
+- Textes anciens au vouvoiement, non modifiés (D-023c ne réécrit pas l’existant) : push « Alors, ce Swend ? / Le silence est levé. Vous pouvez maintenant en reparler dans le chat. », « [Prénom] vous a écrit », état vide « À vous de débriefer. », révélation « Kevin a pris votre place. », « Réessayez », message D-025 « Choisissez une date… », entre autres.
+
+### Raison
+Préserver le principe du silence avant un Swend : deux personnes qui ont scellé un nouveau rendez-vous ne doivent plus pouvoir se parler dans l’ancien chat, et la reprise d’un Swend avec quelqu’un rencontré doit être simple et sans numéro.
+
+### Précise
+D-023b (chat après le Swend), D-024 (aucun numéro), D-025 (délai minimum), D-019 (scellement).
+
+### Mise en production
+Pas en production. QA OK le 03/10 (voir `PRODUCT_STATUS.md`). Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
 
 ---
 
