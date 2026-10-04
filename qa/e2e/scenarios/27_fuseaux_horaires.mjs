@@ -100,6 +100,9 @@ export default {
       });
       await ex.verifier('création avec une date sans fuseau : refus date_sans_fuseau',
         () => !sansFuseau.ok && sansFuseau.corps.includes('date_sans_fuseau'), { obtenu: () => sansFuseau.corps });
+      // Un seul Swend en cours par paire (D-023c) : le Swend scellé des étapes
+      // précédentes est annulé avant cette nouvelle création.
+      sql(`update pactes set statut = 'annule' where statut <> 'annule'`);
       const cree = await insererComme('eliot', 'pactes', {
         type: 'diner', statut: 'enAttenteChoixDateDestinataire', dates_proposees: [instantParis(j)],
         restaurant_id: restaurant(), initiateur_id: COMPTES.eliot.id, initiateur_nom: COMPTES.eliot.nomComplet,

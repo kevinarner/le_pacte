@@ -130,6 +130,9 @@ export default {
       await ex.verifier('Eliot (standard) contre-propose J+3 sur le Swend de Kevin : accepté (exemption du Swend)',
         () => cp.ok, { obtenu: () => cp.corps });
 
+      // Un seul Swend en cours par paire (D-023c) : le Swend de Kevin est
+      // annulé avant qu'Eliot n'en crée un avec lui.
+      sql(`update pactes set statut = 'annule' where id = '${dernier('kevin', 'eliot')}'`);
       const e14 = await creer('eliot', [instant(14)], 'kevin');
       await ex.verifier('Eliot crée un Swend avec Kevin à J+14 : refusé (le destinataire fondateur n\'exempte pas)',
         () => refuse(e14), { obtenu: () => e14.corps });

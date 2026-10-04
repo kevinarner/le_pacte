@@ -624,7 +624,7 @@ Préserver le principe du silence avant un Swend : deux personnes qui ont scell�
 D-023b (chat après le Swend), D-024 (aucun numéro), D-025 (délai minimum), D-019 (scellement).
 
 ### Mise en production
-Pas en production. QA OK le 03/10 (régression complète : métier 1526/0, E2E 783/0, 30/30 scénarios ; garde-fous 147/0). Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
+Pas en production. QA OK le 03/10 (régression complète : métier 1526/0, E2E 783/0, 30/30 scénarios ; garde-fous 147/0). Règle « un Swend en cours par paire » rendue globale le 04/10 : métier 1546/0 ; E2E 28/30 scénarios au premier passage, les 2 autres (`26_delai_minimum`, `27_fuseaux_horaires`) créaient un second Swend pour une paire déjà en cours — tests adaptés (Swend précédent annulé), puis 25/0 et 24/0. Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
 
 ---
 
