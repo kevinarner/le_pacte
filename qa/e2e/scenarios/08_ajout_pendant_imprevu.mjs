@@ -59,7 +59,7 @@ export default {
     await ex.etape('Refus : autre participant, doublon, numéro invalide', async () => {
       await ajouterDepuisImprevu(ex, eliot, { prenom: 'David', nom: 'Schlang', tel: '06 02 03 04 05' });
       await ex.verifierTexte(eliot, 'Cette personne participe déjà à ce Swend', 'David : "participe déjà à ce Swend"');
-      await ajouterDepuisImprevu(ex, eliot, { prenom: 'Kevin', nom: 'Arner', tel: '+33 6 70 41 92 77' });
+      await ajouterDepuisImprevu(ex, eliot, { prenom: 'Kevin', nom: 'Arner', tel: '+33 6 00 00 12 34' });
       await ex.verifierTexte(eliot, 'Cette personne est déjà dans votre liste.', 'Kevin (autre format) : "déjà dans votre liste"');
       await ajouterDepuisImprevu(ex, eliot, { prenom: 'Zoé', nom: 'Moreau', tel: '06 12' }, { valider: false });
       await ex.verifierTexte(eliot, 'Numéro de mobile invalide', 'numéro invalide signalé');

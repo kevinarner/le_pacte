@@ -9,12 +9,12 @@ delete from test_resultats;
 \set C '00000000-0000-0000-0000-00000000000c'
 
 -- N. Normalisation des numéros (même règle que lib/utils/telephone.dart) --
-select verifier('N', '"06 70 41 92 77" → +33670419277', normaliser_telephone('06 70 41 92 77') = '+33670419277');
+select verifier('N', '"06 00 00 12 34" → +33600001234', normaliser_telephone('06 00 00 12 34') = '+33600001234');
 select verifier('N', '"07.11.22.33.44" → +33711223344', normaliser_telephone('07.11.22.33.44') = '+33711223344');
-select verifier('N', '"+33 6 70 41 92 77" → +33670419277', normaliser_telephone('+33 6 70 41 92 77') = '+33670419277');
-select verifier('N', '"0033 6 70 41 92 77" → +33670419277', normaliser_telephone('0033 6 70 41 92 77') = '+33670419277');
-select verifier('N', '"+33 (0)6 70 41 92 77" → +33670419277', normaliser_telephone('+33 (0)6 70 41 92 77') = '+33670419277');
-select verifier('N', 'E.164 déjà canonique inchangé', normaliser_telephone('+33670419277') = '+33670419277');
+select verifier('N', '"+33 6 00 00 12 34" → +33600001234', normaliser_telephone('+33 6 00 00 12 34') = '+33600001234');
+select verifier('N', '"0033 6 00 00 12 34" → +33600001234', normaliser_telephone('0033 6 00 00 12 34') = '+33600001234');
+select verifier('N', '"+33 (0)6 00 00 12 34" → +33600001234', normaliser_telephone('+33 (0)6 00 00 12 34') = '+33600001234');
+select verifier('N', 'E.164 déjà canonique inchangé', normaliser_telephone('+33600001234') = '+33600001234');
 select verifier('N', 'outre-mer "0692 12 34 56" → +262692123456', normaliser_telephone('0692 12 34 56') = '+262692123456');
 select verifier('N', 'étranger "+44 7911 123456" accepté', normaliser_telephone('+44 7911 123456') = '+447911123456');
 select verifier('N', 'fixe "01 23 45 67 89" refusé', normaliser_telephone('01 23 45 67 89') is null);

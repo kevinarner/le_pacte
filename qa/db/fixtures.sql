@@ -63,7 +63,7 @@ begin
   insert into profiles (id, prenom, nom, telephone, email) values
     (qa.id('eliot'),   'Eliot',   'Martin',   '06 01 02 03 04',    'eliot@swend.test'),
     (qa.id('david'),   'David',   'Schlang',  '+33 6 02 03 04 05', 'david@swend.test'),
-    (qa.id('kevin'),   'Kevin',   'Arner',    '0670419277',        'kevin@swend.test'),
+    (qa.id('kevin'),   'Kevin',   'Arner',    '0600001234',        'kevin@swend.test'),
     (qa.id('sylvain'), 'Sylvain', 'Landiech', '06 55 44 33 22',    'sylvain@swend.test');
 end $$;
 
@@ -93,16 +93,16 @@ begin
           qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05');
 
   if p_etat in ('scelle', 'scelle_kevin_deux_cotes') then
-    perform qa.fiche('initiateur', 'Kevin', 'Arner', '06 70 41 92 77', '00000000-0000-4000-8000-00000000a003');
+    perform qa.fiche('initiateur', 'Kevin', 'Arner', '06 00 00 12 34', '00000000-0000-4000-8000-00000000a003');
     perform qa.fiche('initiateur', 'Sylvain', 'Landiech', '06 55 44 33 22', '00000000-0000-4000-8000-00000000a002');
     perform qa.fiche('initiateur', 'Tom', 'Petit', '07 11 22 33 44', '00000000-0000-4000-8000-00000000a001');
     perform qa.fiche('destinataire', 'Léo', 'Blanc', '07 22 33 44 55', '00000000-0000-4000-8000-00000000b002');
     perform qa.fiche('destinataire', 'Nina', 'Roy', '07 33 44 55 66', '00000000-0000-4000-8000-00000000b001');
     if p_etat = 'scelle_kevin_deux_cotes' then
-      perform qa.fiche('destinataire', 'Kevin', 'Arner', '+33 6 70 41 92 77', '00000000-0000-4000-8000-00000000b003');
+      perform qa.fiche('destinataire', 'Kevin', 'Arner', '+33 6 00 00 12 34', '00000000-0000-4000-8000-00000000b003');
     end if;
   elsif p_etat = 'scelle_double' then
-    perform qa.fiche('initiateur', 'Kevin', 'Arner', '06 70 41 92 77', '00000000-0000-4000-8000-00000000a003');
+    perform qa.fiche('initiateur', 'Kevin', 'Arner', '06 00 00 12 34', '00000000-0000-4000-8000-00000000a003');
     perform qa.fiche('initiateur', 'Tom', 'Petit', '07 11 22 33 44', '00000000-0000-4000-8000-00000000a001');
     perform qa.fiche('destinataire', 'Sylvain', 'Landiech', '06 55 44 33 22', '00000000-0000-4000-8000-00000000b003');
     perform qa.fiche('destinataire', 'Léo', 'Blanc', '07 22 33 44 55', '00000000-0000-4000-8000-00000000b002');

@@ -13,9 +13,9 @@ alter table pactes disable trigger trg_verrou_un_swend_par_paire;
 \set KA '00000000-0000-0000-0000-0000000000a1'
 \set ZR '00000000-0000-0000-0000-0000000000f5'
 
--- Kevin s'est inscrit avec "0670419277" ; Zoé (Réunion) avec "0692 12 34 56".
+-- Kevin s'est inscrit avec "0600001234" ; Zoé (Réunion) avec "0692 12 34 56".
 insert into profiles (id, prenom, nom, telephone) values
-  (:'KA', 'Kevin', 'Arner', '0670419277'),
+  (:'KA', 'Kevin', 'Arner', '0600001234'),
   (:'ZR', 'Zoé', 'Réunion', '0692 12 34 56')
 on conflict do nothing;
 
@@ -30,11 +30,11 @@ end $$;
 
 -- T1. Le cas du point 6 ---------------------------------------------------
 select nouveau_swend() as p \gset
-select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '06 70 41 92 77') as ke \gset
-select ajouter_fiche(:'D', :'p', 'destinataire', 'Kevin', '+33670419277') as kd \gset
-select verifier('T1', 'Eliot saisit "06 70 41 92 77" → fiche liée au compte de Kevin',
+select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '06 00 00 12 34') as ke \gset
+select ajouter_fiche(:'D', :'p', 'destinataire', 'Kevin', '+33600001234') as kd \gset
+select verifier('T1', 'Eliot saisit "06 00 00 12 34" → fiche liée au compte de Kevin',
   (select profil_id from remplacants where id = :'ke') = :'KA');
-select verifier('T1', 'David saisit "+33670419277" → même compte',
+select verifier('T1', 'David saisit "+33600001234" → même compte',
   (select profil_id from remplacants where id = :'kd') = :'KA');
 select en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'ke')) as r \gset
 select verifier('T1', 'Kevin accepte la place d''Eliot',
@@ -65,7 +65,7 @@ select verifier('T2', 'à l''inscription de Mia ("+33…") : le Swend lui est ra
 
 -- T3. Unicité canonique des comptes --------------------------------------
 select verifier('T3', 'deuxième compte avec le numéro de Kevin sous un autre format : refusé',
-  essayer($$insert into profiles (id, prenom, nom, telephone) values ('00000000-0000-0000-0000-0000000000c9', 'Faux', 'Kevin', '+33 6 70 41 92 77')$$) like '%profiles_telephone_e164_unique%');
+  essayer($$insert into profiles (id, prenom, nom, telephone) values ('00000000-0000-0000-0000-0000000000c9', 'Faux', 'Kevin', '+33 6 00 00 12 34')$$) like '%profiles_telephone_e164_unique%');
 select verifier('T3', 'numéro de compte invalide (fixe) : refusé',
   essayer($$insert into profiles (id, prenom, nom, telephone) values ('00000000-0000-0000-0000-0000000000c8', 'Fixe', 'X', '01 23 45 67 89')$$) like '%telephone_invalide%');
 select verifier('T3', 'numéro de compte "0000" : refusé',
@@ -73,16 +73,16 @@ select verifier('T3', 'numéro de compte "0000" : refusé',
 
 -- T4. Même personne deux fois du même côté --------------------------------
 select nouveau_swend() as p \gset
-select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0670419277') as k1 \gset
+select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600001234') as k1 \gset
 select verifier('T4', 'Kevin re-saisi sous un autre format du même côté : refusé',
   en_tant_que(:'E', format('insert into remplacants (pacte_id, cote, prenom, nom, telephone, email) values (%L, %L, %L, %L, %L, %L)',
-    :'p', 'initiateur', 'Kev', 'A', '+33 6 70 41 92 77', '')) like '%personne_deja_prevue%');
+    :'p', 'initiateur', 'Kev', 'A', '+33 6 00 00 12 34', '')) like '%personne_deja_prevue%');
 select verifier('T4', 'même refus via "Ajouter quelqu''un", rien inséré',
-  en_tant_que(:'E', format('select ajouter_et_demander_remplacement(%L, %L, %L, %L, %L)', :'p', 'initiateur', 'Kev', 'A', '0033670419277')) like '%personne_deja_prevue%'
+  en_tant_que(:'E', format('select ajouter_et_demander_remplacement(%L, %L, %L, %L, %L)', :'p', 'initiateur', 'Kev', 'A', '0033600001234')) like '%personne_deja_prevue%'
   and (select count(*) from remplacants where pacte_id = :'p') = 1);
 select verifier('T4', 'la même personne reste possible de l''autre côté',
   en_tant_que(:'D', format('insert into remplacants (pacte_id, cote, prenom, nom, telephone, email) values (%L, %L, %L, %L, %L, %L)',
-    :'p', 'destinataire', 'Kevin', 'A', '+33670419277', '')) = 'OK');
+    :'p', 'destinataire', 'Kevin', 'A', '+33600001234', '')) = 'OK');
 
 -- T5. Un participant du Swend ne peut pas être personne de confiance ----
 select nouveau_swend() as p \gset
@@ -139,12 +139,12 @@ select verifier('T7', 'Kevin ne peut pas changer son numéro depuis l''app',
 select verifier('T7', 'les autres champs du profil restent modifiables',
   en_tant_que(:'KA', format('update profiles set nom = %L where id = %L', 'Arner', :'KA')) = 'OK');
 select verifier('T7', 'intervention manuelle (SQL Editor) possible, avec numéro valide',
-  essayer(format('update profiles set telephone = %L where id = %L', '+33 6 70 41 92 77', :'KA')) = 'OK'
-  and (select telephone_e164 from profiles where id = :'KA') = '+33670419277');
+  essayer(format('update profiles set telephone = %L where id = %L', '+33 6 00 00 12 34', :'KA')) = 'OK'
+  and (select telephone_e164 from profiles where id = :'KA') = '+33600001234');
 
 -- T8. Plus de recherche de compte par numéro depuis l'app ------------------
 select verifier('T8', 'trouver_profil_par_telephone interdite au rôle authenticated',
-  en_tant_que(:'E', $$select trouver_profil_par_telephone('0670419277')$$) like '%permission denied%');
+  en_tant_que(:'E', $$select trouver_profil_par_telephone('0600001234')$$) like '%permission denied%');
 
 -- T9. Numéro de personne de confiance invalide ----------------------------
 select nouveau_swend() as p \gset

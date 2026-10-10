@@ -42,12 +42,12 @@ export default {
     await ex.etape('Personnes de confiance : doublons et numéros interdits', async () => {
       await eliot.taper('Prénom', 'Kevin', 0);
       await eliot.taper('Nom', 'Arner', 0);
-      await eliot.taper('Numéro de mobile', '+33670419277', 0);
+      await eliot.taper('Numéro de mobile', '+33600001234', 0);
       await A.statutAffiche(eliot, 'Kevin');
       await ex.verifierTexte(eliot, 'Kevin est déjà sur Swend', 'Kevin (+33…) : "déjà sur Swend"');
       await eliot.taper('Prénom', 'Kev', 1);
       await eliot.taper('Nom', 'Arner', 1);
-      await eliot.taper('Numéro de mobile', '06 70 41 92 77', 1);
+      await eliot.taper('Numéro de mobile', '06 00 00 12 34', 1);
       await ex.verifierTexte(eliot, 'Cette personne est déjà dans la liste.', 'même numéro, autre format : doublon');
       await eliot.taper('Numéro de mobile', '06.02.03.04.05', 1);
       await ex.verifierTexte(eliot, "C'est le numéro de David, avec qui tu fais ce Swend.", 'numéro de David : refusé');
@@ -75,7 +75,7 @@ export default {
       const fiches = () => sql(`select string_agg(r.prenom || '=' || normaliser_telephone(r.telephone) || ':' || coalesce(p.prenom, '-'), ', ' order by r.prenom)
                                 from remplacants r left join profiles p on p.id = r.profil_id`);
       await ex.verifier('numéros normalisés (E.164) et rattachés aux bons comptes',
-        () => fiches() === 'Kevin=+33670419277:Kevin, Sylvain=+33655443322:Sylvain, Tom=+33711223344:-', { obtenu: fiches });
+        () => fiches() === 'Kevin=+33600001234:Kevin, Sylvain=+33655443322:Sylvain, Tom=+33711223344:-', { obtenu: fiches });
     });
 
     await ex.etape('Kevin retrouve le Swend malgré un format différent', async () => {

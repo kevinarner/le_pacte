@@ -66,7 +66,7 @@ export function cheminChromium() {
 export const COMPTES = {
   eliot: { email: 'eliot@swend.test', prenom: 'Eliot', nomComplet: 'Eliot Martin', id: '00000000-0000-4000-8000-0000000000e1', tel: '06 01 02 03 04' },
   david: { email: 'david@swend.test', prenom: 'David', nomComplet: 'David Schlang', id: '00000000-0000-4000-8000-0000000000d1', tel: '+33 6 02 03 04 05' },
-  kevin: { email: 'kevin@swend.test', prenom: 'Kevin', nomComplet: 'Kevin Arner', id: '00000000-0000-4000-8000-0000000000a1', tel: '06 70 41 92 77' },
+  kevin: { email: 'kevin@swend.test', prenom: 'Kevin', nomComplet: 'Kevin Arner', id: '00000000-0000-4000-8000-0000000000a1', tel: '06 00 00 12 34' },
   sylvain: { email: 'sylvain@swend.test', prenom: 'Sylvain', nomComplet: 'Sylvain Landiech', id: '00000000-0000-4000-8000-0000000000b1', tel: '06 55 44 33 22' },
 };
 export const CONTACTS_SANS_COMPTE = {

@@ -491,9 +491,9 @@ message au support).
 
 - **L'identité d'une personne, c'est son compte**. Le téléphone ne sert qu'à
   **rapprocher** un numéro saisi et un compte.
-- Tous les formats d'un même mobile sont équivalents : « 06 70 41 92 77 »,
-  « 0670419277 », « +33 6 70 41 92 77 », « 0033… », « 06.70… ». La
-  comparaison se fait sur la forme E.164 (+33670419277), identique en Dart et
+- Tous les formats d'un même mobile sont équivalents : « 06 00 00 12 34 »,
+  « 0600001234 », « +33 6 00 00 12 34 », « 0033… », « 06.70… ». La
+  comparaison se fait sur la forme E.164 (+33600001234), identique en Dart et
   en SQL. Le numéro reste stocké tel que saisi.
 - Seuls les **mobiles** sont acceptés. Un fixe ou un numéro trop court est
   refusé : « Numéro de mobile invalide… ». Les numéros étrangers sont acceptés

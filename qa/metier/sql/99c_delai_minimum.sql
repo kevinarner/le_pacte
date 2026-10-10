@@ -25,8 +25,8 @@ on conflict do nothing;
 insert into auth.users (id, email, email_confirmed_at) values
  ('00000000-0000-0000-0000-00000000000e', 'eliot@swend.test', now()),
  ('00000000-0000-0000-0000-00000000000d', 'david@swend.test', now()),
- ('00000000-0000-0000-0000-000000000251', 'KevinArner@Hotmail.com', now()),
- ('00000000-0000-0000-0000-000000000252', 'eliotschlang@icloud.com', null),
+ ('00000000-0000-0000-0000-000000000251', 'Fondateur1@Swend.Test', now()),
+ ('00000000-0000-0000-0000-000000000252', 'fondateur3@swend.test', null),
  ('00000000-0000-0000-0000-000000000253', 'paul@swend.test', now())
 on conflict (id) do update set email = excluded.email, email_confirmed_at = excluded.email_confirmed_at;
 
@@ -109,7 +109,7 @@ select verifier('B', 'fondateur (email confirmé, casse ignorée) : J+2 accepté
 select verifier('B', 'fondateur à l''email non confirmé : soumis à la règle',
   dm_creer(:'N', array[dm_jour(2)]) like '%date_trop_proche%');
 select verifier('B', 'profiles.email d''un fondateur modifiable par l''utilisateur… mais ignoré',
-  dm_lire(:'P', format($q$update profiles set email = 'kevinarner@hotmail.com' where id = %L returning 'OK'$q$, :'P')) = 'OK'
+  dm_lire(:'P', format($q$update profiles set email = 'fondateur1@swend.test' where id = %L returning 'OK'$q$, :'P')) = 'OK'
   and dm_creer(:'P', array[dm_jour(2)]) like '%date_trop_proche%');
 select verifier('B', 'première date possible : standard = aujourd''hui + 15, fondateur = aucune',
   dm_lire(:'E', 'select date_minimale_nouveau_swend()::text') = (dm_aujourdhui() + 15)::text

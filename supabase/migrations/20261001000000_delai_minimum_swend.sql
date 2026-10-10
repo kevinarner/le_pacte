@@ -36,10 +36,12 @@ create table if not exists public.comptes_fondateurs (
 );
 alter table public.comptes_fondateurs enable row level security;
 revoke all on table public.comptes_fondateurs from public, anon, authenticated;
+-- Adresses réelles des 3 comptes fondateurs : en production seulement. Elles
+-- ont été remplacées ici par des adresses fictives (dépôt public, 10/10/2026).
 insert into public.comptes_fondateurs (email) values
-  ('kevinarner@hotmail.com'),
-  ('eliotschlang@gmail.com'),
-  ('eliotschlang@icloud.com')
+  ('fondateur1@swend.test'),
+  ('fondateur2@swend.test'),
+  ('fondateur3@swend.test')
 on conflict (email) do nothing;
 
 -- 2. Date minimale d'un Swend ----------------------------------------------------
@@ -136,7 +138,7 @@ create trigger trg_verrou_delai_minimum_swend
 -- Vérification (résultat affiché) ------------------------------------------
 select 'Comptes fondateurs : 3 adresses, table inaccessible à l''app' as verification,
   ((select count(*) from public.comptes_fondateurs
-    where email in ('kevinarner@hotmail.com', 'eliotschlang@gmail.com', 'eliotschlang@icloud.com')) = 3
+    where email in ('fondateur1@swend.test', 'fondateur2@swend.test', 'fondateur3@swend.test')) = 3
    and not has_table_privilege('authenticated', 'public.comptes_fondateurs', 'select')
    and not has_table_privilege('anon', 'public.comptes_fondateurs', 'select'))::text as resultat
 union all

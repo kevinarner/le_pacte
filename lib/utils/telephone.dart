@@ -73,7 +73,7 @@ const messageTelephoneInvalide =
     'Numéro de mobile invalide. Pour un numéro étranger, commence par '
     "l'indicatif (+44…).";
 
-/// "06 70 41 92 77", "0692 12 34 56", ou la forme E.164 pour l'étranger ;
+/// "06 00 00 12 34", "0692 12 34 56", ou la forme E.164 pour l'étranger ;
 /// la saisie telle quelle si le numéro est invalide.
 String formaterTelephone(String saisie) {
   final e164 = normaliserTelephone(saisie);

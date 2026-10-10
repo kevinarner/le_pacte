@@ -568,7 +568,7 @@ Pour un Swend créé par un utilisateur standard, aucune date ne peut tomber ava
 
 - S’applique aux dates proposées à la création, aux contre-propositions et à la date retenue.
 - Calcul exclusivement serveur : `pactes.date_minimale` (date) est posée par la base à la création, jamais par l’app ni modifiable par elle. Toute valeur envoyée par l’app est ignorée.
-- Comptes fondateurs (`kevinarner@hotmail.com`, `eliotschlang@gmail.com`, `eliotschlang@icloud.com`) : exemptés. Reconnus par l’email **confirmé** de leur compte Supabase Auth, jamais par `profiles.email` ni par une valeur de l’app. Table interne `comptes_fondateurs`, illisible par l’app.
+- Comptes fondateurs (3 adresses : celle de Kevin et les 2 d’Eliot ; enregistrées en production, retirées du dépôt public) : exemptés. Reconnus par l’email **confirmé** de leur compte Supabase Auth, jamais par `profiles.email` ni par une valeur de l’app. Table interne `comptes_fondateurs`, illisible par l’app.
 - L’exemption suit le Swend : un Swend créé par un fondateur est exempté pour toute sa négociation (contre-propositions de l’autre titulaire comprises) ; un Swend créé par un utilisateur standard garde sa limite, même si le destinataire est fondateur.
 - Pas de rétroactivité : les Swends existants gardent `date_minimale = null` (pas de limite).
 - L’app n’utilise la date que pour le calendrier (rien avant la première date possible) et pour le message de refus : « Choisissez une date au moins 15 jours à l’avance. Première date possible : 16 octobre. » (date donnée par la base dans le refus `date_trop_proche`).

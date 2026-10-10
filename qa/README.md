@@ -83,7 +83,7 @@ Comptes (mot de passe : `QA_MOT_DE_PASSE` dans `config.env`) :
 |---|---|---|
 | Eliot Martin | eliot@swend.test | 06 01 02 03 04 |
 | David Schlang | david@swend.test | +33 6 02 03 04 05 |
-| Kevin Arner | kevin@swend.test | 0670419277 |
+| Kevin Arner | kevin@swend.test | 0600001234 |
 | Sylvain Landiech | sylvain@swend.test | 06 55 44 33 22 |
 
 Contacts sans compte : Tom Petit (07 11 22 33 44), Léo Blanc, Nina Roy.
