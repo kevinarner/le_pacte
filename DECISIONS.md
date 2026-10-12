@@ -691,7 +691,7 @@ Un imprévu doit se gérer en un seul parcours, sans revirement après une accep
 Remplace D-004. Révise D-022 (lot 2). Complète D-023b (chat d’annulation, lot 2). Précise D-015 (notifications de l’imprévu), D-021 (état « cherche » et rappels), D-002, D-003, D-009, D-012.
 
 ### Mise en production
-Lot 1 : pas en production. QA du 12/10 : voir `PRODUCT_STATUS.md`. Migration `20261012000000_imprevu_etats_et_actions.sql` et change packet `supabase/changements/D-027-01/` (niveau 2) préparés et répétés en local ; à exécuter **après** R2-01 et D-023c-01 (ordre des migrations testé), puis déploiement de l’app correspondante.
+Lot 1 : pas en production. QA du 12/10 : régression complète métier 1654/0 (SQL dont `99f_imprevu_etats_actions` 93/0, concurrence avec 2 nouvelles courses, parité, Dart sous 4 fuseaux), E2E 788 vérifications, 29/31 scénarios au premier passage ; les 2 échecs étaient des attentes à réaligner (`11_evenements` : réactivation au lieu d’une nouvelle demande) ou indépendants de D-027 (`27_fuseaux_horaires` : fenêtre de dates sans lendemain de changement d’heure le 12/10), corrigés puis 22/0 et 24/0. Migration `20261012000000_imprevu_etats_et_actions.sql` et change packet `supabase/changements/D-027-01/` (niveau 2) préparés et répétés en local ; à exécuter **après** R2-01 et D-023c-01 (ordre des migrations testé), puis déploiement de l’app correspondante.
 
 ---
 
