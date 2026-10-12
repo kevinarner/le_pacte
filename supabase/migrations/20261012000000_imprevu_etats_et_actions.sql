@@ -804,7 +804,7 @@ begin
     where pacte_id = v_fiche.pacte_id and cote <> v_fiche.cote and selectionne = true
   ) then
     perform pousser_titulaire(p_remplacant_id, v_personne || ' a accepté',
-      v_personne || ' prendra ta place le jour J.');
+      v_personne || ' sera là à ta place le jour J.');
   end if;
   foreach v_id in array v_closes loop
     perform pousser_personne(v_id, 'Plus besoin de répondre', 'La place a été prise pour ce Swend.');
