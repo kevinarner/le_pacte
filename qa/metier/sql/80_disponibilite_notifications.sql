@@ -161,7 +161,7 @@ select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) as r \gset
 select verifier('N', 'acceptation : Eliot notifié une fois (D-027)',
   (select string_agg(titre || '|' || corps, ' ## ') from notifications_log where id > :n0 and profile_id = :'E')
-    = 'Kevin a accepté|Kevin prendra ta place le jour J.', notifs_depuis(:n0, :'E'));
+    = 'Kevin a accepté|Kevin sera là à ta place le jour J.', notifs_depuis(:n0, :'E'));
 select verifier('N', 'acceptation : payload vers la conversation avec Kevin',
   (select data->>'type' = 'chat' and data->>'remplacant_id' = :'k' from notifications_log where id > :n0 and profile_id = :'E'));
 select verifier('N', 'acceptation : Camille (clôturée) notifiée une fois, sans savoir qui (D-027)',
@@ -189,7 +189,7 @@ select en_tant_que(:'D', format('select envoyer_demande_remplacement(%L)', :'kd'
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'ke')) as r \gset
 select verifier('N', 'deux côtés : acceptation côté Eliot → Eliot seul notifié',
-  notifs_depuis(:n0, :'E') = 'Kevin prendra ta place le jour J.'
+  notifs_depuis(:n0, :'E') = 'Kevin sera là à ta place le jour J.'
   and (select count(*) from notifications_log where id > :n0) = 1);
 select en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'ke')) as r \gset
 select verifier('N', 'deux côtés : rien pour David (clôture puis réouverture de sa fiche)',

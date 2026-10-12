@@ -268,7 +268,7 @@ select verifier('D', 'Kevin et Tom clôturés, Thomas refusé, Zoé jamais solli
   statut_fiche(:'k') = 'cloturee' and statut_fiche(:'tom') = 'cloturee'
   and statut_fiche(:'t') = 'refusee' and statut_fiche(:'z') = 'null');
 select verifier('D', 'acceptation : Eliot « Camille a accepté », Kevin « Plus besoin de répondre », rien d''autre',
-  g_push(:n0, :'E') = 'Camille a accepté|Camille prendra ta place le jour J.'
+  g_push(:n0, :'E') = 'Camille a accepté|Camille sera là à ta place le jour J.'
   and g_push(:n0, :'K') = 'Plus besoin de répondre|La place a été prise pour ce Swend.'
   and g_nb_push(:n0) = 2);
 select verifier('D', 'la clôture se souvient de l''acceptation de Camille',

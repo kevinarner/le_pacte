@@ -874,7 +874,7 @@ Imprévu (D-027) : une push seulement quand une action devient attendue, cesse d
 | Événement | Destinataire | Push |
 |---|---|---|
 | Demande envoyée | personne sollicitée (avec compte) | On a besoin de toi / [Titulaire] te demande de prendre sa place pour un Swend. |
-| Acceptation | titulaire | [Prénom] a accepté / [Prénom] prendra ta place le jour J. |
+| Acceptation | titulaire | [Prénom] a accepté / [Prénom] sera là à ta place le jour J. |
 | Acceptation | autres personnes en attente | Plus besoin de répondre / La place a été prise pour ce Swend. |
 | Dernière demande active refusée | titulaire | Personne n’est disponible pour l’instant / Tu peux solliciter quelqu’un d’autre. |
 | Désistement | titulaire | [Prénom] ne peut finalement plus venir / Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire. (sinon : Tu peux solliciter quelqu’un d’autre.) |

@@ -55,8 +55,8 @@ export default {
 
     await ex.etape('Kevin accepte → Eliot prévenu', async () => {
       await A.repondre(kevin, true);
-      await ex.verifier('Eliot : push "Kevin a accepté / Kevin prendra ta place le jour J."',
-        () => notifs('eliot') === 'Kevin prendra ta place le jour J.', { obtenu: () => notifs('eliot') });
+      await ex.verifier('Eliot : push "Kevin a accepté / Kevin sera là à ta place le jour J."',
+        () => notifs('eliot') === 'Kevin sera là à ta place le jour J.', { obtenu: () => notifs('eliot') });
       await ex.verifier('Kevin : aucune notification pour sa propre réponse', () => notifs('kevin') === 'Eliot Martin te demande de prendre sa place pour un Swend.', { obtenu: () => notifs('kevin') });
       await eliot.accueil();
       await ex.verifierTexte(eliot, 'Kevin a accepté de prendre ta place.', 'Eliot : box "Kevin a accepté"');

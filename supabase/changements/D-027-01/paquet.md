@@ -88,7 +88,16 @@ obligatoires.
 **Ordre.** À exécuter **après** R2-01 et D-023c-01 (migrations
 `fuseaux_horaires.sql` et `nouveau_swend.sql`) : c'est l'ordre testé.
 `appliquer.sql` refuse sinon (`trg_verrou_zz_dates_swend` et
-`trg_verrou_un_swend_par_paire` actifs exigés).
+`trg_verrou_un_swend_par_paire` actifs exigés). D'après leurs reçus
+(branches `recu/R2-01` et `recu/D-023c-01`), les deux ont été appliqués
+(R2-01 le 03/10 : succès ; D-023c-01 le 04/10 : `appliquer` HTTP 201, seule
+l'étape `verifier` a échoué sur un droit de lecture de `swend_en_cours`) ;
+l'app D-023c est publiée depuis le 04/10.
+
+**App du lot 1 publiée d'abord** (voir « Ordre d'exécution ») : c'est une
+précondition de ce paquet. Elle garantit qu'aucune demande d'une personne
+sans compte ne peut être réactivée tant que l'app publiée ne propose pas
+« Renvoyer le message à … ».
 
 **État relu.** La lecture de la production n'a pas pu être faite le 12/10
 (l'endpoint `…/read-only` a répondu « Invalid access token » : identifiant
@@ -150,17 +159,18 @@ suites SQL sur la base répétée : 973/0 ; rollback après usage réel (16
 ## Impact attendu
 
 - Immédiat : aucune donnée existante modifiée ; seule la table interne des
-  déclarations est remplie. Aucun écran ne change pour l'app actuelle tant
-  que l'app du lot 1 n'est pas déployée, sauf :
+  déclarations est remplie. Côté app (lot 1, déjà publiée) : « Renvoyer le
+  message à … » apparaît dès qu'une demande d'une personne sans compte est
+  réactivée. Autres effets visibles :
   - textes des push de l'imprévu (tutoiement D-027) ;
   - le titulaire n'est plus prévenu de chaque refus, seulement du dernier ;
   - après un désistement, les demandes qui attendaient une réponse
     redeviennent actives (avec push) au lieu de redevenir « Lui demander » ;
   - retirer une personne qui a refusé ne fait plus sortir de l'état
     « cherche » des rappels.
-- Personne sans compte réactivée entre la migration et le déploiement de
-  l'app : l'app actuelle affiche déjà « En attente » et « Envoyer le
-  message » pour elle ; la nouvelle app affiche « Renvoyer le message à … ».
+- Appareil qui affiche encore l'app précédente en cache (service worker
+  Flutter, le temps d'un rechargement) : la demande réactivée y apparaît
+  « En attente » avec « Envoyer le message » ; jamais invisible.
 - Durée : une transaction courte (fonctions, 2 tables, 1 colonne avec valeur
   par défaut constante, 2 déclencheurs ; verrou bref sur `remplacants`).
 
@@ -177,10 +187,12 @@ Session de travail, en lecture seule ensuite : jobs pg_cron (`swend-rappels`,
 
 ## Rollback
 
-Quand : régression constatée sur les demandes de remplacement. Ordre :
-d'abord remettre l'app précédente (gh-pages), qui n'appelle pas les
-nouvelles fonctions, puis `scripts/prod_ecrire.sh D-027-01 <empreinte>
---rollback`.
+Quand : régression constatée sur les demandes de remplacement. L'app du
+lot 1 fonctionne aussi sans D-027 (testé : sans la colonne
+`message_a_renvoyer`, elle ne propose jamais « Renvoyer le message » et
+n'appelle pas `marquer_message_renvoye()`) ; remettre l'app précédente n'est
+nécessaire qu'en cas de problème de l'app elle-même. Exécuter
+`scripts/prod_ecrire.sh D-027-01 <empreinte> --rollback`.
 
 Effet : les 9 fonctions retrouvent leur définition d'origine (contrôlée
 contre la sauvegarde : empreinte et droits), `envoyer_demande_remplacement`
@@ -210,12 +222,27 @@ schéma interne `sauvegarde` (aucun accès pour l'app, vérifié) :
 `appliquer.sql` prouve, contre cette copie, qu'aucune demande existante n'a
 changé.
 
-## Ordre d'exécution (production puis app)
+## Ordre d'exécution (app d'abord, puis base)
 
-1. R2-01 puis D-023c-01 (déjà validés), selon leurs propres paquets.
-2. Lecture seule des préconditions ci-dessus, puis Go sur ce paquet selon la
+Aucune fenêtre où la base peut réactiver la demande d'une personne sans
+compte sans que l'app publiée permette de renvoyer le message : l'app du
+lot 1 est publiée **avant** la migration. Elle est compatible avec la base
+actuelle (sans D-027) : `message_a_renvoyer` absent est lu comme `false`,
+rien d'autre ne change à l'écran (scénarios E2E de l'imprévu rejoués avec
+cette app sur une base sans D-027 : voir `DECISIONS.md`, D-027).
+
+1. Préalables, déjà faits selon les reçus : R2-01, D-023c-01, app D-023c.
+2. **App du lot 1** (niveau 1, Go d'Eliot à part) : build web depuis le
+   commit source indiqué dans `DECISIONS.md` (D-027, « Mise en
+   production »), `flutter build web --release --base-href /le_pacte/`,
+   publication sur `gh-pages` (`ARCHITECTURE.md` §3), puis fast-forward de
+   `main`.
+3. Vérification de l'app publiée (lecture seule) : `.last_build_id` de
+   `gh-pages` = celui de la build de l'étape 2 ; l'app s'ouvre, un Swend et
+   « Un imprévu ? » s'affichent normalement. Laisser aux appareils le temps
+   de recharger l'app (service worker Flutter), par exemple jusqu'au
+   lendemain.
+4. Lecture seule des préconditions ci-dessus, puis Go sur ce paquet selon la
    gouvernance en vigueur (`CLAUDE.md`), puis exécution par la porte
    (sauvegarde, appliquer, verifier).
-3. Ensuite seulement : déploiement de l'app du lot 1 (gh-pages, niveau 1, Go
-   à part) — elle lit `remplacants.message_a_renvoyer` et appelle
-   `marquer_message_renvoye()`, absents avant la migration.
+5. `verifier.sql`, puis vérification en lecture seule (jobs pg_cron).
