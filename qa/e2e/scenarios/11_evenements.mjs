@@ -12,10 +12,12 @@ const EVTS = {
     'Tu as demandé à Kevin de prendre ta place.', 'Kevin a accepté de prendre ta place.', 'Kevin ne peut finalement plus prendre ta place.'],
   kevinAvantDesistement: ["Eliot t'a demandé de prendre sa place.", 'Eliot a annulé sa demande.',
     "Eliot t'a demandé de prendre sa place.", "Tu as accepté de prendre la place d'Eliot."],
+  // D-027 : après le désistement de Kevin, la demande à Sylvain est réactivée
+  // automatiquement (Eliot ne redemande pas).
   eliotSylvain: ['Tu as demandé à Sylvain de prendre ta place.', "La demande à Sylvain n'est plus d'actualité.",
-    'Tu as demandé à Sylvain de prendre ta place.', 'Sylvain a refusé de prendre ta place.'],
+    'Ta demande à Sylvain attend de nouveau sa réponse.', 'Sylvain a refusé de prendre ta place.'],
   sylvain: ["Eliot t'a demandé de prendre sa place.", "La demande n'est plus d'actualité.",
-    "Eliot t'a demandé de prendre sa place.", "Tu as refusé de prendre la place d'Eliot."],
+    "La place d'Eliot est à nouveau disponible : ta réponse est attendue.", "Tu as refusé de prendre la place d'Eliot."],
 };
 
 // nEvenements : combien d'éléments de [attendus] sont des événements (les messages ne sont pas comptés).
@@ -52,10 +54,8 @@ export default {
       await verifierFil(ex, kevin, EVTS.kevinAvantDesistement, 'Kevin');
     });
 
-    await ex.etape('Kevin se désiste ; Eliot redemande à Sylvain, qui refuse', async () => {
+    await ex.etape('Kevin se désiste ; la demande à Sylvain est réactivée, Sylvain refuse', async () => {
       await A.seDesister(kevin);
-      await A.ouvrirImprevu(eliot);
-      await A.demander(eliot, 'Sylvain Landiech');
       await A.repondre(sylvain, false);
       await ex.verifier('9 événements en base (5 pour Kevin, 4 pour Sylvain)',
         () => sql('select count(*) from evenements_fil') === '9', { obtenu: () => sql('select count(*) from evenements_fil') });
