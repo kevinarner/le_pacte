@@ -14,9 +14,12 @@ import { sql, insererComme, modifierComme } from '../lib/donnees.mjs';
 import { COMPTES, CONTACTS_SANS_COMPTE as C } from '../lib/config.mjs';
 
 const restaurant = () => sql(`select id from restaurants limit 1`);
-// Premier jour (Paris) dans [J+16, J+380] qui vérifie la condition SQL sur d.
+// Premier jour (Paris) dans [J+16, J+400] qui vérifie la condition SQL sur d.
+// 385 jours : couvre toujours un lendemain de changement d'heure (deux
+// lendemains successifs d'un même changement sont au plus à 371 jours), quel
+// que soit le jour d'exécution (avec J+380, aucun du 12/10 au 27/10/2026).
 const jour = (condition) => sql(`select d::text from generate_series(
-    (now() at time zone 'Europe/Paris')::date + 16, (now() at time zone 'Europe/Paris')::date + 380, interval '1 day') g,
+    (now() at time zone 'Europe/Paris')::date + 16, (now() at time zone 'Europe/Paris')::date + 400, interval '1 day') g,
     lateral (select g::date as d) x where ${condition} order by d limit 1`);
 const instantParis = (j, h = '19:30') => sql(`select to_json(('${j} ${h}'::timestamp at time zone 'Europe/Paris')) #>> '{}'`);
 const jjmmaaaa = (j) => { const [a, m, d] = j.split('-').map(Number); return `${d}/${m}/${a}`; };
