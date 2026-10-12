@@ -72,7 +72,7 @@ Une fois qu’une personne a accepté de prendre la place d’un titulaire :
 
 ## D-004 — Désistement : réouverture ciblée, jamais automatique
 
-**Statut : Validée**  
+**Statut : Remplacée par D-027 (12/10/2026)**  
 **Consolidée : 27/09/2026**
 
 ### Décision
@@ -260,7 +260,7 @@ En attendant la vérification :
 
 ## D-015 — Push pour les actions qui concernent directement quelqu’un
 
-**Statut : Validée**  
+**Statut : Validée — précisée par D-027 pour l’imprévu (12/10/2026)**  
 **Décidée : 27/09/2026**
 
 ### Décision
@@ -433,7 +433,7 @@ D-015 (rappels distincts des notifications d’actions directes) et D-005 (doubl
 
 ## D-022 — Annulation manuelle d’un Swend scellé
 
-**Statut : Validée**  
+**Statut : Validée — révisée par D-027 (12/10/2026), mise en œuvre au lot 2**  
 **Décidée : 28/09/2026**
 
 ### Décision
@@ -531,7 +531,7 @@ QA OK (métier 776/0, E2E 598/0). App déployée le 30/09/2026 (gh-pages `80b473
 
 ## D-023b — Chat après le Swend
 
-**Statut : Validée**  
+**Statut : Validée — complétée par D-027 (chat d’annulation, lot 2)**  
 **Décidée : 30/09/2026**
 
 ### Décision
@@ -625,6 +625,73 @@ D-023b (chat après le Swend), D-024 (aucun numéro), D-025 (délai minimum), D-
 
 ### Mise en production
 Pas en production. QA OK le 03/10 (régression complète : métier 1526/0, E2E 783/0, 30/30 scénarios ; garde-fous 147/0). Règle « un Swend en cours par paire » rendue globale le 04/10 : métier 1546/0 ; E2E 28/30 scénarios au premier passage, les 2 autres (`26_delai_minimum`, `27_fuseaux_horaires`) créaient un second Swend pour une paire déjà en cours — tests adaptés (Swend précédent annulé), puis 25/0 et 24/0. Migration `20261003010000_nouveau_swend.sql` et change packet `supabase/changements/D-023c-01/` (niveau 1, aucune donnée modifiée) préparés et répétés en local ; à exécuter avant le déploiement de l’app correspondante.
+
+---
+
+## D-027 — « En cas d’imprévu » : chercher, revenir, se désister, annuler
+
+**Statut : Validée**  
+**Décidée : 12/10/2026** (règles validées par les fondateurs, décisions complémentaires du 12/10 sur H-3, l’annulation, les conversations, l’envoi groupé, l’échéance à H et la réactivation d’une personne sans compte)
+
+### Décision
+Le parcours d’imprévu d’un titulaire, de la première demande jusqu’à l’annulation éventuelle. L’app tutoie.
+
+**Chercher quelqu’un**
+1. Depuis un Swend scellé, `Un imprévu ?` ouvre directement l’écran des remplaçants : « Tu ne peux plus être là ? / Sollicite l’un de tes remplaçants :) ».
+2. Plusieurs demandes en parallèle, la première acceptation gagne. Bouton adaptatif (`Demander à Kevin`, `Envoyer 2 demandes`) et confirmation avant l’envoi : une personne, « Envoyer la demande à Kevin ? / S’il accepte, il prendra ta place et tu ne pourras plus revenir en arrière. » ; plusieurs, « Envoyer la demande ? / La première personne qui accepte prendra ta place. / Une fois ta place prise, tu ne pourras plus revenir en arrière. ». Un même envoi peut mélanger personnes inscrites et personnes sans compte : un seul parcours, la base crée toutes les demandes ensemble ; le canal de remise diffère (notification, ou message / lien selon le mécanisme existant).
+3. Attente : « C’est envoyé. / La première personne qui accepte prendra ta place. », liste « Kevin — En attente — Discuter », action secondaire `Solliciter quelqu’un d’autre`, aucun bouton principal artificiel.
+4. `Solliciter quelqu’un d’autre` repropose les personnes prévues pas encore sollicitées ; `Ajouter une personne` est toujours possible ; une personne qui a refusé n’est pas reproposée. Pas d’annulation demande par demande. L’annulation du Swend reste le dernier recours.
+
+**Quelqu’un accepte**
+5. « Kevin a accepté. / Il prendra ta place le jour J. » Les autres demandes en attente deviennent inactives, leurs conversations restent accessibles ; pas de message « Les autres demandes ont été clôturées » ; `Solliciter quelqu’un d’autre` disparaît. Plus de retour en arrière : le titulaire ne reprend pas sa place et ne remplace pas Kevin.
+6. Confidentialité entre personnes de confiance : jamais l’identité ni le nombre des autres. Les personnes en attente reçoivent « Plus besoin de répondre / La place a été prise pour ce Swend. » ; celles qui avaient refusé, rien.
+7. Le remplaçant peut dire `Je ne peux finalement plus venir` (avec confirmation), sans choisir son remplaçant. Les demandes qui étaient en attente avant son acceptation sont **réactivées automatiquement** (on peut de nouveau y répondre, le titulaire n’a rien à refaire) ; les refus restent des refus. Push aux personnes réactivées : « Ta réponse est finalement attendue / La place est à nouveau disponible pour ce Swend. » Le titulaire voit « Kevin ne peut finalement plus venir. / Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire. » ; `Solliciter quelqu’un d’autre` revient. **Personne sans compte réactivée** : sa demande redevient active selon les mêmes règles, mais jamais en silence : le titulaire voit `Renvoyer le message à Thomas`, avec le message / lien de demande actualisé, prêt à partager par le mécanisme existant (aucune infrastructure SMS).
+
+**Le titulaire peut finalement venir**
+8. Avant toute acceptation : `Je peux finalement venir` (confirmation courte). Il redevient participant normal, toutes les demandes en attente sont closes, les refus ne reçoivent rien, les conversations restent accessibles. Push aux personnes en attente : « Plus besoin de répondre / Eliot pourra finalement être là pour ce Swend. » L’action disparaît dès qu’une personne a accepté.
+
+**Personne ne peut**
+9. Tout le monde a refusé : « Personne n’a pu prendre ta place. / Tu peux encore solliciter quelqu’un d’autre. » ; `Solliciter quelqu’un d’autre` s’il reste des personnes prévues, sinon `Ajouter une personne`, puis en dernier recours `Je n’ai personne d’autre`. Push au titulaire seulement quand la dernière demande active devient refusée : « Personne n’est disponible pour l’instant / Tu peux solliciter quelqu’un d’autre. »
+10. **H-3** : si un titulaire a déclaré son imprévu et cherche encore quelqu’un à H-3, sans remplaçant sélectionné, le Swend est annulé automatiquement : demandes en attente closes, plus aucune acceptation ; l’autre titulaire est prévenu (« Le Swend est annulé / Eliot ne pourra finalement pas être là. »), les personnes en attente aussi (« Le Swend est annulé / Tu n’as plus besoin de répondre. »), celles qui avaient refusé, rien ; puis le parcours d’après annulation. H-3 n’est pas un verrou : sans imprévu déclaré à H-3, une recherche peut encore être lancée jusqu’à H ; un remplaçant qui se désiste après H-3 réactive les demandes éligibles et la recherche continue jusqu’à H.
+11. **H, limite absolue** : après H, aucun envoi ni acceptation. Si à H un titulaire est toujours en imprévu sans remplaçant sélectionné (y compris après un désistement après H-3), le Swend est annulé automatiquement : demandes en attente closes, autre titulaire et personnes en attente prévenus, chat d’annulation ouvert, aucun chat après le Swend normal.
+12. `Je n’ai personne d’autre` : « Tu n’as personne d’autre ? / Sans quelqu’un pour prendre ta place, le Swend ne pourra pas avoir lieu. », principal `Ajouter une personne`, secondaire `Annuler le Swend`, confirmation « Annuler ce Swend ? / Cette action est définitive. L’autre personne sera prévenue. ». Aucune pénalité ni score.
+
+**Annulation**
+13. Plus de bouton générique `Annuler le Swend` sur la fiche : une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend`. Un titulaire dont la place a été prise ne peut plus annuler lui-même. Les annulations système ou opérationnelles restent possibles (double remplacement, H-3, H, réservation impossible…).
+14. L’autre titulaire ne voit jamais les coulisses : « Le Swend est annulé / Eliot ne pourra finalement pas être là. », jamais « Eliot n’a trouvé personne… ».
+15. Après annulation, un chat s’ouvre immédiatement entre les deux titulaires (sans push spécifique) ; la fiche montre `Discuter` et `Faire un nouveau Swend` ; ouvert sans limite arbitraire ; fermé selon D-023c si les deux scellent un nouveau Swend ensemble.
+16. Les conversations existantes avec les personnes de confiance réellement sollicitées (ou avec lesquelles une conversation existe) restent accessibles **et ouvertes à l’écriture** après annulation ; une personne seulement prévue, jamais sollicitée, ne gagne aucun accès. Aucune nouvelle conversation créée par l’annulation. Fermeture paire par paire si un nouveau Swend est scellé entre ces deux personnes ; rien ne ferme si le titulaire fait un nouveau Swend avec quelqu’un d’autre.
+17. Double remplacement (V1) : annulation. Titulaires : « Le Swend est annulé. / Ni toi ni David ne pourrez finalement être là. » ; chaque remplaçant : « Le Swend est annulé / Tu n’auras finalement pas besoin de prendre la place d’Eliot. » (jamais l’identité de l’autre remplaçant) ; personnes en attente : « Le Swend est annulé / Tu n’as plus besoin de répondre. » ; refus : rien.
+18. Chaque côté est indépendant : l’autre titulaire ne voit rien des recherches et n’est informé que des conséquences certaines ; de même pour les remplaçants. États minimaux : En attente, Refusé, Clôturée, Désisté, sélectionné. Push seulement quand une action devient attendue, cesse de l’être, ou qu’un changement certain touche le Swend ; jamais une push par transition technique.
+
+### Mise en œuvre en 4 lots
+1. États et actions (base) : déclaration d’imprévu par côté, clôtures à mémoire, envoi groupé, `Je peux finalement venir`, réactivation au désistement (avec message à renvoyer pour une personne sans compte), notifications de l’imprévu.
+2. Annulation et conversations (base) : annulation réservée au titulaire non remplacé, textes, chat d’annulation entre titulaires, conversations d’imprévu ouvertes à l’écriture après annulation et fermeture paire par paire.
+3. Application : écran « Un imprévu ? » réécrit, retrait du bouton d’annulation de la fiche et de l’annulation demande par demande.
+4. Échéances H-3 et H (base et planification), rappels adaptés.
+
+### Choix techniques (lot 1, 12/10)
+- « Imprévu déclaré » : table interne `imprevus_declares` (une ligne par côté, aucun accès de l’app : l’autre titulaire ne doit jamais savoir qu’un côté cherche), posée par la base dès qu’une demande de ce côté existe, effacée par `Je peux finalement venir` (et, tant que l’app actuelle l’utilise, par l’annulation de la dernière demande sans refus ni désistement). `etat_cote_titulaire()` (rappels, destination au clic) la lit : après un retour, les refus restent mais le titulaire n’est plus en imprévu ; retirer de sa liste une personne qui a refusé ne fait plus sortir de l’imprévu.
+- Clôtures à mémoire : table interne `clotures_demandes` (`acceptation` + fiche acceptée, ou `autre_cote` + état d’avant). Seules ces clôtures sont réversibles au désistement ; une clôture antérieure à D-027 garde l’ancien comportement (la personne redevient sollicitable sans demande). Une demande n’est rendue « en attente » que si son côté est toujours en imprévu ; sinon la personne redevient simplement prévue.
+- Même personne des deux côtés (D-012) : au désistement, sa fiche de l’autre côté retrouve son état d’avant (en attente → push « Ta réponse est finalement attendue » ; prévue → prévue), seulement si ce côté n’a personne ; jamais de push à l’autre titulaire.
+- « Clôturée » par un retour du titulaire : la fiche redevient « prévue » (sollicitable lors d’un prochain imprévu) avec l’événement `retour_titulaire` dans la conversation ; la réactivation ajoute l’événement `demande_reactivee`.
+- Personne sans compte réactivée : `remplacants.message_a_renvoyer`, posé et effacé par la base seulement ; `marquer_message_renvoye()` quand le titulaire a ouvert le message (Messages ou WhatsApp) ; effacé aussi dès que la demande n’est plus en attente. L’app actuelle affiche `Renvoyer le message à Thomas` sur la fiche du Swend et dans `Un imprévu ?`.
+- Envoi groupé : `envoyer_demandes_remplacement(ids[])`, tout ou rien, renvoie le canal de remise de chaque demande ; `envoyer_demande_remplacement(id)` en est le cas d’une personne (app actuelle).
+- Notifications envoyées par les fonctions (`pousser_personne`, `pousser_titulaire`, internes) avec le texte de leur contexte ; le déclencheur ne garde que l’indisponibilité spontanée (D-008). Textes non donnés par la spec, proposés et acceptés avec le plan : acceptation au titulaire « Kevin a accepté / Kevin prendra ta place le jour J. » (formulation neutre : le genre d’une personne n’est jamais déduit de son prénom) ; désistement au titulaire « Kevin ne peut finalement plus venir », avec « Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire. » si au moins une demande de son côté a été réactivée, sinon « Tu peux solliciter quelqu’un d’autre. ». Dernier refus : push vers la fiche du Swend.
+
+### Écarts restants après le lot 1
+- Écrans, confirmations et tutoiement de l’imprévu : lot 3 (l’app actuelle garde « Lui demander » personne par personne, « Annuler la demande », le bouton d’annulation de la fiche, le vouvoiement).
+- Annulation (textes, droit du titulaire remplacé, chat d’annulation, conversations après annulation) et double remplacement (textes ; les personnes en attente du second côté reçoivent « Plus besoin de répondre / La place a été prise pour ce Swend. ») : lot 2.
+- Échéances H-3 et H : lot 4 (le rappel de H-3 « annule le Swend… » reste envoyé d’ici là).
+
+### Raison
+Un imprévu doit se gérer en un seul parcours, sans revirement après une acceptation, sans travail inutile pour le titulaire après un désistement, sans jamais exposer les coulisses à l’autre titulaire ni aux autres personnes de confiance, et avec une limite claire avant le rendez-vous.
+
+### Remplace / précise
+Remplace D-004. Révise D-022 (lot 2). Complète D-023b (chat d’annulation, lot 2). Précise D-015 (notifications de l’imprévu), D-021 (état « cherche » et rappels), D-002, D-003, D-009, D-012.
+
+### Mise en production
+Lot 1 : pas en production. QA du 12/10 : voir `PRODUCT_STATUS.md`. Migration `20261012000000_imprevu_etats_et_actions.sql` et change packet `supabase/changements/D-027-01/` (niveau 2) préparés et répétés en local ; à exécuter **après** R2-01 et D-023c-01 (ordre des migrations testé), puis déploiement de l’app correspondante.
 
 ---
 

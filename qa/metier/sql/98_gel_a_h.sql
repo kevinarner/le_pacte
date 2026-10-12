@@ -283,8 +283,10 @@ select ajouter_fiche(:'E', :'p9', 'initiateur', 'Thomas', '0600000005') \gset
 select verifier('H', 'Thomas peut être ajouté à nouveau (nouvelle fiche, nouvelle conversation)',
   (select string_agg(statut_fiche(id), ',') from remplacants
        where pacte_id = :'p9' and prenom = 'Thomas' and retire_le is null) = 'null');
-select verifier('H', 'retrait d''un refus : Eliot ne « cherche » plus (rappels)',
-  etat_cote_titulaire(:'p9', 'initiateur') = 'normal');
+-- D-027 : seul « Je peux finalement venir » fait sortir de l'imprévu (retirer
+-- une personne qui a refusé ne dit pas que le titulaire pourra venir).
+select verifier('H', 'retrait d''un refus : Eliot « cherche » toujours (D-027)',
+  etat_cote_titulaire(:'p9', 'initiateur') = 'cherche');
 select g_dater(:'p9', now() - interval '1 second');
 select figer_swends_passes() \gset
 select verifier('H', 'fiche retirée : aucun événement de fin', g_codes(:'t9') = 'demande_envoyee,demande_refusee');

@@ -306,3 +306,60 @@ for i in $(seq 1 10); do
   if [ "$crees" = 1 ] && [ "$refus" = 1 ] && [ "$actifs" = 1 ]; then ok=$((ok+1)); else detail="essai $i : créés=$crees refusés=$refus actifs=$actifs"; fi
 done
 resultat "accueil : créations simultanées pour la même paire, un seul Swend en cours" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 14-15. « En cas d'imprévu », lot 1 (D-027). Outils de sql/99f.
+appeler() { # utilisateur, appel SQL → vide si OK, sinon le code d'erreur (ou l'erreur entière)
+  local err code
+  err=$(P -c "set role authenticated; select set_config('request.jwt.claim.sub', '$1', false); $2" 2>&1 | grep -m1 ERROR)
+  [ -n "$err" ] || return 0
+  code=$(grep -oE "place_deja_prise|demande_non_active|aucun_imprevu|personne_indisponible" <<< "$err")
+  echo "${code:-$err}"
+}
+
+# 14. « Je peux finalement venir » et une acceptation en même temps : l'un ou
+#     l'autre, jamais un mélange (place prise sans imprévu, ou imprévu levé
+#     avec une demande encore en attente).
+ok=0; detail=""
+for i in $(seq 1 "$COURSES"); do
+  read p k <<< "$(P <<SQL | tail -1
+select nouveau_swend() as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+  f1=$(mktemp); f2=$(mktemp)
+  appeler $K "select repondre_demande_remplacement('$k', true);" > "$f1" &
+  appeler $E "select je_peux_finalement_venir('$p');" > "$f2" & wait
+  r1=$(cat "$f1"); r2=$(cat "$f2"); rm -f "$f1" "$f2"
+  etat=$(P -c "select statut_fiche('$k') || '|' || exists (select 1 from imprevus_declares where pacte_id = '$p')")
+  if { [ -z "$r1" ] && [ "$r2" = place_deja_prise ] && [ "$etat" = "acceptee+sel|true" ]; } \
+     || { [ "$r1" = demande_non_active ] && [ -z "$r2" ] && [ "$etat" = "null|false" ]; }; then ok=$((ok+1))
+  else detail="course $i : acceptation=${r1:-OK} retour=${r2:-OK} état=$etat"; fi
+done
+resultat "retour du titulaire et acceptation simultanés : l'un ou l'autre, jamais les deux" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"
+
+# 15. Envoi groupé pendant une acceptation : soit le groupe part avant (et
+#     l'acceptation le clôt aussitôt), soit il est refusé en entier ; jamais
+#     de demande en attente à côté d'une place prise.
+ok=0; detail=""
+for i in $(seq 1 "$COURSES"); do
+  read p k c t <<< "$(P <<SQL | tail -1
+select nouveau_swend() as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Camille', '0600000004') as c \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Tom', '0711223344') as t \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k' || ' ' || :'c' || ' ' || :'t';
+SQL
+)"
+  f1=$(mktemp); f2=$(mktemp)
+  appeler $K "select repondre_demande_remplacement('$k', true);" > "$f1" &
+  appeler $E "select * from envoyer_demandes_remplacement(array['$c', '$t']::uuid[]);" > "$f2" & wait
+  r1=$(cat "$f1"); r2=$(cat "$f2"); rm -f "$f1" "$f2"
+  etat=$(P -c "select statut_fiche('$c') || ',' || statut_fiche('$t') || '|' || (select count(*) from remplacants where pacte_id = '$p' and selectionne)")
+  if [ -z "$r1" ] && { { [ -z "$r2" ] && [ "$etat" = "cloturee,cloturee|1" ]; } \
+                       || { [ "$r2" = place_deja_prise ] && [ "$etat" = "null,null|1" ]; }; }; then ok=$((ok+1))
+  else detail="course $i : acceptation=${r1:-OK} envoi=${r2:-OK} état=$etat"; fi
+done
+resultat "envoi groupé et acceptation simultanés : tout le groupe ou rien, jamais en attente à côté de la place prise" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"

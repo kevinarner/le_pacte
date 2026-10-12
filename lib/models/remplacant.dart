@@ -29,6 +29,12 @@ class Remplacant {
   /// Distinct de [demandeStatut] : aucune demande n'existe dans ce cas.
   bool indisponibleSpontanement;
 
+  /// Demande réactivée automatiquement (désistement de la personne qui
+  /// avait accepté, D-027) pour une personne sans compte : aucune push ne
+  /// peut la prévenir, le titulaire doit lui renvoyer le message. Posé et
+  /// effacé par la base uniquement.
+  bool messageARenvoyer;
+
   Remplacant({
     this.id,
     this.prenom = '',
@@ -39,6 +45,7 @@ class Remplacant {
     this.profilId,
     this.demandeStatut,
     this.indisponibleSpontanement = false,
+    this.messageARenvoyer = false,
   });
 
   /// Ne peut pas être sollicitée pour l'instant : refus, clôture ou

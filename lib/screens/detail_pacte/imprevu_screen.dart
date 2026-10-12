@@ -221,6 +221,9 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
   Widget _cartePersonne(Remplacant r) {
     final enCours = _enCoursPour == r.id;
     final enAttente = r.demandeStatut == DemandeStatut.envoyee;
+    // Demande réactivée pour une personne sans compte (D-027) : jamais en
+    // silence, le titulaire lui renvoie le message.
+    final aRenvoyer = r.profilId == null && r.messageARenvoyer;
     const lien = TextStyle(fontSize: 12.5);
     final styleLien = TextButton.styleFrom(
       padding: EdgeInsets.zero,
@@ -246,6 +249,22 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                         fontSize: 15,
                       ),
                     ),
+                    if (enAttente && aRenvoyer) ...[
+                      const SizedBox(height: 4),
+                      const Text(
+                        'La demande attend de nouveau sa réponse.',
+                        style: TextStyle(
+                          fontSize: 12.5,
+                          color: AppColors.texteAttenue,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: enCours ? null : () => _renvoyerMessage(r),
+                        icon: const Icon(Icons.send_outlined, size: 16),
+                        label: Text('Renvoyer le message à ${r.prenom}'),
+                      ),
+                    ],
                     if (enAttente) ...[
                       const SizedBox(height: 6),
                       Wrap(
@@ -258,7 +277,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                               onPressed: () => _ouvrirChat(r),
                               child: Text('Écrire à ${r.prenom}', style: lien),
                             )
-                          else
+                          else if (!aRenvoyer)
                             TextButton(
                               style: styleLien,
                               onPressed: () => _envoyerMessageUrgence(r),
@@ -523,12 +542,23 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     if (envoyer == true && mounted) await _envoyerMessageUrgence(r);
   }
 
-  Future<void> _envoyerMessageUrgence(Remplacant r) => envoyerInvitation(
+  Future<bool> _envoyerMessageUrgence(Remplacant r) => envoyerInvitation(
     context,
     telephone: r.telephone,
     message: messageUrgence(widget.pacte, r, _autreCote),
     titre: 'Envoyer la demande',
   );
+
+  /// « Renvoyer le message à … » : le message d'urgence actualisé (date,
+  /// heure, lien), puis l'action disparaît une fois le message ouvert.
+  Future<void> _renvoyerMessage(Remplacant r) async {
+    final envoye = await _envoyerMessageUrgence(r);
+    if (!envoye || !mounted) return;
+    await _action(r.id, () async {
+      await PacteRepository.marquerMessageRenvoye(r.id!);
+      r.messageARenvoyer = false;
+    });
+  }
 
   /// Même parcours que depuis la fiche du Swend (D-022) : on est déjà dans
   /// « Un imprévu ? », donc « Continuer à chercher » ferme simplement.

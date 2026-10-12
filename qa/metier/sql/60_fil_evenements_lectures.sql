@@ -44,8 +44,8 @@ select en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'fk')
 select verifier('F5', 'désistement → événement', codes(:'fk') like '%,desistement');
 select verifier('F5', 'B : Kevin reste indisponible (desistee)', statut(:'fk') = 'desistee');
 select verifier('F5', 'A : Thomas reste indisponible (refusee)', statut(:'ft') = 'refusee');
-select verifier('F5', 'C : Camille redevient sollicitable, sans nouvelle demande', statut(:'fc') = 'null');
-select verifier('F5', 'C : aucun événement pour la réouverture de Camille', codes(:'fc') = 'demande_envoyee,demande_cloturee');
+select verifier('F5', 'C : Camille (en attente avant l''acceptation) redevient en attente (D-027)', statut(:'fc') = 'envoyee');
+select verifier('F5', 'C : événement de réactivation pour Camille', codes(:'fc') = 'demande_envoyee,demande_cloturee,demande_reactivee');
 
 -- F6 : qui voit quoi
 select verifier('F6', 'Eliot voit les événements de ses 3 fiches',
@@ -55,7 +55,7 @@ select verifier('F6', 'Kevin ne voit que son fil',
   and compter_en_tant_que(:'K', format('select count(*) from evenements_fil where remplacant_id = %L', :'fk')) = 5);
 select verifier('F6', 'David ne voit aucun événement du côté d''Eliot',
   compter_en_tant_que(:'D', format('select count(*) from evenements_fil where remplacant_id in (%L, %L, %L)', :'fk', :'fc', :'ft')) = 0
-  and (select count(*) from evenements_fil where remplacant_id in (:'fk', :'fc', :'ft')) = 9);
+  and (select count(*) from evenements_fil where remplacant_id in (:'fk', :'fc', :'ft')) = 10);
 select verifier('F6', 'écriture directe d''un événement refusée',
   en_tant_que(:'E', format('insert into evenements_fil (remplacant_id, code) values (%L, %L)', :'fk', 'demande_envoyee')) like 'permission denied%');
 

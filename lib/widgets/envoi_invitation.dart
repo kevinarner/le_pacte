@@ -9,8 +9,9 @@ enum CanalEnvoi { messages, whatsapp }
 /// Propose d'envoyer un message prérempli par Messages ou par WhatsApp,
 /// au numéro canonique (E.164). Le canal n'est qu'un moyen d'envoi : il
 /// ne dit rien de l'existence d'un compte Swend, et le texte est le même
-/// quel que soit le canal.
-Future<void> envoyerInvitation(
+/// quel que soit le canal. Renvoie true si un canal a été choisi (le
+/// message a été ouvert pour envoi), false si la feuille a été fermée.
+Future<bool> envoyerInvitation(
   BuildContext context, {
   required String telephone,
   required String message,
@@ -22,9 +23,9 @@ Future<void> envoyerInvitation(
     messenger.showSnackBar(
       const SnackBar(content: Text(messageTelephoneInvalide)),
     );
-    return;
+    return false;
   }
-  await showModalBottomSheet<void>(
+  final choisi = await showModalBottomSheet<bool>(
     context: context,
     backgroundColor: AppColors.background,
     builder: (feuille) => _ChoixCanal(
@@ -32,11 +33,12 @@ Future<void> envoyerInvitation(
       // L'ouverture part directement du geste de l'utilisateur (sinon
       // certains navigateurs bloquent l'ouverture de l'app).
       onChoix: (canal) {
-        Navigator.pop(feuille);
+        Navigator.pop(feuille, true);
         _ouvrir(canal, e164, message, messenger);
       },
     ),
   );
+  return choisi ?? false;
 }
 
 /// Lien "Messages" (SMS) vers un numéro E.164, texte prérempli.

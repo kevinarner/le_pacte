@@ -36,6 +36,10 @@ class EvenementFil {
         'disponibilite_retablie' =>
           "Tu as indiqué à $autre que tu es finalement disponible.",
         'swend_commence' => finConversation,
+        'demande_reactivee' =>
+          'La place ${deNom(autre)} est à nouveau disponible : ta réponse est attendue.',
+        'retour_titulaire' =>
+          '$autre pourra finalement être là : plus besoin de répondre.',
         _ => '',
       };
     }
@@ -51,6 +55,9 @@ class EvenementFil {
       'disponibilite_retablie' =>
         '$autre est de nouveau disponible en cas d\'imprévu.',
       'swend_commence' => finConversation,
+      'demande_reactivee' => 'Ta demande à $autre attend de nouveau sa réponse.',
+      'retour_titulaire' =>
+        'Tu pourras finalement être là : ta demande à $autre est close.',
       _ => '',
     };
   }
@@ -67,7 +74,7 @@ class EvenementFil {
   /// demande t'attend") et la clôture automatique n'est pas une action de
   /// l'interlocuteur : ni l'une ni l'autre ne compte ici.
   bool concerneLecteur({required bool vuParTiers}) => vuParTiers
-      ? code == 'demande_annulee'
+      ? const {'demande_annulee', 'retour_titulaire'}.contains(code)
       : const {
           'demande_refusee',
           'demande_acceptee',

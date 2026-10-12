@@ -147,26 +147,38 @@ select verifier('N', 'annulation : événement dans le fil',
 select en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'t')) as r \gset
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'T', format('select repondre_demande_remplacement(%L, false)', :'t')) as r \gset
-select verifier('N', 'refus : Eliot notifié, seul', notifs_depuis(:n0, :'E') = 'Thomas ne peut pas prendre votre place.'
+-- D-027 : Thomas était la dernière demande en attente → Eliot prévenu.
+select verifier('N', 'dernier refus : Eliot notifié, seul (D-027)',
+  (select titre || '|' || corps from notifications_log where id > :n0 and profile_id = :'E')
+    = 'Personne n’est disponible pour l’instant|Tu peux solliciter quelqu’un d’autre.'
   and (select count(*) from notifications_log where id > :n0) = 1, notifs_depuis(:n0, :'E'));
-select verifier('N', 'refus : payload vers la conversation avec Thomas',
-  (select data->>'remplacant_id' = :'t' and data->>'nom_interlocuteur' = 'Thomas X' from notifications_log where id > :n0 and profile_id = :'E'));
+select verifier('N', 'dernier refus : payload vers la fiche du Swend (Un imprévu ?)',
+  (select data->>'type' = 'pacte' and data->>'pacte_id' = :'p' from notifications_log where id > :n0 and profile_id = :'E'));
 
 select en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'k')) as r \gset
 select en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'c')) as r \gset
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) as r \gset
-select verifier('N', 'acceptation : Eliot notifié une fois', notifs_depuis(:n0, :'E') = 'Kevin a accepté de prendre votre place.', notifs_depuis(:n0, :'E'));
-select verifier('N', 'acceptation : Camille (clôturée) notifiée une fois, sans savoir qui (inchangé)',
-  notifs_depuis(:n0, :'C') = 'C''est bon, quelqu''un a pu prendre la place.');
+select verifier('N', 'acceptation : Eliot notifié une fois (D-027)',
+  (select string_agg(titre || '|' || corps, ' ## ') from notifications_log where id > :n0 and profile_id = :'E')
+    = 'Kevin a accepté|Kevin prendra ta place le jour J.', notifs_depuis(:n0, :'E'));
+select verifier('N', 'acceptation : payload vers la conversation avec Kevin',
+  (select data->>'type' = 'chat' and data->>'remplacant_id' = :'k' from notifications_log where id > :n0 and profile_id = :'E'));
+select verifier('N', 'acceptation : Camille (clôturée) notifiée une fois, sans savoir qui (D-027)',
+  (select string_agg(titre || '|' || corps, ' ## ') from notifications_log where id > :n0 and profile_id = :'C')
+    = 'Plus besoin de répondre|La place a été prise pour ce Swend.');
 select verifier('N', 'acceptation : aucune autre notification (Kevin ne se notifie pas lui-même)',
   (select count(*) from notifications_log where id > :n0) = 2);
 
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'k')) as r \gset
-select verifier('N', 'désistement : Eliot notifié', notifs_depuis(:n0, :'E') = 'Kevin ne peut finalement plus prendre votre place.', notifs_depuis(:n0, :'E'));
-select verifier('N', 'désistement : la réouverture de Camille ne notifie personne d''autre',
-  (select count(*) from notifications_log where id > :n0) = 1 and dispo(:'c') = 'null');
+select verifier('N', 'désistement : Eliot notifié (D-027)',
+  (select string_agg(titre || '|' || corps, ' ## ') from notifications_log where id > :n0 and profile_id = :'E')
+    = 'Kevin ne peut finalement plus venir|Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire.', notifs_depuis(:n0, :'E'));
+select verifier('N', 'désistement : Camille réactivée et notifiée, personne d''autre (D-027)',
+  (select count(*) from notifications_log where id > :n0) = 2 and dispo(:'c') = 'envoyee'
+  and (select titre || '|' || corps from notifications_log where id > :n0 and profile_id = :'C')
+    = 'Ta réponse est finalement attendue|La place est à nouveau disponible pour ce Swend.');
 
 -- Même personne des deux côtés : aucune notification révélatrice à David.
 select nouveau_swend() as p \gset
@@ -177,7 +189,7 @@ select en_tant_que(:'D', format('select envoyer_demande_remplacement(%L)', :'kd'
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'ke')) as r \gset
 select verifier('N', 'deux côtés : acceptation côté Eliot → Eliot seul notifié',
-  notifs_depuis(:n0, :'E') = 'Kevin a accepté de prendre votre place.'
+  notifs_depuis(:n0, :'E') = 'Kevin prendra ta place le jour J.'
   and (select count(*) from notifications_log where id > :n0) = 1);
 select en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'ke')) as r \gset
 select verifier('N', 'deux côtés : rien pour David (clôture puis réouverture de sa fiche)',

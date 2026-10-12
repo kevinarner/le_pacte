@@ -134,8 +134,8 @@ select verifier('B', 'Camille accepte',
 select verifier('B', 'Camille sélectionnée', statut_fiche(:'c') = 'acceptee+sel');
 select verifier('B', 'Kevin clôturé automatiquement', statut_fiche(:'k') = 'cloturee');
 select verifier('B', 'Thomas reste disponible (jamais sollicité)', statut_fiche(:'t') = 'null');
-select verifier('B', 'Kevin notifié sans révéler qui',
-  (select corps from notifications_log where id > :n0 and profile_id = :'K') = 'C''est bon, quelqu''un a pu prendre la place.');
+select verifier('B', 'Kevin notifié sans révéler qui (D-027)',
+  (select titre || '|' || corps from notifications_log where id > :n0 and profile_id = :'K') = 'Plus besoin de répondre|La place a été prise pour ce Swend.');
 select verifier('B', 'Kevin ne peut plus accepter',
   en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) like '%place_deja_prise%');
 select verifier('B', 'plus aucune demande possible (Thomas)',
@@ -212,18 +212,21 @@ select count(*) as n0 from notifications_log \gset
 select verifier('E', 'Camille se désiste',
   en_tant_que(:'C', format('select se_desister_du_remplacement(%L)', :'c')) = 'OK');
 select verifier('E', 'Camille désistée, plus sélectionnée', statut_fiche(:'c') = 'desistee');
-select verifier('E', 'Kevin redevient disponible', statut_fiche(:'k') = 'null');
+select verifier('E', 'Kevin (en attente avant l''acceptation) redevient en attente (D-027)', statut_fiche(:'k') = 'envoyee');
 select verifier('E', 'Thomas reste indisponible', statut_fiche(:'t') = 'refusee');
 select verifier('E', 'pas d''annulation double absence', (select statut from pactes where id = :'p') = 'confirme');
-select verifier('E', 'désistement : seul Eliot est notifié (D-015), aucune notification automatique aux autres',
-  (select count(*) from notifications_log where id > :n0) = 1
-  and (select corps from notifications_log where id > :n0 and profile_id = :'E') = 'Camille ne peut finalement plus prendre votre place.');
+select verifier('E', 'désistement : Eliot et Kevin notifiés, personne d''autre (D-027)',
+  (select count(*) from notifications_log where id > :n0) = 2
+  and (select titre || '|' || corps from notifications_log where id > :n0 and profile_id = :'E')
+      = 'Camille ne peut finalement plus venir|Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire.'
+  and (select titre || '|' || corps from notifications_log where id > :n0 and profile_id = :'K')
+      = 'Ta réponse est finalement attendue|La place est à nouveau disponible pour ce Swend.');
 select verifier('E', 'Camille ne peut pas ré-accepter',
   en_tant_que(:'C', format('select repondre_demande_remplacement(%L, true)', :'c')) like '%demande_non_active%');
 select verifier('E', 'Camille ne peut pas être re-sollicitée',
   en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'c')) like '%personne_indisponible%');
-select verifier('E', 'Eliot peut re-solliciter Kevin',
-  en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'k')) = 'OK');
+select verifier('E', 'Kevin, déjà en attente, ne peut pas être sollicité deux fois',
+  en_tant_que(:'E', format('select envoyer_demande_remplacement(%L)', :'k')) like '%personne_indisponible%');
 select verifier('E', 'Kevin peut alors accepter',
   en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) = 'OK' and statut_fiche(:'k') = 'acceptee+sel');
 

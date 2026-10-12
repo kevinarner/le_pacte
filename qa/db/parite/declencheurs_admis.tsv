@@ -28,3 +28,9 @@ qa	pactes	trg_verrou_delai_minimum_swend	O
 qa	pactes	trg_fermer_chats_nouveau_swend_insert	O
 qa	pactes	trg_fermer_chats_nouveau_swend_update	O
 qa	pactes	trg_verrou_un_swend_par_paire	O
+#
+# D-027 lot 1 (migration imprevu_etats_et_actions) : pas encore en
+# production. Retirer ces lignes et rafraîchir l'instantané après
+# l'exécution du paquet D-027-01.
+qa	remplacants	trg_suivre_demande_apres	O
+qa	remplacants	trg_suivre_demande_avant	O

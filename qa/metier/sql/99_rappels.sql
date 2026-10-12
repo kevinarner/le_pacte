@@ -261,7 +261,7 @@ select verifier('X', 'exactement 4 push, vers la fiche du Swend',
   and (select bool_and(data->>'type' = 'pacte' and data->>'pacte_id' = :'p') from notifications_log where id > :n0));
 select verifier('X', 'plus aucun rappel ensuite', rappels_a(:'p', :'J3') = 0 and rappels_a(:'p', :'J1') = 0 and rappels_a(:'p', :'J0') = 0);
 select verifier('X', 'une acceptation simple (sans double remplacement) reste notifiée au titulaire (D-015)',
-  (select count(*) from notifications_log where profile_id = :'E' and corps = 'Kevin a accepté de prendre votre place.'
+  (select count(*) from notifications_log where profile_id = :'E' and titre = 'Kevin a accepté' and corps = 'Kevin prendra ta place le jour J.'
      and data->>'remplacant_id' = :'k') = 1);
 
 -- ===================================================================

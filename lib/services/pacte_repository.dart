@@ -232,6 +232,7 @@ class PacteRepository {
         : null,
     indisponibleSpontanement:
         row['indisponible_spontanement'] as bool? ?? false,
+    messageARenvoyer: row['message_a_renvoyer'] as bool? ?? false,
   );
 
   /// Crée un nouveau pacte avec les remplaçants de l'initiateur.
@@ -371,8 +372,18 @@ class PacteRepository {
     );
   }
 
-  /// Appelé par la personne qui avait accepté : rouvre la recherche côté
-  /// titulaire.
+  /// Le titulaire a renvoyé le message d'urgence à une personne sans
+  /// compte dont la demande a été réactivée (D-027) : l'action
+  /// « Renvoyer le message » disparaît.
+  static Future<void> marquerMessageRenvoye(String remplacantId) async {
+    await _client.rpc(
+      'marquer_message_renvoye',
+      params: {'p_remplacant_id': remplacantId},
+    );
+  }
+
+  /// Appelé par la personne qui avait accepté : réactive les demandes qui
+  /// attendaient une réponse avant son acceptation (D-027).
   static Future<void> seDesister(String remplacantId) async {
     await _client.rpc(
       'se_desister_du_remplacement',

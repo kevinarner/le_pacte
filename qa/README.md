@@ -7,7 +7,7 @@ chaque modification, sur une pile **100 % locale**, jamais sur la production.
 |---|---|---|---|
 | Métier | `qa/run_metier.sh` | règles serveur (SQL) + logique Dart, sans navigateur | ~10 s |
 | Smoke | `qa/run_smoke.sh` | le parcours principal en navigateur (17 étapes) | ~1 min |
-| Complet | `qa/run_full.sh` | métier + tous les scénarios E2E (25) | ~28 min |
+| Complet | `qa/run_full.sh` | métier + tous les scénarios E2E (31) | ~32 min |
 | Un scénario | `qa/run_scenario.sh <nom>` | un scénario E2E (nom complet ou partiel) | 30 s – 1 min 30 |
 
 Chaque commande démarre la pile et reconstruit l'app QA si nécessaire, puis
@@ -169,6 +169,15 @@ la suite et le rétablissent à la fin (la règle est testée par `99e`). `99b_c
 seul : il désactive les déclencheurs de fermeture le temps de la suite (tous
 ses Swends sont entre Eliot et David) et les rétablit en rejouant la
 migration D-023c à la fin.
+
+« En cas d'imprévu », lot 1 (D-027) : tests SQL `99f_imprevu_etats_actions.sql`
+(envoi groupé tout ou rien avec et sans compte, « Je peux finalement venir »,
+push au dernier refus seulement, réactivation au désistement, message à
+renvoyer pour une personne sans compte, même personne des deux côtés,
+déclaration d'imprévu et rappels, droits, migration rejouée, remplissage
+initial), concurrence (retour du titulaire et acceptation simultanés, envoi
+groupé et acceptation simultanés), scénarios E2E `09b_desistement_reouverture`
+(réactivation) et `29_renvoyer_message` (« Renvoyer le message à Tom »).
 
 Délai minimum (D-025) : tests SQL `99c_delai_minimum.sql` (J+14 / J+15 aux
 bornes du jour de Paris, valeur envoyée ignorée, fondateurs : email confirmé

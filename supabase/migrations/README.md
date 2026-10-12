@@ -59,6 +59,14 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `ouvrir_chats_apres_swend()` : ne plus ré-exécuter
   `20260930010000_chat_apres_swend.sql` seule après elle (le moteur
   reviendrait à la version D-023b ; la rejouer ensuite).
+  `20261012000000_imprevu_etats_et_actions.sql` : **préparée, non exécutée**
+  (D-027 lot 1, « En cas d'imprévu » : déclaration d'imprévu, clôtures à
+  mémoire, envoi groupé, « Je peux finalement venir », réactivation au
+  désistement, message à renvoyer, notifications). Exécution prévue par le
+  change packet `supabase/changements/D-027-01/` (niveau 2), **après** R2-01
+  et D-023c-01, puis l'app correspondante. Elle redéfinit 9 fonctions
+  d'`gel_a_h.sql` et `fil_evenements_et_lectures.sql` : ne plus ré-exécuter
+  ces migrations seules après elle (la rejouer ensuite).
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

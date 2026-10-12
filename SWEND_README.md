@@ -262,10 +262,15 @@ d'Eliot »). Accepter demande une confirmation.
 Kevin, qui avait accepté, clique « Je ne peux finalement plus venir » :
 
 - Kevin ne prend plus la place, et le Swend **disparaît de ses Swends**.
-- Les personnes dont la demande avait été close **redeviennent disponibles**,
-  mais **aucune demande n'est renvoyée automatiquement**.
+- Les demandes qui attendaient une réponse avant l'acceptation de Kevin
+  **redeviennent actives automatiquement** (D-027, remplace D-004) : ces
+  personnes reçoivent « Ta réponse est finalement attendue », Eliot n'a rien
+  à refaire. Une personne **sans compte** (aucune push possible) : sa demande
+  redevient active et Eliot voit **« Renvoyer le message à Tom »** (fiche du
+  Swend et « Un imprévu ? ») jusqu'à ce qu'il le renvoie.
 - Celles qui avaient refusé restent indisponibles.
-- Eliot retrouve son bloc « En cas d'imprévu » et peut redemander.
+- Eliot est prévenu (« Kevin ne peut finalement plus venir ») et peut
+  solliciter quelqu'un d'autre.
 - David ne voit rien.
 
 ### 5.8 Double remplacement
@@ -581,7 +586,10 @@ Chaque notification d'action ouvre la conversation concernée. Les effets de bor
   sa propre fiche.
 - Toutes les transitions d'une demande passent par des fonctions SQL
   sécurisées qui vérifient qui appelle :
-  - `envoyer_demande_remplacement` ;
+  - `envoyer_demandes_remplacement` (envoi groupé, tout ou rien, D-027) et
+    `envoyer_demande_remplacement` (une personne) ;
+  - `je_peux_finalement_venir` (D-027) ;
+  - `marquer_message_renvoye` (D-027) ;
   - `annuler_demande_remplacement` ;
   - `repondre_demande_remplacement` ;
   - `se_desister_du_remplacement` ;

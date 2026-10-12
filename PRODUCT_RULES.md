@@ -122,6 +122,8 @@ Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
 ### 3.5 Annulation d’un Swend scellé (D-022)
 
+> **Révisé par D-027 (12/10/2026).** Une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend` ; plus de bouton générique sur la fiche ; un titulaire dont la place a été prise ne peut plus annuler lui-même ; annulation automatique à H-3 puis à H si un imprévu déclaré n’a trouvé personne ; textes, chat d’annulation entre titulaires et conversations après annulation : `DECISIONS.md`, D-027, points 10 à 17. Les règles ci-dessous restent celles de l’implémentation jusqu’aux lots 2 à 4 de D-027.
+
 Seuls les deux titulaires originaux peuvent annuler un Swend scellé. Un remplaçant ne peut jamais annuler : il peut seulement accepter ou refuser une demande, ou se désister. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
 
 L’annulation est possible jusqu’à l’heure prévue du rendez-vous. Ensuite, l’action `Annuler le Swend` n’est plus proposée (et la base la refuse). Ce qui se passe à l’heure du Swend est défini en 3.6 (D-023a).
@@ -527,45 +529,49 @@ Cette règle doit être garantie côté serveur.
 
 ## 6. « Un imprévu ? »
 
-`Un imprévu ?` signifie que le titulaire a réellement besoin de quelqu’un pour prendre sa place.
+`Un imprévu ?` signifie que le titulaire a réellement besoin de quelqu’un pour prendre sa place (D-027). L’app tutoie.
 
 Ce parcours est distinct de :
 
 - `Modifier ma liste` ;
 - `Discuter`.
 
-### 6.1 Personne déjà sur Swend
+Depuis un Swend scellé, `Un imprévu ?` ouvre directement l’écran des remplaçants :
 
-Action :
+> Tu ne peux plus être là ?
+> Sollicite l’un de tes remplaçants :)
 
-> Lui demander
+### 6.1 Solliciter une ou plusieurs personnes
 
-Une confirmation légère peut être affichée avant l’envoi.
+Le titulaire choisit une ou plusieurs personnes prévues, puis un seul bouton adaptatif : `Demander à Kevin`, `Envoyer 2 demandes`.
+
+Confirmation avant l’envoi :
+
+- une personne : « Envoyer la demande à Kevin ? / S’il accepte, il prendra ta place et tu ne pourras plus revenir en arrière. » ;
+- plusieurs : « Envoyer la demande ? / La première personne qui accepte prendra ta place. / Une fois ta place prise, tu ne pourras plus revenir en arrière. ».
+
+Les demandes d’un même envoi sont créées ensemble par la base : toutes ou aucune.
 
 ### 6.2 Personne sans compte
 
-Une personne sans compte reste une solution possible.
+Une personne sans compte reste une solution possible (D-009) et peut faire partie d’un envoi groupé avec des personnes inscrites : un seul parcours, pas d’écran séparé.
 
-Action :
+Seul le canal de remise diffère : une notification pour une personne inscrite, le message d’urgence (invitation à rejoindre Swend + demande) envoyé par le titulaire par Messages ou WhatsApp pour une personne sans compte.
 
-> Inviter et demander
-
-Cette action combine :
-
-- l’invitation à rejoindre Swend ;
-- la demande réelle de prendre la place.
-
-Il ne faut pas imposer un parcours :
-
-**inviter → attendre → revenir → demander**.
+Il ne faut pas imposer un parcours **inviter → attendre → revenir → demander**.
 
 Le message doit indiquer à la personne qu’elle doit créer son compte avec le numéro sur lequel elle reçoit l’invitation pour retrouver correctement la demande.
 
 ### 6.3 Plusieurs demandes simultanées
 
-Plusieurs personnes peuvent être sollicitées en parallèle.
+Plusieurs personnes peuvent être sollicitées en parallèle, sans ordre de priorité.
 
-Il n’existe pas d’ordre de priorité obligatoire.
+Pendant l’attente :
+
+> C’est envoyé.
+> La première personne qui accepte prendra ta place.
+
+Liste « Kevin — En attente — Discuter », action secondaire `Solliciter quelqu’un d’autre` (les personnes prévues pas encore sollicitées ; jamais une personne qui a refusé), `Ajouter une personne` toujours possible. Pas de bouton principal artificiel, pas d’annulation demande par demande.
 
 ### 6.4 Première acceptation gagnante
 
@@ -574,30 +580,42 @@ La première personne qui accepte obtient la place de manière atomique.
 À cet instant :
 
 - elle devient sélectionnée ;
-- les autres demandes encore en attente sont clôturées ;
+- les autres demandes encore en attente sont clôturées (conversations toujours accessibles) ;
 - aucune deuxième acceptation ne doit pouvoir réussir.
 
 Cette garantie doit être assurée côté serveur.
 
-### 6.5 Annuler une demande
+Le titulaire voit « Kevin a accepté. / Il prendra ta place le jour J. » ; pas de message « Les autres demandes ont été clôturées » ; `Solliciter quelqu’un d’autre` disparaît. Plus de retour en arrière (D-003).
 
-Tant qu’une personne n’a pas accepté, le titulaire peut annuler sa demande.
+### 6.5 Je peux finalement venir
 
-Après annulation :
+Tant que personne n’a accepté, le titulaire peut indiquer `Je peux finalement venir` (confirmation courte) :
 
-- la personne redevient disponible ;
-- elle peut être sollicitée à nouveau ;
-- l’ancienne demande ne peut plus être acceptée.
+- il redevient un participant normal (plus en imprévu) ;
+- toutes les demandes en attente sont clôturées ; ces personnes redeviennent simplement prévues ;
+- les personnes ayant refusé restent indisponibles et ne reçoivent rien ;
+- les conversations restent accessibles.
+
+L’action disparaît dès qu’une personne a accepté.
 
 ### 6.6 Ajouter quelqu’un pendant l’imprévu
 
-Le titulaire peut ajouter une nouvelle personne pendant le parcours d’imprévu.
-
-L’ajout et la demande doivent être réalisés dans un même parcours simple.
+Le titulaire peut ajouter une nouvelle personne pendant le parcours d’imprévu ; l’ajout et la demande sont réalisés dans un même parcours simple.
 
 Il n’existe pas de plafond produit total.
 
-L’annulation du Swend reste une solution de dernier recours.
+### 6.7 Personne ne peut
+
+Tout le monde a refusé :
+
+> Personne n’a pu prendre ta place.
+> Tu peux encore solliciter quelqu’un d’autre.
+
+`Solliciter quelqu’un d’autre` s’il reste des personnes prévues, sinon `Ajouter une personne`, puis en dernier recours `Je n’ai personne d’autre` (voir 3.5 et D-027).
+
+### 6.8 Imprévu déclaré
+
+Un côté est en imprévu dès qu’une demande y a été envoyée, jusqu’à `Je peux finalement venir` ou la fin du Swend. Une acceptation ne l’efface pas (un désistement le remet en recherche) ; retirer de sa liste une personne qui a refusé non plus. C’est cet état qui détermine les rappels (« cherche », 9.7) et, plus tard, l’annulation à H-3 et à H (D-027). Il n’est jamais visible de l’autre titulaire.
 
 ---
 
@@ -650,13 +668,14 @@ Le titulaire initial ne peut pas reprendre sa place simplement parce que son imp
 
 Une demande clôturée uniquement parce qu’une autre personne a accepté n’est pas équivalente à un refus.
 
-Si la personne sélectionnée se désiste ensuite :
+Si la personne sélectionnée se désiste ensuite (D-027, remplace D-004) :
 
-- cette ancienne demande peut redevenir sollicit-able ;
-- la personne revient à `Lui demander` ;
-- aucune demande n’est renvoyée automatiquement.
+- les demandes qui étaient en attente avant son acceptation sont **réactivées automatiquement** : on peut de nouveau y répondre, le titulaire n’a rien à refaire ;
+- les personnes concernées reçoivent « Ta réponse est finalement attendue / La place est à nouveau disponible pour ce Swend. » ;
+- une personne **sans compte** ne peut pas recevoir cette notification : sa demande redevient active, et le titulaire voit `Renvoyer le message à Thomas` (message de demande actualisé, envoyé par le mécanisme existant) jusqu’à ce qu’il l’ait renvoyé — jamais une réactivation silencieuse ;
+- les refus restent des refus.
 
-Le titulaire doit explicitement solliciter la personne à nouveau.
+Une demande n’est réactivée que si le titulaire est toujours en imprévu ; sinon la personne redevient simplement prévue.
 
 ### 7.6 Désistement après acceptation
 
@@ -664,7 +683,7 @@ Une personne ayant accepté peut ensuite indiquer :
 
 > Je ne peux finalement plus venir
 
-Elle devient alors **Indisponible** pour ce Swend.
+(avec confirmation ; elle ne choisit pas qui la remplace). Elle devient alors **Indisponible** pour ce Swend.
 
 Elle ne redevient pas sollicit-able.
 
@@ -677,7 +696,12 @@ Elle n’a plus de rôle actif côté tiers et doit disparaître notamment :
 
 Elle reste visible côté titulaire dans `Modifier ma liste` avec le statut `Indisponible`.
 
-La recherche est rouverte côté titulaire.
+La recherche reprend côté titulaire :
+
+> Kevin ne peut finalement plus venir.
+> Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire.
+
+`Solliciter quelqu’un d’autre` est de nouveau disponible.
 
 ### 7.7 Aucun candidat disponible
 
@@ -809,6 +833,8 @@ Au minimum :
 - acceptation ;
 - désistement ;
 - clôture automatique ;
+- retour du titulaire (`Je peux finalement venir`, D-027) ;
+- réactivation de la demande après un désistement (D-027) ;
 - fin de la conversation à l’heure du Swend (« Le Swend a commencé. Cette conversation est désormais terminée. », D-023a, voir 3.6).
 
 ### 9.5 Formulation selon le lecteur
@@ -840,15 +866,22 @@ Exemples :
 - étape de négociation qui nécessite une réponse ;
 - nouveau message ;
 - demande de remplacement reçue ;
-- demande annulée ;
-- acceptation ;
-- refus ;
-- désistement ;
-- clôture automatique d’une demande ;
 - annulation liée au double remplacement ;
 - annulation manuelle du Swend par un titulaire (voir 3.5).
 
-Les textes exacts, regroupements éventuels et priorités de push peuvent être affinés ultérieurement.
+Imprévu (D-027) : une push seulement quand une action devient attendue, cesse de l’être, ou qu’un changement certain touche le Swend ; jamais une push par transition technique ; jamais l’identité ni le nombre des autres personnes de confiance ; rien pour une personne qui avait refusé ; rien pour l’autre titulaire.
+
+| Événement | Destinataire | Push |
+|---|---|---|
+| Demande envoyée | personne sollicitée (avec compte) | On a besoin de toi / [Titulaire] te demande de prendre sa place pour un Swend. |
+| Acceptation | titulaire | [Prénom] a accepté / [Prénom] prendra ta place le jour J. |
+| Acceptation | autres personnes en attente | Plus besoin de répondre / La place a été prise pour ce Swend. |
+| Dernière demande active refusée | titulaire | Personne n’est disponible pour l’instant / Tu peux solliciter quelqu’un d’autre. |
+| Désistement | titulaire | [Prénom] ne peut finalement plus venir / Les personnes qui n’avaient pas encore répondu peuvent à nouveau le faire. (sinon : Tu peux solliciter quelqu’un d’autre.) |
+| Désistement | personnes réactivées (avec compte) | Ta réponse est finalement attendue / La place est à nouveau disponible pour ce Swend. |
+| Je peux finalement venir | personnes en attente | Plus besoin de répondre / [Titulaire] pourra finalement être là pour ce Swend. |
+
+Annulation, échéances H-3 et H, double remplacement : textes dans `DECISIONS.md`, D-027.
 
 ### 9.7 Rappels automatiques (D-021)
 

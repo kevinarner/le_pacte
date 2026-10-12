@@ -1,6 +1,7 @@
-// D-015 — NOTIFICATIONS DES ACTIONS DIRECTES — annulation (→ Sylvain),
-// refus, acceptation, désistement (→ Eliot) : push (notifications_log) +
-// box sur l'accueil, sans doublon, et rien pour David.
+// D-015 / D-027 — NOTIFICATIONS DES ACTIONS DIRECTES — annulation (→ Sylvain),
+// refus (box ; push seulement au dernier refus, D-027), acceptation,
+// désistement (→ Eliot) : push (notifications_log) + box sur l'accueil, sans
+// doublon, et rien pour David.
 import * as A from '../lib/actions.mjs';
 import { sql } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
@@ -42,20 +43,20 @@ export default {
       await ex.verifierAbsent(sylvain, 'Eliot a annulé sa demande.', 'Sylvain : box disparue une fois lue');
     });
 
-    await ex.etape('Sylvain, redemandé, refuse → Eliot prévenu', async () => {
+    await ex.etape('Sylvain, redemandé, refuse → box pour Eliot (Kevin attend encore : pas de push, D-027)', async () => {
       await A.ouvrirImprevu(eliot);
       await A.demander(eliot, 'Sylvain Landiech');
       await A.repondre(sylvain, false);
-      await ex.verifier('Eliot : push "Sylvain ne peut pas prendre votre place."',
-        () => notifs('eliot') === 'Sylvain ne peut pas prendre votre place.', { obtenu: () => notifs('eliot') });
+      await ex.verifier('Eliot : aucune push, une demande (Kevin) est encore en attente',
+        () => notifs('eliot') === '', { obtenu: () => notifs('eliot') });
       await eliot.accueil();
       await ex.verifierTexte(eliot, 'Sylvain a refusé de prendre ta place.', 'Eliot : box "Sylvain a refusé"');
     });
 
     await ex.etape('Kevin accepte → Eliot prévenu', async () => {
       await A.repondre(kevin, true);
-      await ex.verifier('Eliot : push "Kevin a accepté de prendre votre place."',
-        () => notifs('eliot') === 'Sylvain ne peut pas prendre votre place. | Kevin a accepté de prendre votre place.', { obtenu: () => notifs('eliot') });
+      await ex.verifier('Eliot : push "Kevin a accepté / Kevin prendra ta place le jour J."',
+        () => notifs('eliot') === 'Kevin prendra ta place le jour J.', { obtenu: () => notifs('eliot') });
       await ex.verifier('Kevin : aucune notification pour sa propre réponse', () => notifs('kevin') === 'Eliot Martin te demande de prendre sa place pour un Swend.', { obtenu: () => notifs('kevin') });
       await eliot.accueil();
       await ex.verifierTexte(eliot, 'Kevin a accepté de prendre ta place.', 'Eliot : box "Kevin a accepté"');
@@ -68,10 +69,11 @@ export default {
 
     await ex.etape('Kevin se désiste → Eliot prévenu', async () => {
       await A.seDesister(kevin);
-      await ex.verifier('Eliot : push "Kevin ne peut finalement plus prendre votre place."',
-        () => notifs('eliot').endsWith('Kevin ne peut finalement plus prendre votre place.'), { obtenu: () => notifs('eliot') });
-      await ex.verifier('Eliot : 3 notifications au total (refus, acceptation, désistement), aucun doublon',
-        () => sql(`select count(*) from notifications_log where profile_id = '${COMPTES.eliot.id}'`) === '3');
+      await ex.verifier('Eliot : push "Kevin ne peut finalement plus venir / Tu peux solliciter quelqu’un d’autre."',
+        () => sql(`select titre || '|' || corps from notifications_log where profile_id = '${COMPTES.eliot.id}' order by id desc limit 1`)
+          === 'Kevin ne peut finalement plus venir|Tu peux solliciter quelqu’un d’autre.', { obtenu: () => notifs('eliot') });
+      await ex.verifier('Eliot : 2 notifications au total (acceptation, désistement), aucun doublon',
+        () => sql(`select count(*) from notifications_log where profile_id = '${COMPTES.eliot.id}'`) === '2');
       await eliot.accueil();
       await ex.verifierTexte(eliot, 'Kevin ne peut finalement plus prendre ta place.', 'Eliot : box "Kevin ne peut finalement plus"');
     });

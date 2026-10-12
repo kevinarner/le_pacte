@@ -1,0 +1,36 @@
+{
+  "id": "D-027-01",
+  "niveau": 2,
+  "projet": "ssciqjpaibdorvnkkhsk",
+  "objectif": "D-027 lot 1 (En cas d imprévu, états et actions) : déclaration d imprévu par côté, envoi groupé tout ou rien avec et sans compte, Je peux finalement venir, réactivation automatique des demandes au désistement (message à renvoyer pour une personne sans compte), notifications de l imprévu au tutoiement envoyées par les fonctions. Aucune donnée existante modifiée ; seule la table interne des déclarations est remplie.",
+  "sauvegardes": [
+    {
+      "nom": "sauvegarde",
+      "type": "sql_ecriture",
+      "fichier": "sauvegarde.sql",
+      "sha256": "746e5690061bfcf6e7b84cacef9077d9544b7f8a57e6a74976ad89af7a64bf60"
+    }
+  ],
+  "etapes": [
+    {
+      "nom": "appliquer",
+      "type": "sql_ecriture",
+      "fichier": "appliquer.sql",
+      "sha256": "00da40ecd0774671b97b9eeb4f791ce19788e8ea646d15018268ba5ccfe3baac"
+    },
+    {
+      "nom": "verifier",
+      "type": "sql_lecture",
+      "fichier": "verifier.sql",
+      "sha256": "2812744435349184ff8a3cc7fef0ac9982e0ad86c3af10548f1b4e67e9002874"
+    }
+  ],
+  "rollback": [
+    {
+      "nom": "rollback",
+      "type": "sql_ecriture",
+      "fichier": "rollback.sql",
+      "sha256": "122a7cdcf550234fd0248fc93e96147b3363e1c5b3c227d5159348ad037cf897"
+    }
+  ]
+}

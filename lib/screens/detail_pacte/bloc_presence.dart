@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
+import '../../models/demande_statut.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
 import '../../models/statut_presence.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/textes_invitation.dart';
+import '../../widgets/envoi_invitation.dart';
 import 'chat_screen.dart';
 import 'mes_remplacants_screen.dart';
 
@@ -136,6 +139,22 @@ class BlocPresence extends StatelessWidget {
                   color: AppColors.texteAttenue,
                 ),
               ),
+              // Demande réactivée pour une personne sans compte (D-027) :
+              // aucune push ne peut la prévenir, l'action reste visible
+              // ici tant que le message n'a pas été renvoyé.
+              for (final r in remplacants.where(
+                (r) =>
+                    r.messageARenvoyer &&
+                    r.profilId == null &&
+                    r.demandeStatut == DemandeStatut.envoyee,
+              )) ...[
+                const SizedBox(height: 10),
+                FilledButton.icon(
+                  onPressed: () => _renvoyerMessage(context, r),
+                  icon: const Icon(Icons.send_outlined, size: 16),
+                  label: Text('Renvoyer le message à ${r.prenom}'),
+                ),
+              ],
               const SizedBox(height: 10),
               if (remplacants.isEmpty)
                 OutlinedButton.icon(
@@ -270,6 +289,29 @@ class BlocPresence extends StatelessWidget {
       // partie avait déjà délégué elle aussi.
       pacte.statut = await PacteRepository.statutActuel(pacte.id);
       onChanged();
+    }
+  }
+
+  /// « Renvoyer le message à … » (D-027) : même message d'urgence que
+  /// depuis « Un imprévu ? », actualisé ; l'action disparaît une fois le
+  /// message ouvert pour envoi.
+  Future<void> _renvoyerMessage(BuildContext context, Remplacant r) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final envoye = await envoyerInvitation(
+      context,
+      telephone: r.telephone,
+      message: messageUrgence(pacte, r, _coteAutrePartie),
+      titre: 'Envoyer la demande',
+    );
+    if (!envoye) return;
+    try {
+      await PacteRepository.marquerMessageRenvoye(r.id!);
+      r.messageARenvoyer = false;
+      onChanged();
+    } catch (_) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Impossible pour le moment. Réessayez.')),
+      );
     }
   }
 }

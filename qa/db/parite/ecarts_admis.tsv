@@ -93,3 +93,15 @@ qa	chats_apres_swend_jamais_ouverts	decide_le	timestamp with time zone	NO
 qa	chats_apres_swend_jamais_ouverts	motif	text	NO
 qa	chats_apres_swend_jamais_ouverts	nouveau_pacte_id	uuid	YES
 qa	chats_apres_swend_jamais_ouverts	pacte_id	uuid	NO
+# D-027 lot 1 (migration imprevu_etats_et_actions) : pas encore en
+# production. Retirer ces lignes et rafraîchir l'instantané après
+# l'exécution du paquet D-027-01.
+qa	clotures_demandes	cloture_le	timestamp with time zone	NO
+qa	clotures_demandes	fiche_acceptee	uuid	YES
+qa	clotures_demandes	motif	text	NO
+qa	clotures_demandes	remplacant_id	uuid	NO
+qa	clotures_demandes	statut_avant	text	YES
+qa	imprevus_declares	cote	text	NO
+qa	imprevus_declares	declare_le	timestamp with time zone	NO
+qa	imprevus_declares	pacte_id	uuid	NO
+qa	remplacants	message_a_renvoyer	boolean	NO

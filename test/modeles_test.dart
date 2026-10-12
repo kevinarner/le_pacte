@@ -55,6 +55,15 @@ void main() {
         'Tu as indiqué à Eliot que tu es finalement disponible.',
         "Kevin est de nouveau disponible en cas d'imprévu.",
       ],
+      // D-027 : réactivation après un désistement, retour du titulaire.
+      'demande_reactivee': [
+        "La place d'Eliot est à nouveau disponible : ta réponse est attendue.",
+        'Ta demande à Kevin attend de nouveau sa réponse.',
+      ],
+      'retour_titulaire': [
+        'Eliot pourra finalement être là : plus besoin de répondre.',
+        'Tu pourras finalement être là : ta demande à Kevin est close.',
+      ],
     };
     attendus.forEach((code, textes) {
       test(code, () {
@@ -97,6 +106,8 @@ void main() {
         'demande_envoyee',
         'demande_annulee',
         'demande_cloturee',
+        'demande_reactivee',
+        'retour_titulaire',
       ]) {
         expect(
           _ev(code).concerneLecteur(vuParTiers: false),
@@ -106,14 +117,19 @@ void main() {
       }
     });
     test(
-      'personne de confiance : seulement l\'annulation par le titulaire',
+      'personne de confiance : seulement les retraits de la demande par le titulaire',
       () {
         expect(
           _ev('demande_annulee').concerneLecteur(vuParTiers: true),
           isTrue,
         );
+        expect(
+          _ev('retour_titulaire').concerneLecteur(vuParTiers: true),
+          isTrue,
+        );
         for (final code in [
           'demande_envoyee', // a déjà sa carte "Une demande t'attend"
+          'demande_reactivee', // idem : la demande attend de nouveau
           'demande_cloturee', // déjà notifiée, pas une action du titulaire
           'demande_refusee',
           'demande_acceptee',
@@ -367,6 +383,13 @@ void main() {
   });
 
   group('Personnes de confiance', () {
+    test('message à renvoyer : jamais par défaut (posé par la base, D-027)', () {
+      expect(Remplacant(prenom: 'Tom').messageARenvoyer, isFalse);
+      expect(
+        Remplacant(prenom: 'Tom', messageARenvoyer: true).messageARenvoyer,
+        isTrue,
+      );
+    });
     test('comptes Swend d\'abord, ordre conservé dans chaque groupe', () {
       final l = [
         Remplacant(prenom: 't'),
