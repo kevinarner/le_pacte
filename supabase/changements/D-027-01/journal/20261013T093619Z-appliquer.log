@@ -1,0 +1,16 @@
+PAQUET: D-027-01
+MODE: appliquer
+NIVEAU: 2
+EMPREINTE: a24e1e1d4247226404c76c3ad93a7bbfb38fd6ad9b724613e2cc5206c7b2057d
+VALIDATION: {"go":"Go D-027-01","valide_par":["Eliot","Kevin"],"valide_le":"2026-10-13T07:45:06Z"}
+COMMIT: 4be521b2b1f4cb1a33f8ea86c06ff001ebd8087a
+DEBUT: 2026-10-13T09:36:19Z
+PLAN:
+  1. sauvegarde — sql_ecriture — sauvegarde.sql — sha256 746e5690061bfcf6e7b84cacef9077d9544b7f8a57e6a74976ad89af7a64bf60
+  2. appliquer — sql_ecriture — appliquer.sql — sha256 fb7245ebdaa743f6519ecd706810599c3952d80de82f00a50a32dbe879136a29
+  3. verifier — sql_lecture — verifier.sql — sha256 2812744435349184ff8a3cc7fef0ac9982e0ad86c3af10548f1b4e67e9002874
+ETAPE 1: sauvegarde (sql_ecriture, sauvegarde.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 401
+  REPONSE: {"message":"Invalid access token"}
+RESULTAT: ECHEC
+FIN: 2026-10-13T09:36:20Z
