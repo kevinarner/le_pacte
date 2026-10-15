@@ -1,10 +1,12 @@
 // D-023a — RELIRE APRÈS ANNULATION. Kevin a accepté de prendre la place
 // d'Eliot ; Eliot a aussi écrit à Sylvain ; Tom n'a jamais rien échangé.
-// Eliot annule : depuis la fiche du Swend annulé, « Relire une conversation »
-// propose Kevin et Sylvain (pas Tom), en lecture seule, sans rappeler de
-// remplacement. Kevin, qui garde le Swend annulé dans son historique, relit
-// aussi sa conversation. Sylvain (seulement prévu) n'a plus accès ni au Swend
-// ni à la sienne (données conservées). David ne voit rien.
+// Eliot, remplacé, ne peut plus annuler (D-027 lot 2) : David annule. Depuis
+// la fiche du Swend annulé, « Relire une conversation » propose à Eliot Kevin
+// et Sylvain (pas Tom), sans rappeler de remplacement (app du lot 1 : lecture
+// seule à l'écran). Kevin, qui garde le Swend annulé dans son historique,
+// relit aussi sa conversation. Sylvain (seulement prévu, mais une
+// conversation existe) garde le Swend et sa seule conversation (D-027 lot 2),
+// sans le numéro d'Eliot (D-024 inchangé). David ne voit rien des coulisses.
 import * as A from '../lib/actions.mjs';
 import { sql, lireComme, appelerComme, FICHES } from '../lib/donnees.mjs';
 
@@ -18,6 +20,7 @@ export default {
   async executer(ex) {
     const eliot = await ex.eliot();
     const kevin = await ex.kevin();
+    const david = await ex.david();
 
     await ex.etape('Kevin accepte ; Eliot écrit à Kevin et à Sylvain', async () => {
       await A.ouvrirImprevu(eliot);
@@ -29,11 +32,17 @@ export default {
       await A.envoyerMessage(eliot, 'Et toi Sylvain ?');
     });
 
-    await ex.etape('Eliot annule le Swend', async () => {
+    await ex.etape('Eliot (remplacé) ne peut plus annuler ; David annule', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await eliot.cliquer('Annuler le Swend');
       await eliot.cliquer('Annuler le Swend');
-      await ex.verifier('Swend annulé', () => sql('select statut from pactes') === 'annule');
+      await ex.verifierTexte(eliot, 'Impossible d’annuler le Swend pour le moment. Réessayez.', 'Eliot : annulation refusée');
+      await ex.verifier('Swend toujours scellé', () => sql('select statut from pactes') === 'confirme');
+      await A.ouvrirSwend(david, /Swend avec Eliot/);
+      await david.cliquer('Annuler le Swend');
+      await david.cliquer('Annuler malgré tout');
+      await david.cliquer('Annuler le Swend');
+      await ex.verifier('Swend annulé par David', () => sql('select statut from pactes') === 'annule');
     });
 
     await ex.etape('Eliot : choix entre les conversations actives, lecture seule', async () => {
@@ -59,17 +68,15 @@ export default {
       await ex.verifier('Kevin : aucune zone de saisie', async () => (await champSaisie(kevin)) === 0);
     });
 
-    await ex.etape('Sylvain (seulement prévu) n\'a plus accès ; David ne voit rien', async () => {
+    await ex.etape('Sylvain (seulement prévu, conversation existante) garde sa conversation ; David ne voit rien', async () => {
       const [sw, fi, s] = [await lireComme('sylvain', 'pactes', 'select=id'), await lireComme('sylvain', 'remplacants'), await lireComme('sylvain', 'messages')];
-      await ex.verifier('API : Sylvain ne lit plus ni le Swend, ni sa fiche, ni la conversation',
-        () => sw.length === 0 && fi.length === 0 && s.length === 0, { obtenu: () => `${sw.length}/${fi.length}/${s.length}` });
-      await ex.verifier('le message à Sylvain reste en base',
-        () => sql(`select count(*) from messages where contenu = 'Et toi Sylvain ?'`) === '1');
+      await ex.verifier('API : Sylvain lit le Swend, sa seule fiche et sa conversation (D-027 lot 2)',
+        () => sw.length === 1 && fi.length === 1 && s.length === 1, { obtenu: () => `${sw.length}/${fi.length}/${s.length}` });
       const k = await lireComme('kevin', 'pactes', 'select=id');
       await ex.verifier('API : Kevin (sélectionné) lit toujours le Swend annulé', () => k.length === 1, { obtenu: () => `${k.length}` });
       const tk = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
       const ts = await appelerComme('sylvain', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.sylvain });
-      await ex.verifier('API : numéro d\'Eliot pour Kevin (sélectionné), rien pour Sylvain (seulement prévu)',
+      await ex.verifier('API : numéro d\'Eliot pour Kevin (sélectionné), rien pour Sylvain (D-024 inchangé)',
         () => tk.corps.includes('06 01 02 03 04') && ts.ok && !ts.corps.includes('06'), { obtenu: () => `${tk.corps} | ${ts.corps}` });
       const m = await lireComme('david', 'messages');
       const e = await lireComme('david', 'evenements_fil');

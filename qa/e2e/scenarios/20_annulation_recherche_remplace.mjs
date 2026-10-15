@@ -1,15 +1,15 @@
 // D-022 — ANNULATION EN COURS DE RECHERCHE, PUIS APRÈS ACCEPTATION —
 // Eliot a une demande en attente : pas de nouvelle proposition d'imprévu,
-// « Continuer à chercher ». Puis Kevin accepte : Eliot peut quand même
-// annuler ; Kevin est prévenu et garde le Swend annulé dans son historique ;
-// David n'apprend jamais qui remplaçait Eliot.
+// « Continuer à chercher ». Puis Kevin accepte : Eliot, remplacé, ne peut
+// plus annuler (D-027 lot 2) ; David annule ; Kevin est prévenu et garde le
+// Swend annulé dans son historique ; David n'apprend jamais qui remplaçait
+// Eliot.
 import * as A from '../lib/actions.mjs';
 import { sql } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
 
 const IMPREVU = /Qui peut prendre votre place|Personne n'est encore prévu|Aucune des personnes prévues|prendra votre place\./;
 const notifs = (nom) => sql(`select coalesce(string_agg(titre || '|' || corps, ' ## ' order by id), '') from notifications_log where profile_id = '${COMPTES[nom].id}'`);
-const quand = () => sql(`select date_rappel_fr(p.date_retenue) || ' à ' || heure_rappel_fr(p.date_retenue) || ' · ' || r.nom from pactes p join restaurants r on r.id = p.restaurant_id`);
 
 export default {
   nom: 'annulation_recherche_remplace',
@@ -44,16 +44,33 @@ export default {
       await ex.verifier('"Ne pas annuler" : Swend toujours scellé', () => sql('select statut from pactes') === 'confirme');
     });
 
-    await ex.etape('Eliot annule quand même', async () => {
+    // D-027 lot 2 : un titulaire dont la place a été prise ne peut plus
+    // annuler. L'app publiée (lot 1) propose encore le bouton : la base
+    // refuse (remplacement_accepte) et l'app affiche son message générique
+    // (l'app du lot 3 ne proposera plus l'action). David, lui, peut annuler.
+    await ex.etape('Eliot (remplacé) ne peut plus annuler', async () => {
       await eliot.cliquer('Annuler le Swend');
       await eliot.cliquer('Annuler le Swend');
-      await ex.verifier('Swend annulé en base', () => sql('select statut from pactes') === 'annule', { obtenu: () => sql('select statut from pactes') });
-      await ex.verifierTexte(eliot, 'Votre Swend avec David est annulé.', 'Eliot : "Votre Swend avec David est annulé."');
-      await ex.verifier('Kevin : "Le Swend est annulé — Eliot a annulé le Swend du …"',
-        () => notifs('kevin').endsWith(`Le Swend est annulé|Eliot a annulé le Swend du ${quand()}.`),
+      await ex.verifierTexte(eliot, 'Impossible d’annuler le Swend pour le moment. Réessayez.', 'Eliot : annulation refusée (app du lot 1 : message générique)');
+      await ex.verifier('Swend toujours scellé, aucune push d\'annulation',
+        () => sql('select statut from pactes') === 'confirme' && !notifs('kevin').includes('annulé') && !notifs('david').includes('annulé'),
+        { obtenu: () => sql('select statut from pactes') });
+    });
+
+    await ex.etape('David annule', async () => {
+      await A.ouvrirSwend(david, /Swend avec Eliot/);
+      await david.cliquer('Annuler le Swend');
+      await david.cliquer('Annuler malgré tout');
+      await david.cliquer('Annuler le Swend');
+      await ex.verifier('Swend annulé en base par David', () => sql(`select statut || '|' || annule_motif from pactes`) === 'annule|titulaire',
+        { obtenu: () => sql(`select statut || '|' || annule_motif from pactes`) });
+      await ex.verifierTexte(david, 'Votre Swend avec Eliot est annulé.', 'David : "Votre Swend avec Eliot est annulé."');
+      await ex.verifier('Kevin : "Le Swend est annulé — Tu n’auras finalement pas besoin de prendre la place d’Eliot."',
+        () => notifs('kevin').endsWith('Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place d’Eliot.'),
         { obtenu: () => notifs('kevin') });
-      await ex.verifier('David : "Eliot a annulé votre Swend", sans nom de remplaçant',
-        () => notifs('david') === `Ton Swend est annulé|Eliot a annulé votre Swend du ${quand()}.`, { obtenu: () => notifs('david') });
+      await ex.verifier('Eliot : "Le Swend est annulé — David ne pourra finalement pas être là."',
+        () => notifs('eliot').endsWith('Le Swend est annulé|David ne pourra finalement pas être là.'), { obtenu: () => notifs('eliot') });
+      await ex.verifier('David : aucune push (auteur)', () => !notifs('david').includes('annulé'), { obtenu: () => notifs('david') });
     });
 
     await ex.etape('Kevin garde le Swend annulé dans son historique', async () => {
@@ -68,7 +85,6 @@ export default {
 
     await ex.etape('David ne sait pas que c\'était Kevin', async () => {
       await A.ouvrirSwend(david, /Swend avec Eliot/);
-      await ex.verifierTexte(david, 'Votre Swend avec Eliot est annulé.', 'David : "Votre Swend avec Eliot est annulé."');
       await ex.verifierAbsent(david, 'Kevin', 'David : aucune mention de Kevin');
     });
   },

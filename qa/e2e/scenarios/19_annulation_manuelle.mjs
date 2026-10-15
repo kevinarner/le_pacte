@@ -9,7 +9,6 @@ import { COMPTES } from '../lib/config.mjs';
 
 const IMPREVU = /Qui peut prendre votre place|Personne n'est encore prévu|Aucune des personnes prévues|prendra votre place\./;
 const notifs = (nom) => sql(`select coalesce(string_agg(titre || '|' || corps, ' ## ' order by id), '') from notifications_log where profile_id = '${COMPTES[nom].id}'`);
-const quand = () => sql(`select date_rappel_fr(p.date_retenue) || ' à ' || heure_rappel_fr(p.date_retenue) || ' · ' || r.nom from pactes p join restaurants r on r.id = p.restaurant_id`);
 
 export default {
   nom: 'annulation_manuelle',
@@ -58,8 +57,9 @@ export default {
     });
 
     await ex.etape('Notifications : David seulement', async () => {
-      await ex.verifier('David : "Ton Swend est annulé"',
-        () => notifs('david') === `Ton Swend est annulé|Eliot a annulé votre Swend du ${quand()}.`, { obtenu: () => notifs('david') });
+      // D-027 lot 2 : texte de l'annulation par un titulaire.
+      await ex.verifier('David : "Le Swend est annulé / Eliot ne pourra finalement pas être là."',
+        () => notifs('david') === 'Le Swend est annulé|Eliot ne pourra finalement pas être là.', { obtenu: () => notifs('david') });
       await ex.verifier('Kevin (seulement prévu) : aucune push', () => notifs('kevin') === '', { obtenu: () => notifs('kevin') });
       await ex.verifier('Eliot : aucune push', () => notifs('eliot') === '', { obtenu: () => notifs('eliot') });
       await ex.verifier('réservation : à annuler seulement si elle avait été faite (rien ici)',
