@@ -59,10 +59,12 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `ouvrir_chats_apres_swend()` : ne plus ré-exécuter
   `20260930010000_chat_apres_swend.sql` seule après elle (le moteur
   reviendrait à la version D-023b ; la rejouer ensuite).
-  `20261012000000_imprevu_etats_et_actions.sql` : **préparée, non exécutée**
+  `20261012000000_imprevu_etats_et_actions.sql` : **exécutée en production le
+  15/10** par le paquet `D-027-01` (`RESULTAT: SUCCES`, reçu
+  `journal/20261015T073319Z-appliquer.log`, branche `recu/D-027-01`)
   (D-027 lot 1, « En cas d'imprévu » : déclaration d'imprévu, clôtures à
   mémoire, envoi groupé, « Je peux finalement venir », réactivation au
-  désistement, message à renvoyer, notifications). Exécution prévue par le
+  désistement, message à renvoyer, notifications). Exécutée par le
   change packet `supabase/changements/D-027-01/` (niveau 2), **après** R2-01
   et D-023c-01, et **après** la publication de l'app du lot 1 (compatible
   avec la base sans D-027). Elle redéfinit 9 fonctions
