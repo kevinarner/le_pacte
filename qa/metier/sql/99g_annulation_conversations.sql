@@ -230,11 +230,11 @@ select verifier('E', 'Camille (a refusé) : conversation lisible et écrivable, 
   ac_vue(:'C', :'ce') = '1|ecrit|-', ac_vue(:'C', :'ce'));
 select verifier('E', 'Yann (s''est désisté) : conversation lisible et écrivable, aucun numéro',
   ac_vue(:'Y', :'ye') = '1|ecrit|-', ac_vue(:'Y', :'ye'));
-select verifier('E', 'Thomas (seulement prévu, conversation existante) : lisible et écrivable, aucun numéro',
+select verifier('E', 'P1 : Thomas (seulement prévu, messages échangés, aucune demande) : lisible et écrivable, aucun numéro',
   ac_vue(:'T', :'te') = '1|ecrit|-', ac_vue(:'T', :'te'));
 select verifier('E', 'Walter (sélectionné côté David) : lisible, écrivable, garde le numéro de David (D-024)',
   ac_vue(:'W', :'we') = '1|ecrit|0600000002', ac_vue(:'W', :'we'));
-select verifier('E', 'Xavier (seulement prévu, jamais sollicité, fil vierge) : aucune conversation',
+select verifier('E', 'P1 : Xavier (seulement prévu, ni demande ni échange) : aucun accès',
   ac_vue(:'X', :'xe') = '0|lecture_seule|-'
   and compter_en_tant_que(:'X', format('select count(*)::int from pactes where id = %L', :'pe')) = 0,
   ac_vue(:'X', :'xe'));
@@ -311,7 +311,9 @@ select nv_sceller(:'s_ce');
 select verifier('F', 'son scellement ferme la conversation Eliot–Camille', ac_ferme(:'ce'));
 
 -- ===================================================================
--- G. Scellement survenu avant l'annulation : même issue que s'il venait
+-- G. P2 (validée le 15/10) : un nouveau scellement entre les mêmes personnes
+--    empêche l'annulation de l'ancien Swend de rouvrir leur conversation.
+--    Scellement survenu avant l'annulation : même issue que s'il venait
 --    après ; un Swend plus ancien entre les mêmes personnes ne ferme rien
 -- ===================================================================
 select nv_swend(:'E', :'Y', now() - interval '30 days') as s_ancien \gset
@@ -324,7 +326,7 @@ select nv_swend(:'T', :'E', now() + interval '30 days') as s_te \gset
 select verifier('G', 'Swend en cours : la conversation Eliot–Thomas reste ouverte (règle D-023a)',
   not ac_ferme(:'tg') and g_ecrire(:'T', :'tg', 'Dispo') = 'OK');
 select verifier('G', 'Eliot annule', g_rpc(:'E', 'annuler_swend', :'pg') = 'OK');
-select verifier('G', 'Thomas et Eliot avaient scellé depuis : conversation fermée dès l''annulation, lisible',
+select verifier('G', 'P2 : Thomas et Eliot avaient scellé depuis : conversation fermée dès l''annulation, lisible',
   ac_ferme(:'tg') and (select nouveau_pacte_id from fils_imprevu_fermes where remplacant_id = :'tg') = :'s_te'::uuid
   and g_codes(:'tg') like '%fil_ferme' and g_ecrire(:'T', :'tg', 'x') like '%row-level security%'
   and g_lire(:'T', :'tg') = 1 and g_lire(:'E', :'tg') = 1);

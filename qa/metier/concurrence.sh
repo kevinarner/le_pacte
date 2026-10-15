@@ -423,7 +423,7 @@ SQL
 done
 resultat "annulation et double remplacement simultanés : l'un ou l'autre, un seul chat, aucune push en double" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"
 
-# 18. Annulation et scellement d'un nouveau Swend Eliot–Kevin simultanés
+# 18. Annulation et scellement d'un nouveau Swend Eliot–Kevin simultanés (P2)
 #     (Kevin sollicité côté Eliot). Dans tous les ordres (une transaction
 #     tenue ouverte d'un côté ou de l'autre, ou lancées ensemble), la
 #     conversation Eliot–Kevin finit fermée, avec un seul événement.

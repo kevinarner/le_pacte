@@ -238,7 +238,7 @@ select ajouter_fiche(:'E', :'p7', 'initiateur', 'Thomas', '0600000005') as t7 \g
 select g_ecrire(:'K', :'k7', 'Bon appétit !') \gset
 select verifier('G', 'avant l''annulation : on écrit', g_ecrire(:'E', :'k7', 'Merci') = 'OK');
 select verifier('G', 'Eliot annule le Swend', g_rpc(:'E', 'annuler_swend', :'p7') = 'OK');
-select verifier('G', 'annulé : la conversation existante reste écrivable des deux côtés (D-027)',
+select verifier('G', 'annulé : la conversation où des messages ont été échangés reste écrivable des deux côtés (D-027, P1)',
   g_ecrire(:'E', :'k7', 'Dommage') = 'OK' and g_ecrire(:'K', :'k7', 'Pas grave') = 'OK');
 select verifier('G', 'annulé : Eliot et Kevin (prévu, conversation existante) relisent tout',
   g_lire(:'E', :'k7') = 4 and g_lire(:'K', :'k7') = 4);
@@ -379,7 +379,7 @@ select verifier('L', 'Eliot relit le message à Kevin et les événements du fil
 select verifier('L', 'Kevin (remplaçant accepté) relit sa conversation',
   g_lire(:'K', :'k12') = 1
   and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k12')) >= 1);
-select verifier('L', 'Camille (prévue, conversation existante) garde sa conversation et le Swend (D-027)',
+select verifier('L', 'Camille (prévue, messages échangés, sans demande) garde sa conversation et le Swend (D-027, P1)',
   g_lire(:'C', :'c12') = 1
   and compter_en_tant_que(:'C', format('select count(*)::int from pactes where id = %L', :'p12')) = 1
   and compter_en_tant_que(:'C', format('select count(*)::int from remplacants where id = %L', :'c12')) = 1);

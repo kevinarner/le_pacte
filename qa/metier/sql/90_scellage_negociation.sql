@@ -84,7 +84,7 @@ update pactes set statut = 'annule' where id = :'p';
 select verifier('X', 'la date de scellage ne bouge plus (annulation ultérieure)', (select scelle_le from pactes where id = :'p') is not null);
 -- D-027 lot 2 : Kevin a écrit dans son fil (« Coucou ») : la conversation
 -- existe, il la conserve après annulation.
-select verifier('X', 'Swend scellé puis annulé : Kevin (conversation existante) garde son fil (D-027)', vu_par_kevin(:'p') = '1/1/1', vu_par_kevin(:'p'));
+select verifier('X', 'Swend scellé puis annulé : Kevin (messages échangés, sans demande) garde son fil (D-027, P1)', vu_par_kevin(:'p') = '1/1/1', vu_par_kevin(:'p'));
 -- D-023a inchangé pour qui n'a ni demande ni conversation : plus d'accès.
 select swend_en_negociation() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
@@ -92,7 +92,7 @@ select en_tant_que(:'D', format('update pactes set date_retenue = %L, statut = %
 select en_tant_que(:'D', format('update pactes set statut = %L where id = %L', 'confirme', :'p')) as r2 \gset
 select verifier('X', 'scellé (2) : Kevin voit le Swend et sa fiche', vu_par_kevin(:'p') = '1/1/0', vu_par_kevin(:'p'));
 update pactes set statut = 'annule' where id = :'p';
-select verifier('X', 'Swend scellé puis annulé : Kevin (seulement prévu, fil vierge) n''a plus accès (D-023a)', vu_par_kevin(:'p') = '0/0/0', vu_par_kevin(:'p'));
+select verifier('X', 'Swend scellé puis annulé : Kevin (seulement prévu, ni demande ni échange) n''a aucun accès (D-027, P1)', vu_par_kevin(:'p') = '0/0/0', vu_par_kevin(:'p'));
 
 -- Refus : Kevin ne voit jamais rien.
 select swend_en_negociation() as p \gset

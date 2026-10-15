@@ -27,13 +27,13 @@ d'imprévu » : annulation et conversations), décrit dans `DECISIONS.md`
    personnes réellement sollicitées : lecture et écriture jusqu'au
    scellement d'un nouveau Swend entre les deux mêmes personnes (fermeture
    paire par paire, `fils_imprevu_fermes`, événement `fil_ferme`). Deux
-   précisions implémentées **provisoirement, non validées, à confirmer par
-   Eliot avant tout Go** (`DECISIONS.md`, D-027, P1 et P2) : P1, une
-   personne jamais sollicitée mais avec qui des messages ont été échangés
-   garde aussi sa conversation ; P2, un scellement entre les deux personnes
-   survenu avant l'annulation (après le scellement du Swend annulé) ferme
-   la conversation dès l'annulation. Une autre décision imposerait de
-   refaire la migration, ce paquet et ses tests.
+   précisions **validées par Eliot le 15/10/2026** (`DECISIONS.md`, D-027,
+   P1 et P2) : P1, une conversation où des messages ont déjà été échangés
+   reste accessible et écrivable même sans demande envoyée ; P2, un nouveau
+   scellement entre les mêmes personnes empêche l'annulation de l'ancien
+   Swend de rouvrir leur conversation (scellement survenu avant
+   l'annulation, après celui du Swend annulé : conversation fermée dès
+   l'annulation).
 5. **Numéro du titulaire (D-024) inchangé** : `telephone_titulaire_accessible()`
    suit exactement l'ancienne règle d'accès (`fiche_acces_d023a()`, même
    empreinte que l'ancienne `fiche_de_confiance_accessible()`).
