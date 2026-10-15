@@ -106,7 +106,7 @@ Si aucun accord n’est trouvé après les 2 contre-propositions autorisées :
 - Refus (par la base) : « Choisissez une date au moins 15 jours à l’avance. Première date possible : 16 octobre. »
 - Comptes fondateurs (email confirmé du compte) : exemptés. L’exemption suit le Swend : un Swend créé par un fondateur l’est pour toute sa négociation ; un Swend créé par un utilisateur standard garde sa limite, même si le destinataire est fondateur.
 - Pas de rétroactivité : les Swends créés avant la règle n’ont pas de limite.
-- La date retenue doit aujourd’hui seulement respecter ce délai ; qu’elle soit l’une des dates proposées sera garanti par la base dans un lot ultérieur (D-025b).
+- La date retenue doit aussi être l’une des dates proposées (D-025b) : garanti par la base pour toute écriture depuis R2 (paquet `R2-01`, en production depuis le 03/10, `RESULTAT: SUCCES`) ; test réel humain à faire.
 
 ### 3.3 Scellement
 

@@ -1,0 +1,18 @@
+PAQUET: D-023c-01
+MODE: appliquer
+NIVEAU: 1
+EMPREINTE: 3d84fe11528597504d437146ce7f491118397cf69af69786af4b6d5c01b8a136
+VALIDATION: {"go":"Go D-023c-01","valide_par":["Eliot"],"valide_le":"2026-10-04T06:09:21Z"}
+COMMIT: f91595a843b555c53ad8f8d7fdd036c7086956d4
+DEBUT: 2026-10-04T06:42:15Z
+PLAN:
+  1. appliquer — sql_ecriture — appliquer.sql — sha256 c844f94510f260454834066052c3f3fbf586ecfd26acaec0a4c96f856ce7b851
+  2. verifier — sql_lecture — verifier.sql — sha256 94786fa0fda31f6db6eb60d15353e6131e4bb025a129718a9beb0b3d098f41e3
+ETAPE 1: appliquer (sql_ecriture, appliquer.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: []
+ETAPE 2: verifier (sql_lecture, verifier.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only
+  HTTP: 400
+  REPONSE: {"message":"Failed to run sql query: ERROR:  42501: permission denied for function swend_en_cours\n"}
+RESULTAT: ECHEC
+FIN: 2026-10-04T06:42:18Z
