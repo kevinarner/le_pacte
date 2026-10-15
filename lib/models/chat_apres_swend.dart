@@ -320,7 +320,7 @@ String messageErreurEnvoi(String? code) => switch (code) {
   'message_trop_long' => 'Le message est trop long (2 000 caractères au plus).',
   'chat_ferme' => 'Cette conversation est terminée.',
   'non_autorise' => "Cette conversation n'est plus accessible.",
-  _ => "Le message n'a pas pu être envoyé. Réessayez.",
+  _ => "Le message n'a pas pu être envoyé. Réessaie.",
 };
 
 /// Web : le clic sur une notification du chat ouvre l'app avec

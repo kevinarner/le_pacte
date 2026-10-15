@@ -98,7 +98,8 @@ end $$;
 --     la fermeture au scellement (D-023c) s'y appliquent tels quels.
 --     mes_chats_apres_swend() (app publiée) ne renvoie que les chats après le
 --     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3). Push
---     d'un message du chat d'annulation : « Swend annulé · Restaurant ».
+--     d'un message du chat d'annulation : « Swend annulé · Restaurant » ; titre
+--     des push de message des deux natures : « [Prénom] t’a écrit ».
 --  3. Conversations d'imprévu après annulation : une personne réellement
 --     sollicitée (une demande lui a été envoyée) ou avec qui une conversation
 --     existe (au moins un message) garde sa conversation lisible et ouverte à
@@ -206,8 +207,9 @@ $$;
 revoke execute on function public.ouvrir_chat_annulation(uuid) from public, anon, authenticated;
 
 -- Message dans un chat (D-023b) : la push du chat d'annulation dit « Swend
--- annulé · Restaurant » (jamais « Après le Swend »). Corps identique à
--- chat_apres_swend.sql, hors ce texte.
+-- annulé · Restaurant » (jamais « Après le Swend ») ; titre individuel au
+-- tutoiement, « [Prénom] t’a écrit », pour les deux natures. Corps identique
+-- à chat_apres_swend.sql, hors ces textes.
 create or replace function public.envoyer_message_apres_swend(p_chat_id uuid, p_contenu text)
 returns uuid
 language plpgsql
@@ -256,7 +258,7 @@ begin
     select profil_id from participants_chat_apres_swend
     where chat_id = p_chat_id and profil_id is not null and profil_id <> v_uid order by role
   loop
-    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' vous a écrit',
+    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' t’a écrit',
       case when v_chat.nature = 'annulation' then 'Swend annulé · ' else 'Après le Swend · ' end
         || coalesce(v_restaurant, ''),
       jsonb_build_object('type', 'chat_apres_swend', 'chat_id', p_chat_id, 'pacte_id', v_chat.pacte_id));
@@ -853,7 +855,7 @@ begin
   if (select count(*) from (values
     ('annuler_si_double_absence', 'ad2e9d2d81e68bfe6ad44acd6f7ac0d0'),
     ('annuler_swend', '049ffc128d473917fa03dcfaf35744f8'),
-    ('envoyer_message_apres_swend', '72fc47459dc58c2fe317b698335a99a6'),
+    ('envoyer_message_apres_swend', '6814fa04b33789c32a64aab4937cba5e'),
     ('fermer_chats_apres_nouveau_swend', '7ea52f3bd16ced80ebacddcec552ef09'),
     ('fiche_de_confiance_accessible', '10b81890c80d2a154f374fd58c5faa35'),
     ('fil_ecriture_ouverte', 'aa414126be7f5b25f4e5078816d72029'),

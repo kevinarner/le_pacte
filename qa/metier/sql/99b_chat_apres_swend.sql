@@ -307,8 +307,8 @@ select verifier('H', 'message enregistré tel quel, sans les espaces, auteur = p
    from messages_apres_swend m join participants_chat_apres_swend a on a.id = m.participant_id
    where m.chat_id = :'ca'));
 select verifier('H', 'push aux deux autres seulement, texte exact, sans le contenu',
-  cs_push(:'n0', :'a') = 'David|Thomas vous a écrit|Après le Swend · Au Père Lapin'
-    || ' ## Eliot|Thomas vous a écrit|Après le Swend · Au Père Lapin', cs_push(:'n0', :'a'));
+  cs_push(:'n0', :'a') = 'David|Thomas t’a écrit|Après le Swend · Au Père Lapin'
+    || ' ## Eliot|Thomas t’a écrit|Après le Swend · Au Père Lapin', cs_push(:'n0', :'a'));
 select verifier('H', 'aucune push ne contient le texte d''un message',
   not exists (select 1 from notifications_log n join messages_apres_swend m
               on (n.titre || n.corps || n.data::text) like '%' || m.contenu || '%'));

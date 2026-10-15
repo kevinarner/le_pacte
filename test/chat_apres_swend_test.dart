@@ -264,7 +264,7 @@ void main() {
     );
     expect(
       messageErreurEnvoi(null),
-      "Le message n'a pas pu être envoyé. Réessayez.",
+      "Le message n'a pas pu être envoyé. Réessaie.",
     );
   });
 

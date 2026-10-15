@@ -75,8 +75,8 @@ export default {
         await eliot.accueil(); // chat quitté : le message de David reste non lu
         const chat = sql(`select id from chats_apres_swend where nature = 'annulation'`);
         const r = await appelerComme('david', 'envoyer_message_apres_swend', { p_chat_id: chat, p_contenu: 'Une autre fois ?' });
-        await ex.verifier('push à Eliot : « David vous a écrit » / « Swend annulé · Au père Lapin »',
-          () => r.ok && derniereNotif('eliot') === 'David vous a écrit|Swend annulé · Au père Lapin', { obtenu: () => `${r.corps} ${derniereNotif('eliot')}` });
+        await ex.verifier('push à Eliot : « David t’a écrit » / « Swend annulé · Au père Lapin »',
+          () => r.ok && derniereNotif('eliot') === 'David t’a écrit|Swend annulé · Au père Lapin', { obtenu: () => `${r.corps} ${derniereNotif('eliot')}` });
         await eliot.accueil();
         await ex.verifierTexte(eliot, 'David t’a écrit', 'Eliot : carte « David t’a écrit »');
         // Swend annulé : l'app ne garde pas le restaurant retenu (date seulement).

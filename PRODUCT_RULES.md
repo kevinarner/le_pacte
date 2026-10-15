@@ -325,7 +325,7 @@ Pas d’onglet ni de liste de conversations : accès depuis le Swend.
 - Texte et emoji, 2 000 caractères au plus. Pas d’image, GIF, réaction, pièce jointe, vocal, modification, suppression, « Quitter », « Vu à… », « en train d’écrire », présence.
 - Prénom au-dessus des bulles seulement à 3 ; aucun badge « remplaçant ».
 - Lecture strictement individuelle.
-- Nouveau message : `[Prénom] vous a écrit` / `Après le Swend · [Restaurant]`, à chacun des autres ; jamais le contenu, jamais de numéro. Le clic ouvre directement le chat (mobile et web) ; sans accès : `Cette conversation n’est plus accessible.`
+- Nouveau message : `[Prénom] vous a écrit` / `Après le Swend · [Restaurant]` (en production ; avec D-027-02 : `[Prénom] t’a écrit`, et `Swend annulé · [Restaurant]` pour le chat d’annulation), à chacun des autres ; jamais le contenu, jamais de numéro. Le clic ouvre directement le chat (mobile et web) ; sans accès : `Cette conversation n’est plus accessible.`
 - Sans limite de temps côté produit ; historique conservé avec le Swend.
 
 Fermeture par un nouveau Swend scellé : §3.8 (D-023c).

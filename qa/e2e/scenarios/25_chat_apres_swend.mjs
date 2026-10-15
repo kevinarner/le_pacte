@@ -8,7 +8,7 @@
 // Lien web direct, accès impossible pour Sylvain, Swend annulé sans chat,
 // et aucun numéro inutile dans les réponses réseau (D-024).
 import * as A from '../lib/actions.mjs';
-import { sql, FICHES, appelerComme, lireComme, chargerFixture } from '../lib/donnees.mjs';
+import { sql, FICHES, appelerComme, lireComme, chargerFixture, baseAvecLot2 } from '../lib/donnees.mjs';
 import { config } from '../lib/config.mjs';
 import { numerosNonAutorises } from '../lib/numeros.mjs';
 
@@ -120,8 +120,10 @@ export default {
       const n = n0();
       await A.envoyerMessage(kevin, 'Quelle soirée !');
       await ex.verifierAbsent(kevin, 'À vous de débriefer.', 'état vide disparu après le premier message');
-      await ex.verifier('push « Kevin vous a écrit » à Eliot et David, sans contenu',
-        () => pushDepuis(n) === 'David|Kevin vous a écrit|Après le Swend · Au père Lapin ## Eliot|Kevin vous a écrit|Après le Swend · Au père Lapin',
+      // Titre au tutoiement avec D-027-02 ; base actuelle : « Kevin vous a écrit ».
+      const titre = baseAvecLot2() ? 'Kevin t’a écrit' : 'Kevin vous a écrit';
+      await ex.verifier(`push « ${titre} » à Eliot et David, sans contenu`,
+        () => pushDepuis(n) === `David|${titre}|Après le Swend · Au père Lapin ## Eliot|${titre}|Après le Swend · Au père Lapin`,
         { obtenu: () => pushDepuis(n) });
       await kevin.accueil();
       await ex.verifierAbsent(kevin, 'Alors, ce Swend ?', 'Kevin : carte disparue après sa première ouverture');
