@@ -125,9 +125,9 @@ class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
               titreSwendAuRestaurant(restaurant),
               style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
             ),
-            const Text(
-              'Après le Swend',
-              style: TextStyle(fontSize: 12, color: AppColors.texteAttenue),
+            Text(
+              chat?.sousTitreChat ?? 'Après le Swend',
+              style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue),
             ),
           ],
         ),
@@ -193,13 +193,13 @@ class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
         final messages = snapshot.data!;
         _marquerLuSiNouveau(messages);
         if (messages.isEmpty) {
-          return const Center(
+          return Center(
             child: Padding(
-              padding: EdgeInsets.all(32),
+              padding: const EdgeInsets.all(32),
               child: Text(
-                texteChatVide,
+                _chat?.texteVide ?? texteChatVide,
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
                   color: AppColors.texteAttenue,

@@ -35,6 +35,14 @@ String texteSwendDejaEnCoursAvec(String prenom) =>
 /// État vide, avant le premier message.
 const texteChatVide = 'À vous de débriefer.';
 
+/// Chat d'annulation (D-027 lot 2) : entre les deux titulaires d'un Swend
+/// annulé, ouvert à l'annulation, sans push d'ouverture. Même
+/// infrastructure que le chat après le Swend, jamais présenté comme un
+/// « Alors, ce Swend ? ». Textes proposés (lot 3).
+const texteChatAnnulationVide = 'Vous pouvez en reparler ici.';
+const titreChatAnnulation = 'Swend annulé';
+const enteteBlocAnnulation = 'APRÈS L’ANNULATION';
+
 class ParticipantChat {
   final String id;
   final RoleChat role;
@@ -72,6 +80,10 @@ enum EtatChatApres { disponible, nonLu, termine }
 class ChatApresSwend {
   final String id;
   final String pacteId;
+
+  /// `apres_swend` (D-023b) ou `annulation` (D-027 lot 2). Une base sans
+  /// D-027-02 ne connaît que les chats après le Swend.
+  final String nature;
   final DateTime ouvertLe;
   final DateTime? fermeLe;
   final String? motifFermeture;
@@ -88,6 +100,7 @@ class ChatApresSwend {
     required this.pacteId,
     required this.ouvertLe,
     required this.participants,
+    this.nature = 'apres_swend',
     this.fermeLe,
     this.motifFermeture,
     this.jamaisOuvert = false,
@@ -99,6 +112,7 @@ class ChatApresSwend {
   factory ChatApresSwend.depuis(Map<String, dynamic> j) => ChatApresSwend(
     id: j['chat_id'] as String,
     pacteId: j['pacte_id'] as String,
+    nature: j['nature'] as String? ?? 'apres_swend',
     ouvertLe: DateTime.parse(j['ouvert_le'] as String),
     fermeLe: j['ferme_le'] != null
         ? DateTime.parse(j['ferme_le'] as String)
@@ -117,6 +131,9 @@ class ChatApresSwend {
   );
 
   bool get ferme => fermeLe != null;
+
+  /// Chat d'annulation entre les deux titulaires (D-027 lot 2).
+  bool get estAnnulation => nature == 'annulation';
   bool get aTrois => participants.length >= 3;
 
   ParticipantChat? get moi => participants.where((p) => p.estMoi).firstOrNull;
@@ -139,6 +156,13 @@ class ChatApresSwend {
     if (autres.length == 1) return 'Avec ${autres.first}';
     return 'Avec ${autres.sublist(0, autres.length - 1).join(', ')} et ${autres.last}';
   }
+
+  /// En-tête du chat sous les participants.
+  String get sousTitreChat => estAnnulation ? titreChatAnnulation : 'Après le Swend';
+
+  /// État vide, avant le premier message.
+  String get texteVide =>
+      estAnnulation ? texteChatAnnulationVide : texteChatVide;
 
   /// Révélation du remplacement, visible à partir de l'ouverture seulement.
   /// Le remplaçant est tutoyé, comme partout pour les personnes de confiance.
@@ -186,7 +210,10 @@ class ChatApresSwend {
 
   /// Carte d'accueil : un message non lu, ou l'invitation tant que je n'ai
   /// jamais ouvert le chat. Null : pas de carte.
-  bool get aUneCarteAccueil => !ferme && (nonLus > 0 || jamaisOuvert);
+  /// Chat d'annulation : jamais d'invitation (pas de push d'ouverture),
+  /// seulement les messages non lus.
+  bool get aUneCarteAccueil =>
+      !ferme && (nonLus > 0 || (jamaisOuvert && !estAnnulation));
 
   /// Titre de la carte d'accueil. Chat à 2 : « David vous a écrit » puis
   /// « 4 nouveaux messages » ; chat à 3 : toujours le dernier expéditeur.
@@ -202,7 +229,7 @@ class ChatApresSwend {
   String sousTitreCarteAccueil({String? restaurant, DateTime? date}) {
     if (nonLus == 0) return 'Le silence est levé.';
     return [
-      'Après le Swend',
+      estAnnulation ? titreChatAnnulation : 'Après le Swend',
       if (restaurant != null && restaurant.isNotEmpty) restaurant,
       if (date != null) formaterJourEtMois(date),
     ].join(' · ');

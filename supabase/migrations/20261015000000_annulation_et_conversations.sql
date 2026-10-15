@@ -14,7 +14,8 @@
 --     chats_apres_swend.nature = 'annulation' ; « Faire un nouveau Swend » et
 --     la fermeture au scellement (D-023c) s'y appliquent tels quels.
 --     mes_chats_apres_swend() (app publiée) ne renvoie que les chats après le
---     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3).
+--     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3). Push
+--     d'un message du chat d'annulation : « Swend annulé · Restaurant ».
 --  3. Conversations d'imprévu après annulation : une personne réellement
 --     sollicitée (une demande lui a été envoyée) ou avec qui une conversation
 --     existe (au moins un message) garde sa conversation lisible et ouverte à
@@ -120,6 +121,68 @@ begin
 end;
 $$;
 revoke execute on function public.ouvrir_chat_annulation(uuid) from public, anon, authenticated;
+
+-- Message dans un chat (D-023b) : la push du chat d'annulation dit « Swend
+-- annulé · Restaurant » (jamais « Après le Swend »). Corps identique à
+-- chat_apres_swend.sql, hors ce texte.
+create or replace function public.envoyer_message_apres_swend(p_chat_id uuid, p_contenu text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_chat record;
+  v_moi record;
+  v_texte text;
+  v_message uuid;
+  v_restaurant text;
+  v_autre record;
+begin
+  select c.id, c.pacte_id, c.ferme_le, c.nature into v_chat
+  from chats_apres_swend c where c.id = p_chat_id;
+  select id, prenom_affiche into v_moi
+  from participants_chat_apres_swend where chat_id = p_chat_id and profil_id = v_uid;
+  if v_uid is null or v_chat.id is null or v_moi.id is null then
+    raise exception 'non_autorise';
+  end if;
+  if v_chat.ferme_le is not null then
+    raise exception 'chat_ferme';
+  end if;
+  v_texte := regexp_replace(coalesce(p_contenu, ''), '^\s+|\s+$', '', 'g');
+  if v_texte = '' then
+    raise exception 'message_vide';
+  end if;
+  if char_length(v_texte) > 2000 then
+    raise exception 'message_trop_long';
+  end if;
+
+  insert into messages_apres_swend (chat_id, genre, participant_id, contenu)
+  values (p_chat_id, 'texte', v_moi.id, v_texte)
+  returning id into v_message;
+
+  -- Écrire, c'est avoir lu la conversation jusque-là.
+  insert into lectures_chat_apres_swend (chat_id, profil_id, lu_le)
+  values (p_chat_id, v_uid, clock_timestamp())
+  on conflict (chat_id, profil_id) do update set lu_le = greatest(lectures_chat_apres_swend.lu_le, excluded.lu_le);
+
+  select r.nom into v_restaurant
+  from pactes pa left join restaurants r on r.id = pa.restaurant_id where pa.id = v_chat.pacte_id;
+  for v_autre in
+    select profil_id from participants_chat_apres_swend
+    where chat_id = p_chat_id and profil_id is not null and profil_id <> v_uid order by role
+  loop
+    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' vous a écrit',
+      case when v_chat.nature = 'annulation' then 'Swend annulé · ' else 'Après le Swend · ' end
+        || coalesce(v_restaurant, ''),
+      jsonb_build_object('type', 'chat_apres_swend', 'chat_id', p_chat_id, 'pacte_id', v_chat.pacte_id));
+  end loop;
+  return v_message;
+end;
+$$;
+revoke execute on function public.envoyer_message_apres_swend(uuid, text) from public, anon;
+grant execute on function public.envoyer_message_apres_swend(uuid, text) to authenticated;
 
 -- Tous mes chats entre participants d'un Swend, avec leur nature (app du
 -- lot 3). Mêmes colonnes que mes_chats_apres_swend(), plus `nature`.

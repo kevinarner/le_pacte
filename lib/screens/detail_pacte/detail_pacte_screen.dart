@@ -80,12 +80,18 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     }
   }
 
-  /// Seulement pour un Swend passé, non annulé : la base n'ouvre un chat que
-  /// dans ce cas (et seulement à l'heure prévue).
+  /// Swend passé, non annulé : chat après le Swend (à l'heure prévue).
+  /// Swend annulé (D-027 lot 2) : chat d'annulation entre les deux
+  /// titulaires, s'il existe (jamais sur une base sans D-027-02).
   Future<void> _chargerChat() async {
     final p = _pacte;
-    if (p.statut != StatutPacte.confirme || !estPasse(p, DateTime.now()))
+    final annule =
+        p.statut == StatutPacte.annule ||
+        p.statut == StatutPacte.annuleDoubleAbsence;
+    if (!annule &&
+        (p.statut != StatutPacte.confirme || !estPasse(p, DateTime.now()))) {
       return;
+    }
     try {
       final chat = await ChatApresSwendRepository.chatDuPacte(p.id);
       if (!mounted) return;
@@ -335,10 +341,21 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               pacte.statut == StatutPacte.annuleDoubleAbsence)
             BlocEpilogue(statut: pacte.statut, autrePrenom: autrePrenom),
 
-          // Swend annulé : conversations en lecture seule mais toujours
-          // relisibles (D-023a), sans rappel d'un remplacement.
+          // Swend annulé : chat d'annulation entre titulaires (D-027 lot 2 :
+          // « Discuter », « Faire un nouveau Swend »), puis les
+          // conversations de l'imprévu (conservées et écrivables pour les
+          // personnes sollicitées ou avec qui on a échangé, sinon
+          // relisibles), sans rappel d'un remplacement.
           if (pacte.statut == StatutPacte.annule ||
               pacte.statut == StatutPacte.annuleDoubleAbsence) ...[
+            if (_chat case final chat?) ...[
+              const SizedBox(height: 12),
+              BlocApresSwend(
+                chat: chat,
+                onOuvrir: () => _ouvrirChat(chat),
+                onNouveauSwend: () => _nouveauSwend(chat),
+              ),
+            ],
             const SizedBox(height: 12),
             BlocConversationsTerminees(
               monCote: jeSuisInitiateur ? pacte.initiateur : pacte.destinataire,

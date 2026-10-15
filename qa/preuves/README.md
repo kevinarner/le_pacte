@@ -14,5 +14,8 @@ uniquement ; aucune donnée ni aucun identifiant de production.
   `…_prod_deux.sql.txt` (définitions de production de `annuler_swend()` et
   `annuler_si_double_absence()`, relues en lecture seule le 15/10),
   `…_donnees_rep.sql.txt`, `…_usage_rep.sql.txt`, `…_repetition.sh.txt`.
+  Refaite avec le paquet du lot 3b (10e fonction remplacée,
+  `envoyer_message_apres_swend()` : push « Swend annulé · » vérifiée).
 - `2026-10-15_D-027-02_suites_base_paquet.txt` : suites SQL métier sur une
-  base où le lot 2 vient du paquet (et non de la migration).
+  base où le lot 2 vient du paquet (et non de la migration) ; script
+  `…_suites_base_paquet.sh.txt`.

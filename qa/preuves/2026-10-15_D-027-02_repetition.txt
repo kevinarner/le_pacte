@@ -1,38 +1,40 @@
-# D-027-02 — répétition du paquet sur une base reproduisant la production (noms de déclencheurs de production, annuler_swend et annuler_si_double_absence de production)
+# D-027-02 — répétition du paquet sur une base reproduisant la production (noms de déclencheurs de production, annuler_swend et annuler_si_double_absence de production) — paquet du lot 3b (10 fonctions remplacées, dont envoyer_message_apres_swend)
 # Script de répétition local (base_avant_lot2 + prod_deux + données fictives) ; artefacts du paquet du commit indiqué dans DECISIONS.md
 déclencheur du double remplacement : CREATE TRIGGER on_remplacant_selectionne AFTER INSERT OR UPDATE OF selectionne ON public.remplacants FOR EACH ROW EXECUTE FUNCTION annuler_si_double_absence() [O]
 avant : confirme/true/true annule/false/false annule/true/false
 == sauvegarde, déclencheur désactivé (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/sauvegarde.sql:75: ERROR:  D-027-02 sauvegarde : déclencheurs différents de ceux relus (paquet à refaire)
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/sauvegarde.sql:76: ERROR:  D-027-02 sauvegarde : déclencheurs différents de ceux relus (paquet à refaire)
 == appliquer, déclencheur désactivé (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/appliquer.sql:77: ERROR:  D-027-02 : déclencheurs différents de ceux relus (paquet à refaire)
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/appliquer.sql:78: ERROR:  D-027-02 : déclencheurs différents de ceux relus (paquet à refaire)
 == sauvegarde, déclencheur en double (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/sauvegarde.sql:75: ERROR:  D-027-02 sauvegarde : déclencheurs différents de ceux relus (paquet à refaire)
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/sauvegarde.sql:76: ERROR:  D-027-02 sauvegarde : déclencheurs différents de ceux relus (paquet à refaire)
 == appliquer sans sauvegarde (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/appliquer.sql:77: ERROR:  D-027-02 : sauvegarde absente
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/appliquer.sql:78: ERROR:  D-027-02 : sauvegarde absente
 == sauvegarde
 == appliquer
 == verifier
  chats_annulation | chats_apres_swend | chats_sauvegardes | conversations_fermees | annulations_avec_motif | swends | swends_sauvegardes 
                 0 |                 0 |                 0 |                     0 |                      0 |      3 |                  3
 == appliquer de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/appliquer.sql:77: ERROR:  D-027-02 : déjà appliqué (en tout ou partie)
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/appliquer.sql:78: ERROR:  D-027-02 : déjà appliqué (en tout ou partie)
 == sauvegarde de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/sauvegarde.sql:75: ERROR:  D-027-02 : déjà appliqué (en tout ou partie)
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/sauvegarde.sql:76: ERROR:  D-027-02 : déjà appliqué (en tout ou partie)
 == rollback immédiat
-après rollback : md5 9/9 identiques ; contraintes 2/2 identiques ; colonnes D-027-02 0
+après rollback : md5 10/10 identiques ; contraintes 2/2 identiques ; colonnes D-027-02 0
 == verifier après rollback (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/verifier.sql:54: ERROR:  D-027-02 vérification : objets absents
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/verifier.sql:56: ERROR:  D-027-02 vérification : objets absents
 == rollback de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-02/rollback.sql:27: ERROR:  D-027-02 rollback : D-027-02 n'est pas appliqué
+psql:/home/user/le_pacte_3b/supabase/changements/D-027-02/rollback.sql:27: ERROR:  D-027-02 rollback : D-027-02 n'est pas appliqué
 == réapplication
 == verifier
  chats_annulation | chats_apres_swend | chats_sauvegardes | conversations_fermees | annulations_avec_motif | swends | swends_sauvegardes 
                 0 |                 0 |                 0 |                     0 |                      0 |      3 |                  3
 == usage réel simulé
  00000000-0000-4000-8000-0000000000e1
+ 00000000-0000-4000-8000-0000000000d1
  chats_annulation | fermes | ev_fil_ferme | annule_sans_auteur | push 
-                2 |      1 |            1 |                  1 |    6
+                2 |      1 |            1 |                  1 |    7
+push du chat d'annulation : David vous a écrit | Swend annulé · Au père Lapin
 double remplacement par on_remplacant_selectionne : annuleDoubleAbsence|double_remplacement
 == rollback après usage
 après rollback (usage) : nature=true mes_chats_swend=true motif=false chats=2 fil_ferme_gardé=true contrainte=CHECK (((annule_par IS NULL) OR (annule_le IS NOT NULL))) chats_d_annulation=2

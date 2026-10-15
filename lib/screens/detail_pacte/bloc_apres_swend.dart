@@ -8,7 +8,8 @@ import '../../theme/app_theme.dart';
 /// écrit »), participants, et « Faire un nouveau Swend » sous l'accès au
 /// chat (D-023c). Chat fermé par un nouveau Swend : « Voir la
 /// conversation » et « Conversation fermée », plus de création. Jamais avant
-/// l'ouverture, jamais sur un Swend annulé (la base n'ouvre pas de chat).
+/// l'ouverture. Swend annulé (D-027 lot 2) : le même bloc porte le chat
+/// d'annulation entre les deux titulaires (« Après l'annulation »).
 class BlocApresSwend extends StatelessWidget {
   final ChatApresSwend chat;
   final VoidCallback onOuvrir;
@@ -36,9 +37,9 @@ class BlocApresSwend extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'APRÈS LE SWEND',
-              style: TextStyle(
+            Text(
+              chat.estAnnulation ? enteteBlocAnnulation : 'APRÈS LE SWEND',
+              style: const TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w700,
                 color: AppColors.texteAttenue,

@@ -390,6 +390,62 @@ AS $function$
 $function$
 ;
 
+CREATE OR REPLACE FUNCTION public.envoyer_message_apres_swend(p_chat_id uuid, p_contenu text)
+ RETURNS uuid
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_uid uuid := auth.uid();
+  v_chat record;
+  v_moi record;
+  v_texte text;
+  v_message uuid;
+  v_restaurant text;
+  v_autre record;
+begin
+  select c.id, c.pacte_id, c.ferme_le into v_chat
+  from chats_apres_swend c where c.id = p_chat_id;
+  select id, prenom_affiche into v_moi
+  from participants_chat_apres_swend where chat_id = p_chat_id and profil_id = v_uid;
+  if v_uid is null or v_chat.id is null or v_moi.id is null then
+    raise exception 'non_autorise';
+  end if;
+  if v_chat.ferme_le is not null then
+    raise exception 'chat_ferme';
+  end if;
+  v_texte := regexp_replace(coalesce(p_contenu, ''), '^\s+|\s+$', '', 'g');
+  if v_texte = '' then
+    raise exception 'message_vide';
+  end if;
+  if char_length(v_texte) > 2000 then
+    raise exception 'message_trop_long';
+  end if;
+
+  insert into messages_apres_swend (chat_id, genre, participant_id, contenu)
+  values (p_chat_id, 'texte', v_moi.id, v_texte)
+  returning id into v_message;
+
+  -- Écrire, c'est avoir lu la conversation jusque-là.
+  insert into lectures_chat_apres_swend (chat_id, profil_id, lu_le)
+  values (p_chat_id, v_uid, clock_timestamp())
+  on conflict (chat_id, profil_id) do update set lu_le = greatest(lectures_chat_apres_swend.lu_le, excluded.lu_le);
+
+  select r.nom into v_restaurant
+  from pactes pa left join restaurants r on r.id = pa.restaurant_id where pa.id = v_chat.pacte_id;
+  for v_autre in
+    select profil_id from participants_chat_apres_swend
+    where chat_id = p_chat_id and profil_id is not null and profil_id <> v_uid order by role
+  loop
+    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' vous a écrit',
+      'Après le Swend · ' || coalesce(v_restaurant, ''),
+      jsonb_build_object('type', 'chat_apres_swend', 'chat_id', p_chat_id, 'pacte_id', v_chat.pacte_id));
+  end loop;
+  return v_message;
+end;
+$function$;
+
 -- 2. Objets internes du lot 2.
 drop table public.fils_imprevu_fermes;
 drop function public.appliquer_annulation(uuid, text, text, uuid);
@@ -492,7 +548,7 @@ begin
                and (md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) is distinct from s.md5_corps
                     or (select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a) is distinct from s.droits))
      or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
-         and proname in ('annuler_si_double_absence', 'annuler_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 9 then
+         and proname in ('annuler_si_double_absence', 'annuler_swend', 'envoyer_message_apres_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 10 then
     raise exception 'D-027-02 rollback : fonctions non remises à l''identique';
   end if;
   if to_regclass('public.fils_imprevu_fermes') is not null

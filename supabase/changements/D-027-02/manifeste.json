@@ -2,13 +2,13 @@
   "id": "D-027-02",
   "niveau": 2,
   "projet": "ssciqjpaibdorvnkkhsk",
-  "objectif": "D-027 lot 2 (En cas d imprévu, annulation et conversations) : un titulaire déjà remplacé ne peut plus annuler ; annulation unique (titulaire, double remplacement) avec notifications D-027 et motif ; chat d annulation entre les deux titulaires, immédiat, sans push ; conversations d imprévu des personnes réellement sollicitées ou ayant échangé conservées et écrivables après annulation jusqu au scellement d un nouveau Swend entre les deux mêmes personnes ; numéro du titulaire (D-024) inchangé. Aucune donnée existante modifiée.",
+  "objectif": "D-027 lot 2 (En cas d imprévu, annulation et conversations) : un titulaire déjà remplacé ne peut plus annuler ; annulation unique (titulaire, double remplacement) avec notifications D-027 et motif ; chat d annulation entre les deux titulaires, immédiat, sans push (push de ses messages : Swend annulé) ; conversations d imprévu des personnes réellement sollicitées ou ayant échangé conservées et écrivables après annulation jusqu au scellement d un nouveau Swend entre les deux mêmes personnes ; numéro du titulaire (D-024) inchangé. Aucune donnée existante modifiée.",
   "sauvegardes": [
     {
       "nom": "sauvegarde",
       "type": "sql_ecriture",
       "fichier": "sauvegarde.sql",
-      "sha256": "d56b4b830ba714e46fe52c5e49cd23f74a68054432d62e8c8ea5073566bae201"
+      "sha256": "08d12de84b8beb1a37c0e8944260f869fd3bc7113b51f843b497421281c33dbe"
     }
   ],
   "etapes": [
@@ -16,13 +16,13 @@
       "nom": "appliquer",
       "type": "sql_ecriture",
       "fichier": "appliquer.sql",
-      "sha256": "c3ddab413909b1a4b78be52e66474e0283b4c155dfb1bad1c89c36ba62884400"
+      "sha256": "91ad084757fab5c48efb8ee9f1237428ce3b24ff7e0d612f4ec9f142df3a4c49"
     },
     {
       "nom": "verifier",
       "type": "sql_lecture",
       "fichier": "verifier.sql",
-      "sha256": "e1253d23b6179730797860466985d85a7d6b1c701cc3196beae0276e40aa5d55"
+      "sha256": "5751d2e75e2fb89b7706c29733969d489809ceb4d07dcc7b193d7181aa29789d"
     }
   ],
   "rollback": [
@@ -30,7 +30,7 @@
       "nom": "rollback",
       "type": "sql_ecriture",
       "fichier": "rollback.sql",
-      "sha256": "e5fa397bc443abac06c88d2e876384cbf3180f23b36a083ba7828a10e082a1d5"
+      "sha256": "175478362d6f2cfc1e05f9bdc20b611925b57f7c68878ed368c263547e70c6ff"
     }
   ]
 }

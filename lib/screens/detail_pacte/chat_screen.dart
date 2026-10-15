@@ -74,10 +74,40 @@ class _ChatScreenState extends State<ChatScreen> {
   /// terminée (l'appareil n'était pas encore à l'heure).
   bool _refuseParLaBase = false;
 
+  /// Réponse de la base (`fil_ecriture_ouverte`) : null tant qu'elle n'a
+  /// pas répondu (on applique alors la règle locale).
+  bool? _ecritureOuverte;
+
+  /// Lecture seule : décidée par la base (D-027 lot 2 : une conversation
+  /// conservée après annulation reste ouverte à l'écriture ; sur une base
+  /// sans D-027-02, la même fonction répond non). L'heure du Swend qui
+  /// passe pendant que l'écran est ouvert ferme aussi la conversation.
   bool get _lectureSeule {
     if (_refuseParLaBase || _inaccessible) return true;
     final pacte = _pacteDuFil;
+    final serveur = _ecritureOuverte;
+    if (serveur == false) return true;
+    if (serveur == true) {
+      return pacte != null &&
+          pacte.statut == StatutPacte.confirme &&
+          estPasse(pacte, DateTime.now());
+    }
     return pacte != null && conversationEnLectureSeule(pacte, DateTime.now());
+  }
+
+  /// Fermée par un nouveau Swend scellé entre les deux membres (D-027).
+  bool get _fermeeParNouveauSwend =>
+      _evenements.any((e) => e.code == 'fil_ferme');
+
+  Future<void> _chargerEcriture() async {
+    try {
+      final ouverte = await PacteRepository.filEcritureOuverte(
+        widget.remplacantId,
+      );
+      if (mounted) setState(() => _ecritureOuverte = ouverte);
+    } catch (_) {
+      // Sans réponse : règle locale.
+    }
   }
 
   /// Les événements enregistrés par la base dans ce fil (demande envoyée,
@@ -102,6 +132,7 @@ class _ChatScreenState extends State<ChatScreen> {
     }
     _chargerDemande();
     _chargerEvenements();
+    _chargerEcriture();
     PacteRepository.marquerFilLu(widget.remplacantId).catchError((_) {});
   }
 
@@ -297,10 +328,12 @@ class _ChatScreenState extends State<ChatScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
                 color: AppColors.neutre,
-                child: const Text(
-                  'Cette conversation est terminée. Elle reste consultable.',
+                child: Text(
+                  _fermeeParNouveauSwend
+                      ? 'Cette conversation est fermée. Elle reste consultable.'
+                      : 'Cette conversation est terminée. Elle reste consultable.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 12.5,
                     color: AppColors.texteAttenue,
                   ),
@@ -666,6 +699,7 @@ class _ChatScreenState extends State<ChatScreen> {
           e is PostgrestException && e.message.contains('row-level security');
       if (termine) {
         await _chargerDemande();
+        await _chargerEvenements();
         if (mounted) setState(() => _refuseParLaBase = true);
       }
       if (mounted) {

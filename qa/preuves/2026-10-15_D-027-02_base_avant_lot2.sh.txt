@@ -6,7 +6,7 @@ qa_psql postgres -c "select pg_terminate_backend(pid) from pg_stat_activity wher
 qa_psql postgres -c "drop database if exists \"$BASE\"" 2>/dev/null
 qa_psql postgres -c "create database \"$BASE\"" >/dev/null || exit 1
 qa_psql postgres -c "alter database \"$BASE\" set timezone to 'UTC'" >/dev/null
-for f in "$QA_ROOT/db/replica/00_schema_initial.sql" $(ls "$REPO_ROOT"/supabase/migrations/*.sql | grep -v annulation_et_conversations) "$QA_ROOT/db/fixtures.sql"; do
+for f in "$QA_ROOT/db/replica/00_schema_initial.sql" $(ls /home/user/le_pacte_3b/supabase/migrations/*.sql | grep -v annulation_et_conversations) "$QA_ROOT/db/fixtures.sql"; do
   qa_psql "$BASE" -v ON_ERROR_STOP=1 -f "$f" > /dev/null 2>&1 || { echo "échec $f"; exit 1; }
 done
 echo "base $BASE prête"

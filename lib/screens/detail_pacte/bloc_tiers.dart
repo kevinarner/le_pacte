@@ -50,6 +50,10 @@ class _BlocTiersState extends State<BlocTiers> {
   /// le Swend passé ou annulé (D-023a).
   bool _filActif = false;
 
+  /// Swend annulé : la base accepte-t-elle encore mes messages ? (D-027
+  /// lot 2 : conversation conservée ; base sans D-027-02 : non.)
+  bool _filEcrivable = false;
+
   @override
   void initState() {
     super.initState();
@@ -65,7 +69,18 @@ class _BlocTiersState extends State<BlocTiers> {
     } catch (_) {
       // Sans cette information, pas de bouton de relecture.
     }
+    if (!_annule) return;
+    try {
+      final ecrivable = await PacteRepository.filEcritureOuverte(id);
+      if (mounted) setState(() => _filEcrivable = ecrivable);
+    } catch (_) {
+      // Sans réponse : relecture seulement.
+    }
   }
+
+  bool get _annule =>
+      widget.pacte.statut == StatutPacte.annule ||
+      widget.pacte.statut == StatutPacte.annuleDoubleAbsence;
 
   Remplacant get _fiche => widget.perspective.maFiche!;
   String get _titulaire =>
@@ -162,8 +177,20 @@ class _BlocTiersState extends State<BlocTiers> {
         statut == StatutPacte.annuleDoubleAbsence) {
       contenu = [
         _texte('Ce Swend a été annulé.'),
-        // Conversation en lecture seule, toujours relisible (D-023a).
-        if (_filActif) ...[
+        // Remplaçant sélectionné : même texte que la push d'annulation
+        // (D-027).
+        if (_fiche.selectionne) ...[
+          const SizedBox(height: 4),
+          _texte(
+            'Tu n’auras finalement pas besoin de prendre la place ${deNom(_titulaire)}.',
+          ),
+        ],
+        // Conversation conservée (D-027 lot 2) : on peut encore écrire ;
+        // sinon relecture seulement (D-023a).
+        if (_filEcrivable) ...[
+          const SizedBox(height: 14),
+          _boutonEcrire(principal: false),
+        ] else if (_filActif) ...[
           const SizedBox(height: 14),
           _boutonEcrire(principal: false, lecture: true),
         ],

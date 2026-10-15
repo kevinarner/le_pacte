@@ -8,14 +8,37 @@ import '../models/chat_apres_swend.dart';
 class ChatApresSwendRepository {
   static SupabaseClient get _client => Supabase.instance.client;
 
+  /// Base sans D-027-02 : `mes_chats_swend()` n'existe pas (on ne la
+  /// redemande pas pendant la session).
+  static bool _sansChatsAnnulation = false;
+
   /// Mes chats ouverts (les plus récents d'abord) : participants, non-lus,
-  /// dernier expéditeur — jamais le contenu d'un message.
+  /// dernier expéditeur — jamais le contenu d'un message. Chats après le
+  /// Swend et chats d'annulation (`mes_chats_swend()`, D-027 lot 2) ; sur
+  /// une base qui ne la connaît pas encore, repli sur
+  /// `mes_chats_apres_swend()` (chats après le Swend seulement).
   static Future<List<ChatApresSwend>> mesChats() async {
-    final rows = await _client.rpc('mes_chats_apres_swend') as List<dynamic>;
+    List<dynamic> rows;
+    if (_sansChatsAnnulation) {
+      rows = await _client.rpc('mes_chats_apres_swend') as List<dynamic>;
+    } else {
+      try {
+        rows = await _client.rpc('mes_chats_swend') as List<dynamic>;
+      } on PostgrestException catch (e) {
+        if (!fonctionAbsente(e)) rethrow;
+        _sansChatsAnnulation = true;
+        rows = await _client.rpc('mes_chats_apres_swend') as List<dynamic>;
+      }
+    }
     return [
       for (final r in rows) ChatApresSwend.depuis(r as Map<String, dynamic>),
     ];
   }
+
+  /// PostgREST : fonction inconnue de la base (PGRST202).
+  static bool fonctionAbsente(PostgrestException e) =>
+      e.code == 'PGRST202' ||
+      e.message.contains('Could not find the function');
 
   /// Le chat de ce Swend, s'il est ouvert et que j'y participe.
   static Future<ChatApresSwend?> chatDuPacte(String pacteId) async =>

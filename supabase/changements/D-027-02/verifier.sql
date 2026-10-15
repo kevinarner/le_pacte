@@ -24,7 +24,9 @@ begin
      or (select prosrc not ilike '%fil_conserve_apres_annulation%' from pg_proc
          where oid = 'public.fiche_de_confiance_accessible(uuid)'::regprocedure)
      or (select prosrc not ilike '%nature = ''apres_swend''%' from pg_proc
-         where oid = 'public.mes_chats_apres_swend()'::regprocedure) then
+         where oid = 'public.mes_chats_apres_swend()'::regprocedure)
+     or (select prosrc not ilike '%Swend annulé · %' from pg_proc
+         where oid = 'public.envoyer_message_apres_swend(uuid, text)'::regprocedure) then
     raise exception 'D-027-02 vérification : fonctions D-027 lot 2 non en place';
   end if;
   if (select count(*) from pg_trigger where tgrelid = 'public.pactes'::regclass and tgenabled = 'O'

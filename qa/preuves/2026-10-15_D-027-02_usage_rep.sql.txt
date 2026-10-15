@@ -2,6 +2,10 @@
 -- Swend 1 (Kevin sollicité, Sylvain seulement prévu) : Eliot annule.
 begin; select set_config('request.jwt.claim.sub', qa.id('eliot')::text, true); set local role authenticated;
 select annuler_swend('00000000-0000-4000-a000-000000000001'); commit;
+-- Message dans le chat d'annulation du Swend 1 (David → Eliot) : push « Swend annulé · ».
+begin; select set_config('request.jwt.claim.sub', qa.id('david')::text, true); set local role authenticated;
+select envoyer_message_apres_swend((select id from chats_apres_swend where pacte_id = '00000000-0000-4000-a000-000000000001' and nature = 'annulation'), 'Dommage, une autre fois.') is not null as message_envoye; commit;
+select 'push du chat d''annulation : ' || titre || ' | ' || corps as push_chat from notifications_log where corps like 'Swend annulé · %' order by id desc limit 1;
 -- Double remplacement sur un nouveau Swend Eliot–David.
 insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
 values ('00000000-0000-4000-a000-000000000004', 'confirme', 'diner', now() + interval '40 days', to_jsonb(array[now() + interval '40 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05');

@@ -736,6 +736,27 @@ class PacteRepository {
     };
   }
 
+  /// La base accepte-t-elle encore un message dans ce fil ? Avant l'heure
+  /// d'un Swend en cours, et (D-027 lot 2) dans une conversation conservée
+  /// après annulation tant qu'aucun nouveau Swend n'a été scellé entre ses
+  /// deux membres. Même fonction sur les deux bases (`fil_ecriture_ouverte`).
+  static Future<bool> filEcritureOuverte(String remplacantId) async {
+    final r = await _client.rpc(
+      'fil_ecriture_ouverte',
+      params: {'p_remplacant_id': remplacantId},
+    );
+    return r == true;
+  }
+
+  /// Parmi ces fils, ceux où l'on peut encore écrire.
+  static Future<Set<String>> filsEcrivables(List<String> remplacantIds) async {
+    final ecrivables = <String>{};
+    for (final id in remplacantIds) {
+      if (await filEcritureOuverte(id)) ecrivables.add(id);
+    }
+    return ecrivables;
+  }
+
   /// Marque une conversation comme lue par moi (jusqu'à maintenant).
   static Future<void> marquerFilLu(String remplacantId) async {
     await _client.rpc(
