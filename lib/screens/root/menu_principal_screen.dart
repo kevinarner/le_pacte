@@ -524,7 +524,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
                             vuParTiers: fil.jeSuisLeTiers,
                             autre: prenomDe(fil.nomInterlocuteur),
                           ) ??
-                          '${fil.nomInterlocuteur} vous a écrit',
+                          '${fil.nomInterlocuteur} t’a écrit',
                       style: const TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 14,
@@ -549,7 +549,7 @@ class _MenuPrincipalScreenState extends State<MenuPrincipalScreen> {
   }
 
   /// « Alors, ce Swend ? / Le silence est levé. » tant que je n'ai jamais
-  /// ouvert le chat, puis « David vous a écrit / Après le Swend · Au Père
+  /// ouvert le chat, puis « David t’a écrit / Après le Swend · Au Père
   /// Lapin · 13 octobre » s'il y a des messages non lus. Jamais le contenu.
   Widget _carteApresSwend(ChatApresSwend chat) {
     final pacte = mesPactes?.where((p) => p.id == chat.pacteId).firstOrNull;

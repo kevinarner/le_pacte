@@ -52,7 +52,7 @@ export default {
       await A.envoyerMessage(kevin, 'Bonjour Eliot, je suis dispo si besoin');
       const eliot = await ex.eliot();
       await eliot.accueil();
-      await ex.verifierTexte(eliot, 'Kevin Arner vous a écrit', 'Eliot : box "Kevin Arner vous a écrit"');
+      await ex.verifierTexte(eliot, 'Kevin Arner t’a écrit', 'Eliot : box "Kevin Arner t’a écrit"');
     });
   },
 };

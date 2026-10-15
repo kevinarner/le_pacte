@@ -46,7 +46,7 @@ export default {
       await eliot.cliquerTexte('Sylvain Landiech');
       await A.envoyerMessage(eliot, 'Merci quand même Sylvain');
       await sylvain.accueil();
-      await ex.verifierTexte(sylvain, 'Eliot Martin vous a écrit', 'Sylvain reçoit le message d\'Eliot');
+      await ex.verifierTexte(sylvain, 'Eliot Martin t’a écrit', 'Sylvain reçoit le message d\'Eliot');
     });
 
     await ex.etape('Un imprévu ? et Modifier ma liste après acceptation', async () => {

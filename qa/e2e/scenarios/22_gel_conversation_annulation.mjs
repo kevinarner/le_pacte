@@ -53,7 +53,7 @@ export default {
 
     await ex.etape('Eliot ouvre la conversation depuis la fiche du Swend annulé (une seule : ouverte directement)', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, 'Votre Swend avec David est annulé.', 'Eliot : « Votre Swend avec David est annulé. »');
+      await ex.verifierTexte(eliot, 'Ton Swend avec David est annulé.', 'Eliot : « Ton Swend avec David est annulé. »');
       if (baseAvecLot2()) {
         await eliot.cliquer('Reprendre une conversation');
         await eliot.attendreTexte('Oui bien sûr');

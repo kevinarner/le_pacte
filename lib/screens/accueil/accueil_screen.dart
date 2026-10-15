@@ -263,7 +263,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
   }
 
   /// Swend passé dont le chat après le Swend est ouvert (D-023b) :
-  /// « Discuter », « ● David vous a écrit », plus tard « Conversation
+  /// « Discuter », « ● David t’a écrit », plus tard « Conversation
   /// terminée » (D-023c). Simple libellé : la carte ouvre la fiche, d'où
   /// l'on rejoint le chat ; l'ordre des cartes ne change pas.
   Widget _ligneChat(ChatApresSwend chat) {

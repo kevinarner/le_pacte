@@ -78,13 +78,13 @@ export default {
       await ouvrirSwendPasse(eliot, /Swend avec David/);
       await ex.verifierTexte(eliot, 'Discuter', 'Eliot : « Discuter »');
       await ex.verifierTexte(eliot, 'Faire un nouveau Swend', 'Eliot : « Faire un nouveau Swend »');
-      const b1 = await eliot.page.getByRole('button', { name: /Discuter|David vous a écrit/ }).first().boundingBox();
+      const b1 = await eliot.page.getByRole('button', { name: /Discuter|David t’a écrit/ }).first().boundingBox();
       const b2 = await eliot.page.getByRole('button', { name: 'Faire un nouveau Swend' }).boundingBox();
       await ex.verifier('« Faire un nouveau Swend » sous l\'accès au chat', () => b1 && b2 && b2.y > b1.y);
       // Un message, pour l'historique conservé à la fermeture.
       await appelerComme('david', 'envoyer_message_apres_swend', { p_chat_id: chatId(), p_contenu: 'Merci pour la soirée !' });
       await ouvrirSwendPasse(eliot, /Swend avec David/);
-      await eliot.attendreTexte('David vous a écrit');
+      await eliot.attendreTexte('David t’a écrit');
     });
 
     await ex.etape('« Avec qui ? » sauté : directement « Quand et où ? » avec David, puis envoi', async () => {

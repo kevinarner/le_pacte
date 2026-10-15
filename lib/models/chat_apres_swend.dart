@@ -174,7 +174,7 @@ class ChatApresSwend {
     final remplace = participants.where((p) => p.role == r.placeDe).firstOrNull;
     if (remplace == null) return null;
     if (m.id == r.id) return 'Tu as pris la place ${deNom(remplace.prenom)}.';
-    if (m.id == remplace.id) return '${r.prenom} a pris votre place.';
+    if (m.id == remplace.id) return '${r.prenom} a pris ta place.';
     return '${r.prenom} a pris la place ${deNom(remplace.prenom)}.';
   }
 
@@ -184,12 +184,12 @@ class ChatApresSwend {
     return EtatChatApres.disponible;
   }
 
-  /// « David vous a écrit » (dernier expéditeur), si non lu.
+  /// « David t’a écrit » (dernier expéditeur), si non lu.
   String? get libelleNonLu => nonLus > 0 && dernierExpediteur != null
-      ? '$dernierExpediteur vous a écrit'
+      ? '$dernierExpediteur t’a écrit'
       : null;
 
-  /// Action de la fiche : « Discuter », « David vous a écrit » ; chat fermé
+  /// Action de la fiche : « Discuter », « David t’a écrit » ; chat fermé
   /// (D-023c) : « Voir la conversation ».
   String get libelleFiche => switch (etat) {
     EtatChatApres.termine => 'Voir la conversation',
@@ -216,7 +216,7 @@ class ChatApresSwend {
   bool get aUneCarteAccueil =>
       !ferme && (nonLus > 0 || (jamaisOuvert && !estAnnulation));
 
-  /// Titre de la carte d'accueil. Chat à 2 : « David vous a écrit » puis
+  /// Titre de la carte d'accueil. Chat à 2 : « David t’a écrit » puis
   /// « 4 nouveaux messages » ; chat à 3 : toujours le dernier expéditeur.
   String get titreCarteAccueil {
     if (nonLus == 0) return 'Alors, ce Swend ?';

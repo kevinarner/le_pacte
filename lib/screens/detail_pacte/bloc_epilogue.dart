@@ -9,7 +9,7 @@ import '../../theme/app_theme.dart';
 class BlocEpilogue extends StatelessWidget {
   final StatutPacte statut;
 
-  /// Prénom de l'autre titulaire (« Votre Swend avec David est annulé. »).
+  /// Prénom de l'autre titulaire (« Ton Swend avec David est annulé. »).
   final String autrePrenom;
   const BlocEpilogue({
     super.key,
@@ -42,9 +42,10 @@ class BlocEpilogue extends StatelessWidget {
                   ? "Quelqu'un sera présent en face de toi — impossible de savoir si c'est "
                         "elle ou la personne qui la remplace avant d'arriver."
                   : doubleAbsence
-                  ? "Vous avez chacun dû faire appel à quelqu'un pour vous remplacer : le "
-                        "Swend est annulé. Vous pouvez en créer un nouveau quand vous voulez."
-                  : 'Votre Swend avec $autrePrenom est annulé.',
+                  // D-027 (point 17) : même texte que la push du double
+                  // remplacement, au tutoiement.
+                  ? 'Ni toi ni $autrePrenom ne pourrez finalement être là.'
+                  : 'Ton Swend avec $autrePrenom est annulé.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: Colors.black54, fontSize: 13),
             ),

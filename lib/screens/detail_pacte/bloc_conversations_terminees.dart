@@ -104,7 +104,7 @@ class _BlocConversationsTermineesState
             const SizedBox(height: 8),
             if (designe != null) ...[
               Text(
-                '${designe.prenom} a pris votre place',
+                '${designe.prenom} a pris ta place',
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,

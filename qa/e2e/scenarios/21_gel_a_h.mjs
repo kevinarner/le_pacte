@@ -128,9 +128,9 @@ export default {
 
     await ex.etape('Aucune box non lue ; David ne voit rien', async () => {
       await eliot.accueil();
-      await ex.verifierAbsent(eliot, /vous a écrit|Le Swend a commencé|n'est plus d'actualité/, 'Eliot : aucune box');
+      await ex.verifierAbsent(eliot, /t’a écrit|vous a écrit|Le Swend a commencé|n'est plus d'actualité/, 'Eliot : aucune box');
       await kevin.accueil();
-      await ex.verifierAbsent(kevin, /vous a écrit|Le Swend a commencé|n'est plus d'actualité/, 'Kevin : aucune box');
+      await ex.verifierAbsent(kevin, /t’a écrit|vous a écrit|Le Swend a commencé|n'est plus d'actualité/, 'Kevin : aucune box');
       await ex.verifier('David : aucune push', () => sql(`select count(*) from notifications_log where profile_id = '${COMPTES.david.id}'`) === '0');
       const evts = await lireComme('david', 'evenements_fil');
       const msgs = await lireComme('david', 'messages');

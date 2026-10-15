@@ -210,9 +210,9 @@ export async function ouvrirConversationTiers(a, titulaire = 'Eliot', autre = 'D
   await a.cliquer(`Écrire à ${titulaire}`, { exact: false });
   await a.attendreTexte('Écrire un message…');
 }
-// Depuis la box "X vous a écrit" de l'accueil.
+// Depuis la box "X t’a écrit" de l'accueil.
 export async function ouvrirConversationDepuisBox(a, nomComplet) {
-  await ouvrirBox(a, `${nomComplet} vous a écrit`);
+  await ouvrirBox(a, `${nomComplet} t’a écrit`);
 }
 // Depuis une box de l'accueil dont le titre est [texte] (message ou
 // événement non lu : "Kevin a accepté de prendre ta place."...).

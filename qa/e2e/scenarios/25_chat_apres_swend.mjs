@@ -99,7 +99,7 @@ export default {
     await ex.etape('Révélation sur la fiche du Swend passé', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await ex.verifierTexte(eliot, 'APRÈS LE SWEND', 'Eliot : bloc « APRÈS LE SWEND »');
-      await ex.verifierTexte(eliot, 'Kevin a pris votre place.', 'Eliot : « Kevin a pris votre place. »');
+      await ex.verifierTexte(eliot, 'Kevin a pris ta place.', 'Eliot : « Kevin a pris ta place. »');
       await ex.verifierTexte(eliot, 'Avec David et Kevin', 'Eliot : « Avec David et Kevin »');
       await A.ouvrirSwend(david, /Swend avec Eliot/);
       await ex.verifierTexte(david, "Kevin a pris la place d'Eliot.", 'David : « Kevin a pris la place d\'Eliot. »');
@@ -127,24 +127,24 @@ export default {
       await ex.verifierAbsent(kevin, 'Alors, ce Swend ?', 'Kevin : carte disparue après sa première ouverture');
     });
 
-    await ex.etape('Eliot et David : carte « Kevin vous a écrit » ; David lit, lui seul', async () => {
+    await ex.etape('Eliot et David : carte « Kevin t’a écrit » ; David lit, lui seul', async () => {
       const id = chatId();
       for (const a of [eliot, david]) {
         await a.accueil();
-        await ex.verifierTexte(a, 'Kevin vous a écrit', `${a.compte.prenom} : carte « Kevin vous a écrit »`);
+        await ex.verifierTexte(a, 'Kevin t’a écrit', `${a.compte.prenom} : carte « Kevin t’a écrit »`);
         await ex.verifierAbsent(a, 'Quelle soirée', `${a.compte.prenom} : jamais le contenu sur l'accueil`);
       }
-      await david.cliquerTexte('Kevin vous a écrit');
+      await david.cliquerTexte('Kevin t’a écrit');
       await david.attendreTexte('Quelle soirée !');
       await ex.verifierTexte(david, 'Kevin', 'chat à 3 : prénom de l\'auteur au-dessus de la bulle');
       await ex.verifier('David : 0 non lu ; Eliot : toujours 1', async () =>
         (await nonLus('david', id)) === 0 && (await nonLus('eliot', id)) === 1);
       await david.accueil();
-      await ex.verifierAbsent(david, 'Kevin vous a écrit', 'David : carte disparue');
+      await ex.verifierAbsent(david, 'Kevin t’a écrit', 'David : carte disparue');
       await eliot.accueil();
-      await ex.verifierTexte(eliot, 'Kevin vous a écrit', 'Eliot : carte toujours là');
+      await ex.verifierTexte(eliot, 'Kevin t’a écrit', 'Eliot : carte toujours là');
       await A.ouvrirMesSwends(eliot);
-      await ex.verifierTexte(eliot, '● Kevin vous a écrit', 'Eliot : « ● Kevin vous a écrit » dans Mes Swends');
+      await ex.verifierTexte(eliot, '● Kevin t’a écrit', 'Eliot : « ● Kevin t’a écrit » dans Mes Swends');
     });
 
     await ex.etape('Lien web direct (?chat_apres=) : le chat s\'ouvre, l\'adresse est nettoyée', async () => {

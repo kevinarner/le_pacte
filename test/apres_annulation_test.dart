@@ -57,12 +57,12 @@ void main() {
         ligne(nature: 'annulation', nonLus: 1, dernier: 'David'),
       );
       expect(c.aUneCarteAccueil, isTrue);
-      expect(c.titreCarteAccueil, 'David vous a écrit');
+      expect(c.titreCarteAccueil, 'David t’a écrit');
       expect(
         c.sousTitreCarteAccueil(restaurant: 'Au père Lapin'),
         'Swend annulé · Au père Lapin',
       );
-      expect(c.libelleFiche, 'David vous a écrit');
+      expect(c.libelleFiche, 'David t’a écrit');
     });
     test(
       'chat après le Swend inchangé : invitation tant que jamais ouvert',

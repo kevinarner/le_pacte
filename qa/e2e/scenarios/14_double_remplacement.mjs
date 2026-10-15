@@ -35,7 +35,7 @@ export default {
       for (const [a, autre] of [[eliot, 'David'], [david, 'Eliot']]) {
         await A.ouvrirSwend(a, new RegExp(`Swend avec ${autre}`));
         await ex.verifierTexte(a, 'Swend annulé', `${a.compte.prenom} : "Swend annulé"`);
-        await ex.verifierTexte(a, "Vous avez chacun dû faire appel à quelqu'un pour vous remplacer", `${a.compte.prenom} : message de double remplacement`);
+        await ex.verifierTexte(a, `Ni toi ni ${autre} ne pourrez finalement être là.`, `${a.compte.prenom} : « Ni toi ni ${autre} ne pourrez finalement être là. »`);
         await a.accueil();
         await ex.verifierTexte(a, /Mes Swends\s+0 à venir/, `${a.compte.prenom} : 0 à venir`);
         await ex.verifierAbsent(a, 'TON PROCHAIN SWEND', `${a.compte.prenom} : plus de "Ton prochain Swend"`);

@@ -51,7 +51,7 @@ export default {
     await ex.etape('Eliot : choix entre les conversations actives', async () => {
       const lot2 = baseAvecLot2();
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierAbsent(eliot, 'a pris votre place', 'Eliot : aucun rappel de remplacement sur un Swend annulé');
+      await ex.verifierAbsent(eliot, 'a pris ta place', 'Eliot : aucun rappel de remplacement sur un Swend annulé');
       await eliot.cliquer(lot2 ? 'Reprendre une conversation' : 'Relire une conversation');
       await ex.verifierTexte(eliot, lot2 ? 'Reprendre la conversation avec…' : 'Relire la conversation avec…', 'Eliot : choix proposé');
       await ex.verifierTexte(eliot, 'Kevin Arner', 'Eliot : Kevin proposé');

@@ -61,14 +61,14 @@ void main() {
 
   group('Révélation du remplacement', () {
     test('titulaire remplacé, autre titulaire, remplaçant (tutoyé)', () {
-      expect(chat(eliot).revelation, 'Kevin a pris votre place.');
+      expect(chat(eliot).revelation, 'Kevin a pris ta place.');
       expect(chat(david).revelation, "Kevin a pris la place d'Eliot.");
       expect(chat(kevin).revelation, "Tu as pris la place d'Eliot.");
     });
     test('remplacement côté destinataire', () {
       expect(
         chat(david, place: RoleChat.destinataire).revelation,
-        'Kevin a pris votre place.',
+        'Kevin a pris ta place.',
       );
       expect(
         chat(eliot, place: RoleChat.destinataire).revelation,
@@ -136,11 +136,11 @@ void main() {
   });
 
   group('Fiche et Mes Swends', () {
-    test('Discuter / David vous a écrit / Voir la conversation (D-023c)', () {
+    test('Discuter / David t’a écrit / Voir la conversation (D-023c)', () {
       expect(chat(eliot).libelleFiche, 'Discuter');
       expect(
         chat(eliot, nonLus: 2, dernier: 'David').libelleFiche,
-        'David vous a écrit',
+        'David t’a écrit',
       );
       expect(
         chat(eliot, fermeLe: DateTime.utc(2031, 11)).libelleFiche,
@@ -149,7 +149,7 @@ void main() {
       expect(chat(eliot).libelleMesSwends, 'Discuter');
       expect(
         chat(eliot, nonLus: 1, dernier: 'David').libelleMesSwends,
-        '● David vous a écrit',
+        '● David t’a écrit',
       );
       expect(
         chat(eliot, fermeLe: DateTime.utc(2031, 11)).libelleMesSwends,
@@ -173,7 +173,7 @@ void main() {
       'message non lu : expéditeur, puis « N nouveaux messages » (chat à 2)',
       () {
         final un = chat(eliot, avecKevin: false, nonLus: 1, dernier: 'David');
-        expect(un.titreCarteAccueil, 'David vous a écrit');
+        expect(un.titreCarteAccueil, 'David t’a écrit');
         expect(
           un.sousTitreCarteAccueil(
             restaurant: 'Au Père Lapin',
@@ -195,7 +195,7 @@ void main() {
     test('chat à 3 : toujours le dernier expéditeur', () {
       expect(
         chat(eliot, nonLus: 4, dernier: 'Kevin').titreCarteAccueil,
-        'Kevin vous a écrit',
+        'Kevin t’a écrit',
       );
     });
     test(
@@ -308,8 +308,8 @@ void main() {
       ],
     });
     expect(c.enteteParticipants, 'Eliot · David · Compte supprimé');
-    expect(c.revelation, 'Compte supprimé a pris votre place.');
+    expect(c.revelation, 'Compte supprimé a pris ta place.');
     expect(c.nonLus, 2);
-    expect(c.titreCarteAccueil, 'Kevin vous a écrit');
+    expect(c.titreCarteAccueil, 'Kevin t’a écrit');
   });
 }

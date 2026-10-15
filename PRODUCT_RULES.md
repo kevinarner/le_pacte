@@ -126,7 +126,7 @@ Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
 > **Lot 2 de D-027 (annulation et conversations) : implémenté côté serveur le 15/10/2026, pas en production, pas exposé par l’app** (il attend une app du lot 3 compatible ; paquet `D-027-02`). Une fois en production : un titulaire dont la place a été prise ne peut plus annuler (`remplacement_accepte`), l’autre titulaire le peut ; notifications : autre titulaire « Le Swend est annulé / Eliot ne pourra finalement pas être là. », remplaçant sélectionné « Le Swend est annulé / Tu n’auras finalement pas besoin de prendre la place d’Eliot. », demande en attente « Le Swend est annulé / Tu n’as plus besoin de répondre. », rien pour l’auteur ni pour les refus ; chat d’annulation entre les deux titulaires, ouvert immédiatement, sans push ; conversations d’imprévu conservées et ouvertes à l’écriture pour les personnes réellement sollicitées ou avec qui des messages ont été échangés (voir 3.6). Détail : `DECISIONS.md`, D-027, « Choix techniques (lot 2) ».
 
-> **Lot 3 de D-027 (application) : implémenté le 15/10/2026, pas publié.** L’app n’a plus de bouton `Annuler le Swend` sur la fiche ; l’annulation par un titulaire passe par `Un imprévu ?` → `Je n’ai personne d’autre` → `Annuler le Swend`, proposé quand personne n’a pu prendre la place ou qu’il n’y a plus personne à solliciter, jamais pendant l’attente ni après une acceptation. Après une annulation (base avec D-027-02) : bloc « Après l’annulation » sur la fiche (`Discuter`, `Faire un nouveau Swend`), conversations conservées reprises (`Reprendre une conversation`, `Écrire à Eliot`) tant que la base les accepte, fermées par un nouveau Swend entre les deux mêmes personnes. Sur la base sans D-027-02, l’app garde le comportement actuel (relecture seule). Le texte « Votre Swend avec [Prénom] est annulé. » ci-dessous reste affiché. Détail : `DECISIONS.md`, D-027, « Choix techniques (lot 3) ».
+> **Lot 3 de D-027 (application) : implémenté le 15/10/2026, pas publié.** L’app n’a plus de bouton `Annuler le Swend` sur la fiche ; l’annulation par un titulaire passe par `Un imprévu ?` → `Je n’ai personne d’autre` → `Annuler le Swend`, proposé quand personne n’a pu prendre la place ou qu’il n’y a plus personne à solliciter, jamais pendant l’attente ni après une acceptation. Après une annulation (base avec D-027-02) : bloc « Après l’annulation » sur la fiche (`Discuter`, `Faire un nouveau Swend`), conversations conservées reprises (`Reprendre une conversation`, `Écrire à Eliot`) tant que la base les accepte, fermées par un nouveau Swend entre les deux mêmes personnes. Sur la base sans D-027-02, l’app garde le comportement actuel (relecture seule). Écrans au tutoiement (15/10) : « Ton Swend avec [Prénom] est annulé. », « Kevin a pris ta place », « David t’a écrit », double remplacement « Ni toi ni [Prénom] ne pourrez finalement être là. ». Détail : `DECISIONS.md`, D-027, « Choix techniques (lot 3) ».
 
 Seuls les deux titulaires originaux peuvent annuler un Swend scellé. Un remplaçant ne peut jamais annuler : il peut seulement accepter ou refuser une demande, ou se désister. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
 
@@ -172,7 +172,7 @@ Actions : `Ne pas annuler` / `Annuler le Swend`.
 Le Swend est annulé immédiatement, en une seule opération côté serveur (statut, clôture des demandes en attente, notifications). Aucun motif n’est demandé. Swend enregistre qui a annulé et quand, sans l’afficher (donnée réservée à un usage futur ; inconnue pour les annulations antérieures, jamais reconstituée). Celui qui annule voit :
 
 > **Swend annulé**  
-> Votre Swend avec [Prénom] est annulé.
+> Ton Swend avec [Prénom] est annulé.
 
 #### Notifications
 
@@ -304,7 +304,7 @@ Notification (une par participant, sans rappel) :
 
 #### Révélation (à partir de l’ouverture seulement)
 
-- Titulaire remplacé : `Kevin a pris votre place.`
+- Titulaire remplacé : `Kevin a pris ta place.`
 - Autre titulaire : `Kevin a pris la place d’Eliot.`
 - Remplaçant (tutoyé, comme toute personne de confiance) : `Tu as pris la place d’Eliot.`
 - Le Swend reste nommé d’après ses titulaires d’origine.
@@ -313,9 +313,9 @@ Notification (une par participant, sans rappel) :
 
 Pas d’onglet ni de liste de conversations : accès depuis le Swend.
 
-- Fiche d’un Swend passé : bloc `APRÈS LE SWEND` (au-dessus de la relecture de l’imprévu), seulement une fois le chat ouvert : `Discuter` / `David vous a écrit`, puis `Avec David` / `Avec David et Kevin`, puis `Faire un nouveau Swend` (D-023c, §3.8). Chat fermé : voir §3.8.
-- Mes Swends : `Discuter`, `● David vous a écrit`, `Voir la conversation` (chat fermé, D-023c), `Annulé`. Aucun statut `Réalisé` / `Terminé` ; ordre chronologique inchangé.
-- Accueil : tant que je n’ai jamais ouvert le chat, `Alors, ce Swend ?` / `Le silence est levé.` ; ensuite, s’il y a des messages non lus, `David vous a écrit` (ou `4 nouveaux messages` dans un chat à 2 ; dernier expéditeur dans un chat à 3) / `Après le Swend · Au Père Lapin · 13 octobre`. Jamais le contenu. 2 cartes au plus, triées par dernier message. Priorité : urgences des Swends en cours (y compris l’imprévu), puis après le Swend, puis prochain Swend.
+- Fiche d’un Swend passé : bloc `APRÈS LE SWEND` (au-dessus de la relecture de l’imprévu), seulement une fois le chat ouvert : `Discuter` / `David t’a écrit`, puis `Avec David` / `Avec David et Kevin`, puis `Faire un nouveau Swend` (D-023c, §3.8). Chat fermé : voir §3.8.
+- Mes Swends : `Discuter`, `● David t’a écrit`, `Voir la conversation` (chat fermé, D-023c), `Annulé`. Aucun statut `Réalisé` / `Terminé` ; ordre chronologique inchangé.
+- Accueil : tant que je n’ai jamais ouvert le chat, `Alors, ce Swend ?` / `Le silence est levé.` ; ensuite, s’il y a des messages non lus, `David t’a écrit` (ou `4 nouveaux messages` dans un chat à 2 ; dernier expéditeur dans un chat à 3) / `Après le Swend · Au Père Lapin · 13 octobre`. Jamais le contenu. 2 cartes au plus, triées par dernier message. Priorité : urgences des Swends en cours (y compris l’imprévu), puis après le Swend, puis prochain Swend.
 - Entre l’heure du Swend et l’ouverture : aucun nouveau libellé, aucun bloc.
 
 #### Chat
@@ -783,7 +783,7 @@ Si les deux titulaires ont chacun une personne sélectionnée pour les remplacer
 
 Les deux titulaires peuvent connaître la raison générale :
 
-> Vous avez chacun fait appel à quelqu’un pour prendre votre place.
+> Ni toi ni [Prénom] ne pourrez finalement être là.
 
 L’identité des remplaçants n’a pas besoin d’être révélée.
 

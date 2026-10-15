@@ -47,7 +47,7 @@ export default {
 
     await ex.etape('Eliot : fiche du Swend annulé', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, 'Votre Swend avec David est annulé.', 'Eliot : « Votre Swend avec David est annulé. »');
+      await ex.verifierTexte(eliot, 'Ton Swend avec David est annulé.', 'Eliot : « Ton Swend avec David est annulé. »');
       await ex.verifierAbsent(eliot, 'APRÈS LE SWEND', 'Eliot : jamais de bloc « Après le Swend »');
       await ex.verifier('Eliot : ni « Un imprévu ? » ni « Annuler le Swend »', async () =>
         (await eliot.nombreDeBoutons('Un imprévu ?')) === 0 && (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
@@ -78,10 +78,10 @@ export default {
         await ex.verifier('push à Eliot : « David vous a écrit » / « Swend annulé · Au père Lapin »',
           () => r.ok && derniereNotif('eliot') === 'David vous a écrit|Swend annulé · Au père Lapin', { obtenu: () => `${r.corps} ${derniereNotif('eliot')}` });
         await eliot.accueil();
-        await ex.verifierTexte(eliot, 'David vous a écrit', 'Eliot : carte « David vous a écrit »');
+        await ex.verifierTexte(eliot, 'David t’a écrit', 'Eliot : carte « David t’a écrit »');
         // Swend annulé : l'app ne garde pas le restaurant retenu (date seulement).
-        await ex.verifierTexte(eliot, /David vous a écrit\s+Swend annulé · \d+ /, 'Eliot : carte « Swend annulé · <date> »');
-        await eliot.cliquerTexte('David vous a écrit');
+        await ex.verifierTexte(eliot, /David t’a écrit\s+Swend annulé · \d+ /, 'Eliot : carte « Swend annulé · <date> »');
+        await eliot.cliquerTexte('David t’a écrit');
         await eliot.attendreTexte('Une autre fois ?');
       });
 
@@ -150,7 +150,7 @@ export default {
 
     await ex.etape('David ne voit rien des coulisses', async () => {
       await A.ouvrirSwend(david, /Swend avec Eliot/);
-      await ex.verifierTexte(david, 'Votre Swend avec Eliot est annulé.', 'David : « Votre Swend avec Eliot est annulé. »');
+      await ex.verifierTexte(david, 'Ton Swend avec Eliot est annulé.', 'David : « Ton Swend avec Eliot est annulé. »');
       await ex.verifierAbsent(david, /Kevin|Sylvain|Tom/, 'David : aucune personne de confiance d’Eliot');
       const [m, e] = [await lireComme('david', 'messages'), await lireComme('david', 'evenements_fil')];
       await ex.verifier('API : David ne lit aucun message ni événement', () => m.length === 0 && e.length === 0, { obtenu: () => `${m.length}/${e.length}` });

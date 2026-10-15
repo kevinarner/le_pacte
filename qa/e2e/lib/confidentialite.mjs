@@ -30,7 +30,7 @@ export async function verifierDavidNeVoitRien(ex, avant, { nomsInterdits = ['Kev
     await ex.verifier('David : fiche du Swend identique à avant les démarches d\'Eliot', () => apres.fiche === avant.fiche,
       { attendu: avant.fiche.slice(0, 300), obtenu: () => apres.fiche.slice(0, 300) });
   }
-  const indices = [...nomsInterdits, 'prendra votre place', 'a un imprévu', 'te demande', 'remplac'];
+  const indices = [...nomsInterdits, 'prendra votre place', 'prendra ta place', 'a pris ta place', 'a un imprévu', 'te demande', 'remplac'];
   const trouves = indices.filter((m) => (apres.accueil + ' ' + apres.fiche).includes(m));
   await ex.verifier('David : aucun nom ni indice de remplacement à l\'écran', () => trouves.length === 0,
     { attendu: 'aucun de : ' + indices.join(', '), obtenu: () => trouves.join(', ') });

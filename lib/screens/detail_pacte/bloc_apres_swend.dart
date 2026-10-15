@@ -4,7 +4,7 @@ import '../../models/chat_apres_swend.dart';
 import '../../theme/app_theme.dart';
 
 /// Fiche d'un Swend passé, une fois le chat après le Swend ouvert (D-023b) :
-/// révélation du remplacement, accès au chat (« Discuter », « David vous a
+/// révélation du remplacement, accès au chat (« Discuter », « David t’a
 /// écrit »), participants, et « Faire un nouveau Swend » sous l'accès au
 /// chat (D-023c). Chat fermé par un nouveau Swend : « Voir la
 /// conversation » et « Conversation fermée », plus de création. Jamais avant
