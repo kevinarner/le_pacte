@@ -304,7 +304,16 @@ qu'**après** une app du lot 3 compatible avec les deux bases.
 **Vérifications pour décider de l'ordre** :
 - V1 — E2E complet avec l'app du lot 3 sur une base **sans** D-027-02
   (production attendue) : vert, sinon l'app ne peut pas partir d'abord.
+  **Fait le 15/10** (`QA_BASE=avant-D-027-02`, commit `9d5ec6e`) : 31/33
+  scénarios, 802 vérifications réussies / 2 échecs, tous deux des attentes
+  de test (`22` : Kevin, seulement prévu, perd l'accès selon D-023a et
+  l'app affiche « Cette conversation n'est plus accessible. » ; `28` :
+  requête de contrôle sur la colonne `nature`, absente) ; tests corrigés
+  (commit `bfd89c1`), `22` et `28` rejoués verts sur les deux bases.
 - V2 — E2E complet avec l'app du lot 3 sur une base **avec** D-027-02 : vert.
+  **Fait le 15/10** (commit `fbcd5b9`) : 33/33 scénarios, 918/0 ; métier
+  1811/0. Après la correction du titre de push (`9d5ec6e`) : métier
+  1811/0, E2E `25` et `31` rejoués verts.
 - V3 — l'app publiée (lot 1) sur une base avec D-027-02 (fenêtre si la base
   partait d'abord) : fait le 15/10, voir `DECISIONS.md` (D-027, « Mise en
   production ») — elle confirme que la base ne doit pas précéder l'app.
