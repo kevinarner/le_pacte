@@ -51,6 +51,22 @@ begin
      is distinct from 'CHECK (((annule_par IS NULL) = (annule_le IS NULL)))' then
     raise exception 'D-027-02 sauvegarde : contraintes différentes de celles relues';
   end if;
+  -- Déclencheurs dont le lot 2 remplace la fonction (eux-mêmes inchangés) :
+  -- un seul, actif, définition relue le 15/10 (nom ignoré :
+  -- on_remplacant_selectionne en production, trg_annuler_si_double_absence
+  -- en QA) ; fermeture au scellement (2) et protection de l'annulation (1).
+  if (select count(*) from pg_trigger t where t.tgrelid = 'public.remplacants'::regclass and not t.tgisinternal
+      and t.tgfoid = 'public.annuler_si_double_absence()'::regprocedure) <> 1
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.remplacants'::regclass and not t.tgisinternal
+         and t.tgenabled = 'O' and t.tgfoid = 'public.annuler_si_double_absence()'::regprocedure
+         and regexp_replace(pg_get_triggerdef(t.oid), '^CREATE TRIGGER \S+ ', '')
+             = 'AFTER INSERT OR UPDATE OF selectionne ON public.remplacants FOR EACH ROW EXECUTE FUNCTION annuler_si_double_absence()') <> 1
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.pactes'::regclass and t.tgenabled = 'O'
+         and t.tgfoid = 'public.fermer_chats_apres_nouveau_swend()'::regprocedure) <> 2
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.pactes'::regclass and t.tgenabled = 'O'
+         and t.tgfoid = 'public.proteger_annulation_pacte()'::regprocedure) <> 1 then
+    raise exception 'D-027-02 sauvegarde : déclencheurs différents de ceux relus (paquet à refaire)';
+  end if;
   if to_regclass('sauvegarde.d027_02_fonctions_20261015') is not null
      or to_regclass('sauvegarde.d027_02_pactes_20261015') is not null
      or to_regclass('sauvegarde.d027_02_chats_20261015') is not null then
@@ -72,7 +88,14 @@ union all
 select 'contrainte ' || c.conname, '', pg_get_constraintdef(c.oid), null, null, now()
 from pg_constraint c
 where (c.conname = 'evenements_fil_code_check' and c.conrelid = 'public.evenements_fil'::regclass)
-   or (c.conname = 'pactes_annulation_complete' and c.conrelid = 'public.pactes'::regclass);
+   or (c.conname = 'pactes_annulation_complete' and c.conrelid = 'public.pactes'::regclass)
+union all
+select 'declencheur ' || t.tgname, t.tgenabled::text, pg_get_triggerdef(t.oid), null, null, now()
+from pg_trigger t
+where not t.tgisinternal
+  and t.tgfoid in ('public.annuler_si_double_absence()'::regprocedure,
+                   'public.fermer_chats_apres_nouveau_swend()'::regprocedure,
+                   'public.proteger_annulation_pacte()'::regprocedure);
 
 create table sauvegarde.d027_02_pactes_20261015 as
 select p.id, p.statut, p.scelle_le, p.annule_par, p.annule_le, now() as sauvegarde_le
@@ -91,7 +114,7 @@ revoke all on table sauvegarde.d027_02_chats_20261015 from public, anon, authent
 
 do $$
 begin
-  if (select count(*) from sauvegarde.d027_02_fonctions_20261015) <> 11
+  if (select count(*) from sauvegarde.d027_02_fonctions_20261015) <> 15
      or (select count(*) from sauvegarde.d027_02_pactes_20261015) <> (select count(*) from public.pactes)
      or (select count(*) from sauvegarde.d027_02_chats_20261015) <> (select count(*) from public.chats_apres_swend) then
     raise exception 'D-027-02 sauvegarde : copie incomplète';

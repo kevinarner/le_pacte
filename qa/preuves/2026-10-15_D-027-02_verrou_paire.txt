@@ -1,0 +1,43 @@
+# D-027-02 — course 18 (annulation et scellement Eliot–Kevin) avec et sans verrou par paire
+# Commande : qa/metier/preuve_verrou_paire.sh swend_d027_02_suites 5 (base locale : migrations jusqu'au lot 1 + paquet D-027-02 appliqué + suites SQL)
+base swend_d027_02_suites, 5 essais par ordre (15 par variante), 2026-10-15T13:10:31Z
+avec verrou|1|annulation tenue ouverte|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|2|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|3|scellement tenu ouvert|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|4|annulation tenue ouverte|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|5|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|6|scellement tenu ouvert|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|7|annulation tenue ouverte|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|8|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|9|scellement tenu ouvert|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|10|annulation tenue ouverte|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|11|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|12|scellement tenu ouvert|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|13|annulation tenue ouverte|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|14|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+avec verrou|15|scellement tenu ouvert|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+sans verrou|1|annulation tenue ouverte|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|2|lancés ensemble|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|3|scellement tenu ouvert|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|4|annulation tenue ouverte|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|5|lancés ensemble|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|6|scellement tenu ouvert|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|7|annulation tenue ouverte|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|8|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+sans verrou|9|scellement tenu ouvert|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|10|annulation tenue ouverte|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|11|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+sans verrou|12|scellement tenu ouvert|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|13|annulation tenue ouverte|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+sans verrou|14|lancés ensemble|annule|scelle=true|ferme=true|fil_ferme=1|réussi
+sans verrou|15|scellement tenu ouvert|annule|scelle=true|ferme=false|fil_ferme=0|ÉCHEC
+== bilan
+  avec verrou / annulation tenue ouverte : 5 réussis, 0 échecs
+  avec verrou / lancés ensemble : 5 réussis, 0 échecs
+  avec verrou / scellement tenu ouvert : 5 réussis, 0 échecs
+  sans verrou / annulation tenue ouverte : 0 réussis, 5 échecs
+  sans verrou / lancés ensemble : 3 réussis, 2 échecs
+  sans verrou / scellement tenu ouvert : 0 réussis, 5 échecs
+avec verrou : 15 réussis, 0 échecs sur 15
+sans verrou : 3 réussis, 12 échecs sur 15
+fonction d'origine restaurée (empreinte 3e6b80ea5864f3212966c53542db20b9)

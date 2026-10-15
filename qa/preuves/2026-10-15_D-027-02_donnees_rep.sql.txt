@@ -1,0 +1,14 @@
+-- Données fictives (comptes QA Eliot, David, Kevin, Sylvain) : un Swend scellé
+-- avec une demande en cours, un Swend annulé jamais scellé, un Swend scellé
+-- puis annulé SANS conversation.
+select qa.reinitialiser();
+insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values
+ ('00000000-0000-4000-a000-000000000001', 'confirme', 'diner', now() + interval '20 days', to_jsonb(array[now() + interval '20 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05'),
+ ('00000000-0000-4000-a000-000000000002', 'annule', 'diner', null, to_jsonb(array[now() + interval '25 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'Zoé Z', '06 00 00 00 06'),
+ ('00000000-0000-4000-a000-000000000003', 'confirme', 'diner', now() + interval '30 days', to_jsonb(array[now() + interval '30 days']), qa.id('restaurant'), qa.id('david'), 'David Schlang', 'Camille C', '06 00 00 00 04');
+insert into remplacants (pacte_id, cote, prenom, nom, telephone, email) values
+ ('00000000-0000-4000-a000-000000000001', 'initiateur', 'Kevin', 'Arner', '0600001234', ''),
+ ('00000000-0000-4000-a000-000000000001', 'initiateur', 'Sylvain', 'Landiech', '06 55 44 33 22', ''),
+ ('00000000-0000-4000-a000-000000000003', 'initiateur', 'Kevin', 'Arner', '0600001234', '');
+update remplacants set demande_statut = 'envoyee' where pacte_id = '00000000-0000-4000-a000-000000000001' and prenom = 'Kevin';
+update pactes set statut = 'annule' where id = '00000000-0000-4000-a000-000000000003';

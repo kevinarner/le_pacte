@@ -503,6 +503,19 @@ begin
      or (not v_garde_chats and exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and proname = 'mes_chats_swend')) then
     raise exception 'D-027-02 rollback : objets D-027 lot 2 restants';
   end if;
+  -- Déclencheurs inchangés (mêmes noms, état et définitions que la sauvegarde).
+  if exists (select 1 from sauvegarde.d027_02_fonctions_20261015 s
+             where s.nom like 'declencheur %'
+               and not exists (select 1 from pg_trigger t where not t.tgisinternal
+                               and 'declencheur ' || t.tgname = s.nom and t.tgenabled::text = s.arguments
+                               and pg_get_triggerdef(t.oid) = s.definition))
+     or (select count(*) from pg_trigger t where not t.tgisinternal
+         and t.tgfoid in ('public.annuler_si_double_absence()'::regprocedure,
+                          'public.fermer_chats_apres_nouveau_swend()'::regprocedure,
+                          'public.proteger_annulation_pacte()'::regprocedure))
+        <> (select count(*) from sauvegarde.d027_02_fonctions_20261015 where nom like 'declencheur %') then
+    raise exception 'D-027-02 rollback : déclencheurs modifiés';
+  end if;
   -- Aucune donnée perdue : Swends et chats toujours là.
   if (select count(*) from public.pactes) < (select count(*) from sauvegarde.d027_02_pactes_20261015)
      or (select count(*) from public.chats_apres_swend) < (select count(*) from sauvegarde.d027_02_chats_20261015) then

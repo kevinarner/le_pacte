@@ -41,6 +41,22 @@ begin
          and proname in ('annuler_si_double_absence', 'annuler_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 9 then
     raise exception 'D-027-02 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
+  -- Déclencheurs dont le lot 2 remplace la fonction (eux-mêmes inchangés) :
+  -- un seul, actif, définition relue le 15/10 (nom ignoré :
+  -- on_remplacant_selectionne en production, trg_annuler_si_double_absence
+  -- en QA) ; fermeture au scellement (2) et protection de l'annulation (1).
+  if (select count(*) from pg_trigger t where t.tgrelid = 'public.remplacants'::regclass and not t.tgisinternal
+      and t.tgfoid = 'public.annuler_si_double_absence()'::regprocedure) <> 1
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.remplacants'::regclass and not t.tgisinternal
+         and t.tgenabled = 'O' and t.tgfoid = 'public.annuler_si_double_absence()'::regprocedure
+         and regexp_replace(pg_get_triggerdef(t.oid), '^CREATE TRIGGER \S+ ', '')
+             = 'AFTER INSERT OR UPDATE OF selectionne ON public.remplacants FOR EACH ROW EXECUTE FUNCTION annuler_si_double_absence()') <> 1
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.pactes'::regclass and t.tgenabled = 'O'
+         and t.tgfoid = 'public.fermer_chats_apres_nouveau_swend()'::regprocedure) <> 2
+     or (select count(*) from pg_trigger t where t.tgrelid = 'public.pactes'::regclass and t.tgenabled = 'O'
+         and t.tgfoid = 'public.proteger_annulation_pacte()'::regprocedure) <> 1 then
+    raise exception 'D-027-02 : déclencheurs différents de ceux relus (paquet à refaire)';
+  end if;
   -- Aucune date de mise en service : la règle des conversations conservées
   -- ne doit rien rouvrir. Aucun Swend scellé puis annulé avec une
   -- conversation d'imprévu ne doit exister (0 le 15/10/2026) ; sinon,
@@ -798,6 +814,19 @@ begin
              where s.definition not like 'CHECK%'
                and (select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a) is distinct from s.droits) then
     raise exception 'D-027-02 : droits d''une fonction remplacée modifiés';
+  end if;
+  -- Déclencheurs inchangés (mêmes noms, état et définitions que la sauvegarde).
+  if exists (select 1 from sauvegarde.d027_02_fonctions_20261015 s
+             where s.nom like 'declencheur %'
+               and not exists (select 1 from pg_trigger t where not t.tgisinternal
+                               and 'declencheur ' || t.tgname = s.nom and t.tgenabled::text = s.arguments
+                               and pg_get_triggerdef(t.oid) = s.definition))
+     or (select count(*) from pg_trigger t where not t.tgisinternal
+         and t.tgfoid in ('public.annuler_si_double_absence()'::regprocedure,
+                          'public.fermer_chats_apres_nouveau_swend()'::regprocedure,
+                          'public.proteger_annulation_pacte()'::regprocedure))
+        <> (select count(*) from sauvegarde.d027_02_fonctions_20261015 where nom like 'declencheur %') then
+    raise exception 'D-027-02 : déclencheurs modifiés';
   end if;
   -- Aucune donnée existante modifiée.
   if exists (select 1 from sauvegarde.d027_02_pactes_20261015 s

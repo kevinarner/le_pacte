@@ -1,0 +1,174 @@
+CREATE OR REPLACE FUNCTION public.annuler_si_double_absence()
+ RETURNS trigger
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  p record;
+  v_quand text;
+  v_fiche record;
+  v_titulaire text;
+  v_autre text;
+begin
+  if new.selectionne is not true then
+    return new;
+  end if;
+  if not exists (select 1 from remplacants
+                 where pacte_id = new.pacte_id and cote <> new.cote and selectionne = true) then
+    return new;
+  end if;
+
+  update pactes set statut = 'annuleDoubleAbsence'
+  where id = new.pacte_id and statut <> 'annuleDoubleAbsence';
+  if not found then
+    return new; -- déjà annulé : rien de plus, aucune push en double
+  end if;
+
+  select pa.id, pa.date_retenue, pa.initiateur_id, pa.destinataire_id,
+         split_part(trim(pa.initiateur_nom), ' ', 1) as prenom_initiateur,
+         split_part(trim(pa.destinataire_nom), ' ', 1) as prenom_destinataire,
+         r.nom as restaurant
+    into p
+  from pactes pa left join restaurants r on r.id = pa.restaurant_id
+  where pa.id = new.pacte_id;
+  v_quand := date_rappel_fr(p.date_retenue) || ' à ' || heure_rappel_fr(p.date_retenue)
+             || ' · ' || coalesce(p.restaurant, 'le restaurant');
+
+  if p.initiateur_id is not null then
+    perform notifier(p.initiateur_id, 'Ton Swend est annulé',
+      'Toi et ' || p.prenom_destinataire || ' avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du '
+        || v_quand || ' est annulé.',
+      jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+  end if;
+  if p.destinataire_id is not null then
+    perform notifier(p.destinataire_id, 'Ton Swend est annulé',
+      'Toi et ' || p.prenom_initiateur || ' avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du '
+        || v_quand || ' est annulé.',
+      jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+  end if;
+
+  for v_fiche in
+    select r.cote, r.profil_id from remplacants r
+    where r.pacte_id = new.pacte_id and r.selectionne and r.profil_id is not null
+  loop
+    if v_fiche.cote = 'initiateur' then
+      v_titulaire := p.prenom_initiateur; v_autre := p.prenom_destinataire;
+    else
+      v_titulaire := p.prenom_destinataire; v_autre := p.prenom_initiateur;
+    end if;
+    perform notifier(v_fiche.profil_id, 'Le Swend est annulé',
+      'Tu n’as finalement plus besoin de prendre la place de ' || v_titulaire || ' ' || v_quand
+        || ' : ' || v_autre || ' a lui aussi fait appel à quelqu’un pour le remplacer.',
+      jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+  end loop;
+
+  return new;
+end;
+$function$
+;
+CREATE OR REPLACE FUNCTION public.annuler_swend(p_pacte_id uuid)
+ RETURNS void
+ LANGUAGE plpgsql
+ SECURITY DEFINER
+ SET search_path TO 'public'
+AS $function$
+declare
+  v_uid uuid := auth.uid();
+  p record;
+  v_cote text;
+  v_autre_id uuid;
+  v_prenom_moi text;
+  v_quand text;
+  v_fiche record;
+  v_titulaire text;
+  v_cloturees uuid[];
+begin
+  select pa.id, pa.statut, pa.date_retenue, pa.initiateur_id, pa.destinataire_id,
+         pa.initiateur_nom, pa.destinataire_nom,
+         split_part(trim(pa.initiateur_nom), ' ', 1) as prenom_initiateur,
+         split_part(trim(pa.destinataire_nom), ' ', 1) as prenom_destinataire,
+         r.nom as restaurant
+    into p
+  from pactes pa left join restaurants r on r.id = pa.restaurant_id
+  where pa.id = p_pacte_id
+  for update of pa;
+  if not found then
+    raise exception 'swend_introuvable';
+  end if;
+
+  -- Seuls les deux titulaires originaux (jamais un remplaçant).
+  v_cote := case when v_uid is not null and p.initiateur_id = v_uid then 'initiateur'
+                 when v_uid is not null and p.destinataire_id = v_uid then 'destinataire' end;
+  if v_cote is null then
+    raise exception 'non_autorise';
+  end if;
+  if p.statut <> 'confirme' then
+    raise exception 'swend_inactif';
+  end if;
+  if p.date_retenue is null or p.date_retenue <= now() then
+    raise exception 'swend_passe';
+  end if;
+
+  perform 1 from remplacants where pacte_id = p_pacte_id for update;
+  perform set_config('swend.annulation_en_cours', 'on', true);
+
+  -- Demandes encore en attente, des deux côtés : clôturées (événement
+  -- « La demande n'est plus d'actualité » dans le fil).
+  with c as (
+    update remplacants set demande_statut = 'cloturee'
+    where pacte_id = p_pacte_id and demande_statut = 'envoyee'
+    returning id
+  )
+  select coalesce(array_agg(id), '{}') into v_cloturees from c;
+
+  update pactes set statut = 'annule', annule_par = v_uid, annule_le = now()
+  where id = p_pacte_id;
+
+  if v_cote = 'initiateur' then
+    v_autre_id := p.destinataire_id; v_prenom_moi := p.prenom_initiateur;
+  else
+    v_autre_id := p.initiateur_id; v_prenom_moi := p.prenom_destinataire;
+  end if;
+  v_quand := date_rappel_fr(p.date_retenue) || ' à ' || heure_rappel_fr(p.date_retenue)
+             || ' · ' || coalesce(p.restaurant, 'le restaurant');
+
+  -- L'autre titulaire.
+  if v_autre_id is not null then
+    perform notifier(v_autre_id, 'Ton Swend est annulé',
+      v_prenom_moi || ' a annulé votre Swend du ' || v_quand || '.',
+      jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+  end if;
+
+  -- Personnes de confiance ayant un compte : remplaçant accepté, ou demande
+  -- qui vient d'être clôturée par cette annulation. Une personne seulement
+  -- prévue (ou dont la demande était déjà close) ne reçoit rien.
+  for v_fiche in
+    select r.id, r.cote, r.profil_id, r.selectionne
+    from remplacants r
+    where r.pacte_id = p_pacte_id and r.profil_id is not null
+      and (r.selectionne or r.id = any (v_cloturees))
+    order by r.selectionne desc, r.id
+  loop
+    v_titulaire := case when v_fiche.cote = 'initiateur' then p.prenom_initiateur else p.prenom_destinataire end;
+    if v_fiche.selectionne then
+      perform notifier(v_fiche.profil_id, 'Le Swend est annulé',
+        'Le Swend pour lequel tu devais prendre la place ' || de_prenom(v_titulaire) || ', ' || v_quand || ', est annulé.',
+        jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+    elsif not exists (
+      -- Même personne des deux côtés (8.3) : une seule push par personne,
+      -- celle du remplaçant accepté en priorité.
+      select 1 from remplacants o
+      where o.pacte_id = p_pacte_id and o.profil_id = v_fiche.profil_id and o.id <> v_fiche.id
+        and (o.selectionne or (o.id = any (v_cloturees) and o.id < v_fiche.id))
+    ) then
+      perform notifier(v_fiche.profil_id, 'La demande n’est plus d’actualité', 'Le Swend a été annulé.',
+        jsonb_build_object('type', 'chat', 'remplacant_id', v_fiche.id,
+          'nom_interlocuteur', coalesce(case when v_fiche.cote = 'initiateur' then p.initiateur_nom else p.destinataire_nom end, '')));
+    end if;
+  end loop;
+
+  perform set_config('swend.annulation_en_cours', 'off', true);
+end;
+$function$
+;

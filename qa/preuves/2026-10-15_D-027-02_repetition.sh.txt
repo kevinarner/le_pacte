@@ -1,0 +1,46 @@
+#!/bin/bash
+# Répétition D-027-02 sur une base locale reproduisant la production attendue.
+. /home/user/le_pacte/qa/lib/commun.sh
+S=/tmp/claude-0/-home-user-le-pacte/05ea20a0-4299-572a-9d63-2d5619bb913e/scratchpad
+D=/home/user/le_pacte/supabase/changements/D-027-02
+B=swend_d027_02_rep
+etape() { echo "== $1"; qa_psql $B -v ON_ERROR_STOP=1 -q -f "$2" 2>&1 | grep -v NOTICE | grep -E "ERROR|^ *[0-9]|^ [a-z_]+ +\|" | head -4; }
+$S/base_avant_lot2.sh $B >/dev/null
+qa_psql $B -v ON_ERROR_STOP=1 -q -f $S/prod_deux.sql
+# Noms des déclencheurs de production (écart historique admis, même définition).
+qa_psql $B -q -c "alter trigger trg_annuler_si_double_absence on public.remplacants rename to on_remplacant_selectionne" -c "alter trigger trg_synchroniser_remplacants_caches on public.remplacants rename to on_remplacant_change"
+qa_psql $B -tA -c "select 'déclencheur du double remplacement : ' || string_agg(pg_get_triggerdef(oid) || ' [' || tgenabled::text || ']', ' ; ') from pg_trigger where tgfoid = 'public.annuler_si_double_absence()'::regprocedure"
+qa_psql $B -v ON_ERROR_STOP=1 -q -f $S/donnees_rep.sql >/dev/null
+qa_psql $B -tA -c "select 'avant : ' || string_agg(statut || '/' || (scelle_le is not null) || '/' || (destinataire_id is not null), ' ' order by id) from pactes"
+# Déclencheur du double remplacement désactivé, puis en double : refus attendus.
+qa_psql $B -q -c "alter table public.remplacants disable trigger on_remplacant_selectionne"
+etape "sauvegarde, déclencheur désactivé (refus attendu)" $D/sauvegarde.sql
+etape "appliquer, déclencheur désactivé (refus attendu)" $D/appliquer.sql
+qa_psql $B -q -c "alter table public.remplacants enable trigger on_remplacant_selectionne" -c "create trigger zz_doublon after insert or update of selectionne on public.remplacants for each row execute function annuler_si_double_absence()"
+etape "sauvegarde, déclencheur en double (refus attendu)" $D/sauvegarde.sql
+qa_psql $B -q -c "drop trigger zz_doublon on public.remplacants"
+etape "appliquer sans sauvegarde (refus attendu)" $D/appliquer.sql
+etape sauvegarde $D/sauvegarde.sql
+etape appliquer $D/appliquer.sql
+etape verifier $D/verifier.sql
+etape "appliquer de nouveau (refus attendu)" $D/appliquer.sql
+etape "sauvegarde de nouveau (refus attendu)" $D/sauvegarde.sql
+etape "rollback immédiat" $D/rollback.sql
+qa_psql $B -tA -c "select 'après rollback : md5 ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_proc p on p.proname = s.nom where s.md5_corps = md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) and coalesce((select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a), '') = coalesce(s.droits, '')) || '/9 identiques ; contraintes ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_constraint c on 'contrainte ' || c.conname = s.nom where pg_get_constraintdef(c.oid) = s.definition) || '/2 identiques ; colonnes D-027-02 ' || (select count(*) from information_schema.columns where table_schema='public' and column_name in ('nature','annule_motif'))"
+etape "verifier après rollback (refus attendu)" $D/verifier.sql
+etape "rollback de nouveau (refus attendu)" $D/rollback.sql
+etape "réapplication" $D/appliquer.sql
+etape verifier $D/verifier.sql
+etape "usage réel simulé" $S/usage_rep.sql
+qa_psql $B -tA -c "select 'double remplacement par on_remplacant_selectionne : ' || statut || '|' || coalesce(annule_motif, 'null') from pactes where id = '00000000-0000-4000-a000-000000000004'"
+etape "rollback après usage" $D/rollback.sql
+qa_psql $B -tA -c "select 'après rollback (usage) : nature=' || exists (select 1 from information_schema.columns where table_name='chats_apres_swend' and column_name='nature') || ' mes_chats_swend=' || exists (select 1 from pg_proc where proname='mes_chats_swend') || ' motif=' || exists (select 1 from information_schema.columns where table_name='pactes' and column_name='annule_motif') || ' chats=' || (select count(*) from chats_apres_swend) || ' fil_ferme_gardé=' || ((select pg_get_constraintdef(oid) from pg_constraint where conname='evenements_fil_code_check') ilike '%fil_ferme%') || ' contrainte=' || (select pg_get_constraintdef(oid) from pg_constraint where conname='pactes_annulation_complete') || ' chats_d_annulation=' || (select count(*) from chats_apres_swend)"
+qa_psql $B -tA -c "begin; select set_config('request.jwt.claim.sub', qa.id('eliot')::text, true); set local role authenticated; select 'mes_chats_apres_swend (Eliot) après rollback : ' || count(*) from mes_chats_apres_swend(); commit;"
+# Ancien code après rollback : une annulation par un titulaire fonctionne.
+qa_psql $B -tA -c "insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values ('00000000-0000-4000-a000-000000000009', 'confirme', 'diner', now() + interval '60 days', to_jsonb(array[now() + interval '60 days']), (select id from restaurants limit 1), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05')" >/dev/null
+qa_psql $B -tA -c "begin; select set_config('request.jwt.claim.sub', qa.id('eliot')::text, true); set local role authenticated; select annuler_swend('00000000-0000-4000-a000-000000000009'); commit;" 2>&1 | grep ERROR
+qa_psql $B -tA -c "select 'ancien annuler_swend après rollback : ' || statut || ' auteur=' || (annule_par is not null) from pactes where id = '00000000-0000-4000-a000-000000000009'"
+# Après rollback : le double remplacement passe toujours par le même déclencheur (ancienne fonction).
+qa_psql $B -q -c "insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone) values ('00000000-0000-4000-a000-000000000010', 'confirme', 'diner', now() + interval '70 days', to_jsonb(array[now() + interval '70 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05')" -c "insert into remplacants (pacte_id, cote, prenom, nom, telephone, email) values ('00000000-0000-4000-a000-000000000010', 'initiateur', 'Kevin', 'Arner', '0600001234', ''), ('00000000-0000-4000-a000-000000000010', 'destinataire', 'Sylvain', 'Landiech', '06 55 44 33 22', '')" -c "update remplacants set demande_statut = 'acceptee', selectionne = true where pacte_id = '00000000-0000-4000-a000-000000000010'"
+qa_psql $B -tA -c "select 'double remplacement après rollback : ' || statut from pactes where id = '00000000-0000-4000-a000-000000000010'"
+qa_psql $B -tA -c "select 'déclencheurs après rollback : ' || string_agg(tgname || ' [' || tgenabled::text || ']', ', ' order by tgname) from pg_trigger where tgfoid = 'public.annuler_si_double_absence()'::regprocedure"

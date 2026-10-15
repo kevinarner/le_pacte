@@ -1,0 +1,20 @@
+# D-027-02 — suites SQL métier sur une base où le lot 2 vient du paquet (noms de déclencheurs de production)
+10_imprevu.sql : 76 réussies, 0 échecs
+30_telephones.sql : 36 réussies, 0 échecs
+50_compte_destinataire.sql : 14 réussies, 0 échecs
+60_fil_evenements_lectures.sql : 22 réussies, 0 échecs
+70_invariants.sql : 26 réussies, 0 échecs
+80_disponibilite_notifications.sql : 55 réussies, 0 échecs
+90_scellage_negociation.sql : 42 réussies, 0 échecs
+95_reservations_suivi.sql : 36 réussies, 0 échecs
+96_confidentialite_telephones.sql : 74 réussies, 0 échecs
+97_annulation_manuelle.sql : 80 réussies, 0 échecs
+98_gel_a_h.sql : 134 réussies, 0 échecs
+99_rappels.sql : 63 réussies, 0 échecs
+99b_chat_apres_swend.sql : 68 réussies, 0 échecs
+99c_delai_minimum.sql : 25 réussies, 0 échecs
+99d_fuseaux.sql : 65 réussies, 0 échecs
+99e_nouveau_swend.sql : 75 réussies, 0 échecs
+99f_imprevu_etats_actions.sql : 93 réussies, 0 échecs
+99g_annulation_conversations.sql : 79 réussies, 0 échecs
+TOTAL suites SQL sur base issue du paquet (noms de production) : 1063 réussies, 0 échecs

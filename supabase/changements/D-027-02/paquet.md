@@ -24,10 +24,16 @@ d'imprévu » : annulation et conversations), décrit dans `DECISIONS.md`
    lu par `mes_chats_swend()` ; `mes_chats_apres_swend()` (app publiée) ne
    renvoie que les chats après le Swend.
 4. **Conversations d'imprévu conservées** après annulation pour les
-   personnes réellement sollicitées ou avec qui des messages ont été
-   échangés : lecture et écriture jusqu'au scellement d'un nouveau Swend
-   entre les deux mêmes personnes (fermeture paire par paire,
-   `fils_imprevu_fermes`, événement `fil_ferme`).
+   personnes réellement sollicitées : lecture et écriture jusqu'au
+   scellement d'un nouveau Swend entre les deux mêmes personnes (fermeture
+   paire par paire, `fils_imprevu_fermes`, événement `fil_ferme`). Deux
+   précisions implémentées **provisoirement, non validées, à confirmer par
+   Eliot avant tout Go** (`DECISIONS.md`, D-027, P1 et P2) : P1, une
+   personne jamais sollicitée mais avec qui des messages ont été échangés
+   garde aussi sa conversation ; P2, un scellement entre les deux personnes
+   survenu avant l'annulation (après le scellement du Swend annulé) ferme
+   la conversation dès l'annulation. Une autre décision imposerait de
+   refaire la migration, ce paquet et ses tests.
 5. **Numéro du titulaire (D-024) inchangé** : `telephone_titulaire_accessible()`
    suit exactement l'ancienne règle d'accès (`fiche_acces_d023a()`, même
    empreinte que l'ancienne `fiche_de_confiance_accessible()`).
@@ -96,10 +102,21 @@ migrations du dépôt ; **2 dans une version de production antérieure** :
 `annuler_swend` (`95d5c90f…` : sans la modification du commit `5358f5d`,
 texte au remplaçant) et `annuler_si_double_absence` (`c39f19eb…` : sans
 l'élision du commit `7be0d90`). Le paquet est construit sur ces versions de
-production (préconditions et rollback) ; la répétition les reproduit. Le
-déclencheur du double remplacement s'appelle `on_remplacant_selectionne` en
-production (`trg_annuler_si_double_absence` en QA, écart admis) : non
-touché. À relire juste avant le Go :
+production (préconditions et rollback) ; la répétition les reproduit.
+
+Déclencheurs (relus le 15/10, non modifiés par ce paquet) : le double
+remplacement passe en production par `on_remplacant_selectionne`, `AFTER
+INSERT OR UPDATE OF selectionne ON public.remplacants FOR EACH ROW EXECUTE
+FUNCTION annuler_si_double_absence()`, actif — même définition que
+`trg_annuler_si_double_absence` du banc QA, seul le nom diffère (écart
+historique admis, `qa/db/parite/declencheurs_admis.tsv`). Il n'est **pas
+absent** (une première requête filtrait sur le nom QA). `sauvegarde.sql` et
+`appliquer.sql` exigent un seul déclencheur sur `remplacants` appelant
+`annuler_si_double_absence()`, actif et de cette définition (nom ignoré),
+plus 2 déclencheurs actifs de fermeture au scellement et 1 de protection de
+l'annulation sur `pactes` ; ils sont copiés dans la sauvegarde, et
+`appliquer.sql` puis `rollback.sql` vérifient qu'ils sont inchangés (noms,
+état, définitions). À relire juste avant le Go :
 
 ```sql
 select (select json_object_agg(p.proname, md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')))
@@ -130,7 +147,7 @@ Empreintes attendues (corps normalisé) : `annuler_si_double_absence`
 
 `sauvegarde.sql` et `appliquer.sql` revérifient tout avant d'écrire et
 annulent tout sinon : D-027-01 appliqué, D-027-02 pas encore appliqué,
-9 empreintes identiques, contraintes d'origine, **aucun Swend scellé puis
+9 empreintes identiques, contraintes d'origine, déclencheurs ci-dessus, **aucun Swend scellé puis
 annulé avec une conversation** (sinon la règle des conversations conservées
 rendrait un accès retiré : arbitrage produit nécessaire, paquet à refaire),
 sauvegarde faite (pour appliquer).
@@ -144,9 +161,13 @@ E2E.
 **Répétition** sur une base locale reproduisant la production attendue
 (toutes les migrations sauf celle-ci, `annuler_swend` et
 `annuler_si_double_absence` remplacées par leurs définitions de production
-relues le 15/10, comptes et données fictifs : un Swend scellé avec une
-demande en cours, un Swend annulé jamais scellé, un Swend scellé puis annulé
-sans conversation) :
+relues le 15/10, déclencheurs de `remplacants` renommés comme en production
+— `on_remplacant_selectionne`, `on_remplacant_change` —, comptes et données
+fictifs : un Swend scellé avec une demande en cours, un Swend annulé jamais
+scellé, un Swend scellé puis annulé sans conversation ; journal et scripts
+conservés dans `qa/preuves/2026-10-15_D-027-02_repetition*`) :
+- déclencheur du double remplacement désactivé : `sauvegarde.sql` et
+  `appliquer.sql` refusés ; déclencheur en double : `sauvegarde.sql` refusé ;
 - `appliquer.sql` sans sauvegarde refusé (« sauvegarde absente ») ;
   `sauvegarde.sql` OK ; `appliquer.sql` OK ; `verifier.sql` OK (0 chat,
   0 conversation fermée, 0 motif, 3 Swends = 3 sauvegardés) ;
@@ -162,11 +183,15 @@ sans conversation) :
   conservés, `mes_chats_apres_swend()` filtrée conservée (Eliot : 0 chat
   affiché), contrainte des événements gardée élargie, contrainte
   d'annulation sous la forme « auteur ⇒ date », motifs et fermetures copiés
-  dans `sauvegarde` ; l'ancien `annuler_swend()` fonctionne ensuite ;
+  dans `sauvegarde` ; l'ancien `annuler_swend()` fonctionne ensuite ; le
+  double remplacement passe par `on_remplacant_selectionne` après
+  application (motif `double_remplacement`) et après rollback, déclencheur
+  toujours unique et actif ;
 - base avec un Swend scellé puis annulé ayant une conversation :
   `appliquer.sql` refusé (« arbitrage nécessaire ») ;
 - toutes les suites SQL métier sur une base où le lot 2 vient du paquet (et
-  non de la migration) : 1063/0.
+  non de la migration), déclencheurs aux noms de production : 1063/0
+  (`qa/preuves/2026-10-15_D-027-02_suites_base_paquet.txt`).
 
 ## Impact attendu
 
@@ -276,8 +301,38 @@ qu'**après** une app du lot 3 compatible avec les deux bases.
 - V4 — juste avant le Go, en lecture seule : préconditions ci-dessus, et
   `.last_build_id` de `gh-pages` = celui de la build du lot 3.
 
+**Anciennes apps encore ouvertes.** Publier l'app du lot 3 ne prouve pas
+que tous les appareils l'utilisent. Le service worker de Flutter est
+désactivé (`web/flutter_bootstrap.js`) : aucun cache hors ligne de l'app ;
+une app du lot 1 ne survit que dans une session jamais rechargée (onglet
+ouvert, app installée en mode `standalone` restée en arrière-plan), plus un
+éventuel cache HTTP court de GitHub Pages (non vérifié depuis
+l'environnement). L'app du lot 1 n'a aucun contrôle de version : rien ne
+peut la forcer à se recharger. Ce qu'elle fait face à la base du lot 2
+(mesuré, V3) reste sans effet sur les données ni sur la confidentialité :
+annulation refusée avec un message générique (rien ne change), Swend annulé
+réaffiché en lecture seule à une personne sollicitée, message accepté dans
+une conversation conservée (conforme à la nouvelle règle) mais affichée
+comme terminée de l'autre côté, chat d'annulation invisible, événement
+`fil_ferme` sans libellé ; aucun numéro ni aucune autre fiche révélés.
+Le risque résiduel est donc une confusion d'affichage, limitée aux Swends
+qui vivent un imprévu ou une annulation pendant cette fenêtre. Mesures :
+- l'app du lot 3 embarque son identifiant de build et un contrôle de
+  version (rechargement proposé ou imposé quand la version publiée
+  change) : valable pour les lots suivants, pas pour les sessions du lot 1 ;
+- option à décider (Eliot) : mesurer l'adoption (identifiant de build
+  envoyé par l'app du lot 3, dernier vu par compte) pour vérifier en
+  lecture seule, avant le Go, qu'aucun compte actif récent n'utilise encore
+  une ancienne build ;
+- option à décider (Eliot) : précondition supplémentaire à l'exécution
+  (aucun Swend scellé à venir avec une demande, une sélection ou un
+  message) pour que la fenêtre soit vide au moment de l'exécution ;
+- dans tous les cas : délai après la publication (par exemple 48 h) et
+  demande aux utilisateurs actifs, peu nombreux, de recharger ou fermer
+  l'app installée.
+
 Étapes : (1) app du lot 3 publiée (niveau 1, Go à part) après V1 et V2 ;
-(2) délai de rechargement des appareils (service worker), par exemple
-jusqu'au lendemain ; (3) V4, Go, puis exécution de ce paquet par la porte
+(2) fenêtre d'adoption ci-dessus (délai, rechargements demandés, mesure si
+retenue) ; (3) V4, Go, puis exécution de ce paquet par la porte
 (sauvegarde, appliquer, verifier) ; (4) vérifications en lecture seule
 (jobs pg_cron).

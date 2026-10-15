@@ -29,8 +29,8 @@ begin
   end if;
   if (select count(*) from pg_trigger where tgrelid = 'public.pactes'::regclass and tgenabled = 'O'
       and tgfoid = 'public.fermer_chats_apres_nouveau_swend()'::regprocedure) <> 2
-     or not exists (select 1 from pg_trigger where tgrelid = 'public.remplacants'::regclass and tgenabled = 'O'
-                    and tgfoid = 'public.annuler_si_double_absence()'::regprocedure)
+     or (select count(*) from pg_trigger where tgrelid = 'public.remplacants'::regclass and tgenabled = 'O'
+         and tgfoid = 'public.annuler_si_double_absence()'::regprocedure) <> 1
      or not exists (select 1 from pg_trigger where tgrelid = 'public.pactes'::regclass and tgenabled = 'O'
                     and tgfoid = 'public.proteger_annulation_pacte()'::regprocedure) then
     raise exception 'D-027-02 vérification : déclencheurs absents ou désactivés';

@@ -1,0 +1,19 @@
+\set ON_ERROR_STOP 1
+-- Swend 1 (Kevin sollicité, Sylvain seulement prévu) : Eliot annule.
+begin; select set_config('request.jwt.claim.sub', qa.id('eliot')::text, true); set local role authenticated;
+select annuler_swend('00000000-0000-4000-a000-000000000001'); commit;
+-- Double remplacement sur un nouveau Swend Eliot–David.
+insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
+values ('00000000-0000-4000-a000-000000000004', 'confirme', 'diner', now() + interval '40 days', to_jsonb(array[now() + interval '40 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'David Schlang', '+33 6 02 03 04 05');
+insert into remplacants (pacte_id, cote, prenom, nom, telephone, email) values
+ ('00000000-0000-4000-a000-000000000004', 'initiateur', 'Kevin', 'Arner', '0600001234', ''),
+ ('00000000-0000-4000-a000-000000000004', 'destinataire', 'Sylvain', 'Landiech', '06 55 44 33 22', '');
+update remplacants set demande_statut = 'acceptee', selectionne = true where pacte_id = '00000000-0000-4000-a000-000000000004';
+-- Nouveau Swend Eliot–Kevin scellé : ferme la conversation du Swend 1.
+insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_nom, destinataire_telephone)
+values ('confirme', 'diner', now() + interval '50 days', to_jsonb(array[now() + interval '50 days']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', 'Kevin Arner', '0600001234');
+select (select count(*) from chats_apres_swend where nature = 'annulation') as chats_annulation,
+       (select count(*) from fils_imprevu_fermes) as fermes,
+       (select count(*) from evenements_fil where code = 'fil_ferme') as ev_fil_ferme,
+       (select count(*) from pactes where annule_le is not null and annule_par is null) as annule_sans_auteur,
+       (select count(*) from notifications_log) as push;

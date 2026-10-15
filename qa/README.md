@@ -190,6 +190,10 @@ scellement antérieur à l'annulation ; droits), suites réalignées (`80`, `90`
 annulation et double remplacement simultanés, annulation et scellement
 Eliot–Kevin simultanés). `99b` et `99f` rejouent d'anciennes migrations
 (idempotence) puis rejouent la migration du lot 2 pour rétablir l'état réel.
+`qa/metier/preuve_verrou_paire.sh <base> [essais]` rejoue la dernière course
+avec puis sans le verrou par paire (fonction d'origine restaurée et
+vérifiée par empreinte) et imprime le détail par essai ; journaux de
+preuves conservés dans `qa/preuves/` (voir son README).
 
 Délai minimum (D-025) : tests SQL `99c_delai_minimum.sql` (J+14 / J+15 aux
 bornes du jour de Paris, valeur envoyée ignorée, fondateurs : email confirmé
