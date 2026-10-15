@@ -50,13 +50,16 @@ export default {
 
     await ex.etape('Eliot : la recherche est rouverte', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierAbsent(eliot, 'prendra votre place', 'Eliot : plus "Kevin prendra votre place"');
+      await ex.verifierAbsent(eliot, 'sera là à ta place', 'Eliot : plus « Kevin sera là à ta place »');
       await ex.verifierTexte(eliot, "EN CAS D'IMPRÉVU", 'Eliot : bloc "En cas d\'imprévu" de retour');
       await ex.verifierTexte(eliot, /EN CAS D'IMPRÉVU\s+Tom\s/, 'EN CAS D\'IMPRÉVU : seulement Tom (Kevin désisté, Sylvain a refusé)');
       await A.ouvrirImprevu(eliot);
       await ex.verifierTexte(eliot, /Kevin Arner\s+Indisponible/, 'Un imprévu ? : Kevin "Indisponible"');
       await ex.verifierTexte(eliot, /Sylvain Landiech\s+Indisponible/, 'Un imprévu ? : Sylvain "Indisponible"');
-      await ex.verifier('Un imprévu ? : Tom peut être sollicité', async () => (await eliot.nombreDeBoutons('Inviter et demander')) === 1);
+      await ex.verifier('Un imprévu ? : Tom peut être sollicité', async () => {
+        if ((await eliot.page.getByRole('checkbox').count()) === 0 && await eliot.voit('Solliciter quelqu’un d’autre')) await eliot.cliquer('Solliciter quelqu’un d’autre');
+        return (await eliot.page.getByRole('checkbox', { name: /Tom Petit/ }).count()) === 1;
+      });
     });
 
     await ex.etape('David ne voit rien', async () => {

@@ -8,7 +8,7 @@
 // conversation existe) garde le Swend et sa seule conversation (D-027 lot 2),
 // sans le numéro d'Eliot (D-024 inchangé). David ne voit rien des coulisses.
 import * as A from '../lib/actions.mjs';
-import { sql, lireComme, appelerComme, FICHES } from '../lib/donnees.mjs';
+import { sql, lireComme, appelerComme, FICHES, baseAvecLot2 } from '../lib/donnees.mjs';
 
 const champSaisie = (a) => a.page.getByRole('textbox', { name: 'Écrire un message…' }).count();
 
@@ -32,17 +32,18 @@ export default {
       await A.envoyerMessage(eliot, 'Et toi Sylvain ?');
     });
 
+    // Le parcours d'annulation lui-même est testé dans 19 et 20.
     await ex.etape('Eliot (remplacé) ne peut plus annuler ; David annule', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await eliot.cliquer('Annuler le Swend');
-      await eliot.cliquer('Annuler le Swend');
-      await ex.verifierTexte(eliot, 'Impossible d’annuler le Swend pour le moment. Réessayez.', 'Eliot : annulation refusée');
+      await ex.verifier('Eliot : pas de « Annuler le Swend »', async () => (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
+      const pacte = sql('select id from pactes');
+      if (baseAvecLot2()) {
+        const r = await appelerComme('eliot', 'annuler_swend', { p_pacte_id: pacte });
+        await ex.verifier('API : refus remplacement_accepte', () => !r.ok && r.corps.includes('remplacement_accepte'), { obtenu: () => r.corps });
+      }
       await ex.verifier('Swend toujours scellé', () => sql('select statut from pactes') === 'confirme');
-      await A.ouvrirSwend(david, /Swend avec Eliot/);
-      await david.cliquer('Annuler le Swend');
-      await david.cliquer('Annuler malgré tout');
-      await david.cliquer('Annuler le Swend');
-      await ex.verifier('Swend annulé par David', () => sql('select statut from pactes') === 'annule');
+      const r2 = await appelerComme('david', 'annuler_swend', { p_pacte_id: pacte });
+      await ex.verifier('Swend annulé par David', () => r2.ok && sql('select statut from pactes') === 'annule', { obtenu: () => r2.corps });
     });
 
     await ex.etape('Eliot : choix entre les conversations actives, lecture seule', async () => {

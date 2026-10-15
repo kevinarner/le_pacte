@@ -20,7 +20,7 @@ export default {
     await ex.etape('Fiche : personnes disponibles, comptes Swend d\'abord', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await ex.verifierTexte(eliot, /(Kevin, Sylvain|Sylvain, Kevin), Tom/, 'Eliot : Kevin et Sylvain (comptes) avant Tom');
-      await ex.verifierTexte(eliot, 'Ces personnes pourront prendre votre place', 'texte au pluriel');
+      await ex.verifierTexte(eliot, 'Ces personnes pourront prendre ta place', 'texte au pluriel');
       await ex.verifier('boutons "Modifier ma liste" et "Discuter" présents',
         async () => (await eliot.nombreDeBoutons('Modifier ma liste')) === 1 && (await eliot.nombreDeBoutons('Discuter')) === 1);
       await ex.verifier('"Un imprévu ?" visible sur la fiche', async () => (await eliot.nombreDeBoutons('Un imprévu ?')) === 1);

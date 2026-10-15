@@ -7,7 +7,7 @@
 // (règle locale de l'app). C'est la fenêtre « base avant app » décrite dans
 // le paquet D-027-02 : l'app du lot 3 doit être publiée d'abord.
 import * as A from '../lib/actions.mjs';
-import { sql, FICHES, insererComme } from '../lib/donnees.mjs';
+import { sql, FICHES, insererComme, appelerComme } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
 
 export default {
@@ -26,12 +26,11 @@ export default {
       await kevin.attendreTexte('Tu seras dispo ?');
     });
 
+    // Le parcours d'annulation lui-même (« Un imprévu ? » → « Je n'ai
+    // personne d'autre ») est testé dans 19 et 20.
     await ex.etape('Eliot annule le Swend', async () => {
-      await A.ouvrirSwend(eliot, /Swend avec David/);
-      await eliot.cliquer('Annuler le Swend');
-      await eliot.cliquer('Annuler malgré tout');
-      await eliot.cliquer('Annuler le Swend');
-      await ex.verifier('Swend annulé', () => sql('select statut from pactes') === 'annule');
+      const r = await appelerComme('eliot', 'annuler_swend', { p_pacte_id: sql('select id from pactes') });
+      await ex.verifier('Swend annulé', () => r.ok && sql('select statut from pactes') === 'annule', { obtenu: () => `${r.statut} ${r.corps}` });
     });
 
     await ex.etape('Kevin écrit dans la conversation restée ouverte : la base accepte (conversation conservée)', async () => {

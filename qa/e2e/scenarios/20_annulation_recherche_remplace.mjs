@@ -1,19 +1,21 @@
-// D-022 — ANNULATION EN COURS DE RECHERCHE, PUIS APRÈS ACCEPTATION —
-// Eliot a une demande en attente : pas de nouvelle proposition d'imprévu,
-// « Continuer à chercher ». Puis Kevin accepte : Eliot, remplacé, ne peut
-// plus annuler (D-027 lot 2) ; David annule ; Kevin est prévenu et garde le
-// Swend annulé dans son historique ; David n'apprend jamais qui remplaçait
-// Eliot.
+// D-022 révisé par D-027 — ANNULATION EN COURS DE RECHERCHE, PUIS APRÈS
+// ACCEPTATION. Eliot a une demande en attente : aucune annulation possible
+// pendant l'attente (l'annulation reste le dernier recours). Kevin accepte :
+// Eliot, remplacé, n'a plus aucune action d'annulation (ni fiche, ni « Un
+// imprévu ? ») ; la base la refuserait aussi (lot 2). David, sans personne
+// à solliciter, annule depuis son « Un imprévu ? » ; Kevin est prévenu et
+// garde le Swend annulé dans son historique ; David n'apprend jamais qui
+// remplaçait Eliot.
 import * as A from '../lib/actions.mjs';
-import { sql } from '../lib/donnees.mjs';
+import { sql, baseAvecLot2, appelerComme } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
 
-const IMPREVU = /Qui peut prendre votre place|Personne n'est encore prévu|Aucune des personnes prévues|prendra votre place\./;
 const notifs = (nom) => sql(`select coalesce(string_agg(titre || '|' || corps, ' ## ' order by id), '') from notifications_log where profile_id = '${COMPTES[nom].id}'`);
+const quand = () => sql(`select date_rappel_fr(p.date_retenue) || ' à ' || heure_rappel_fr(p.date_retenue) || ' · ' || r.nom from pactes p join restaurants r on r.id = p.restaurant_id`);
 
 export default {
   nom: 'annulation_recherche_remplace',
-  titre: 'Annulation : demande en cours (« Continuer à chercher »), puis après acceptation de Kevin',
+  titre: 'Annulation : impossible pendant l’attente et pour le titulaire remplacé ; David annule',
   suites: ['full'],
   fixture: 'scelle',
   async executer(ex) {
@@ -21,56 +23,62 @@ export default {
     const david = await ex.david();
     const kevin = await ex.kevin();
 
-    await ex.etape('Demande en attente : confirmation "en recherche"', async () => {
+    await ex.etape('Demande en attente : aucune annulation possible', async () => {
       await A.ouvrirImprevu(eliot);
       await A.demander(eliot, 'Kevin Arner');
+      await ex.verifierTexte(eliot, 'C’est envoyé.', 'Eliot : « C’est envoyé. »');
+      await ex.verifier('attente : ni « Je n’ai personne d’autre » ni « Annuler le Swend »', async () =>
+        (await eliot.nombreDeBoutons('Je n’ai personne d’autre')) === 0 && (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await eliot.cliquer('Annuler le Swend');
-      await ex.verifierAbsent(eliot, 'Vous ne pouvez plus être là ?', 'Eliot : l\'imprévu n\'est pas reproposé');
-      await ex.verifierTexte(eliot, 'Les demandes de remplacement en cours seront annulées et le Swend prendra fin pour vous deux.', 'Eliot : "demandes en cours annulées"');
-      await eliot.cliquer('Continuer à chercher');
-      await ex.verifierTexte(eliot, IMPREVU, 'Eliot : "Continuer à chercher" ramène à "Un imprévu ?"');
-      await ex.verifier('Swend toujours scellé, demande toujours en attente',
-        () => sql('select statut from pactes') === 'confirme' && sql(`select demande_statut from remplacants where prenom = 'Kevin'`) === 'envoyee');
+      await ex.verifier('fiche : pas de « Annuler le Swend »', async () => (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
     });
 
-    await ex.etape('Kevin accepte : confirmation "Kevin a accepté"', async () => {
+    await ex.etape('Kevin accepte : Eliot remplacé, plus aucune annulation', async () => {
       await A.repondre(kevin, true);
+      await A.ouvrirImprevu(eliot);
+      await ex.verifierTexte(eliot, 'Kevin a accepté.', 'Eliot : « Kevin a accepté. »');
+      await ex.verifier('Un imprévu ? : ni retour, ni dernier recours, ni annulation', async () =>
+        (await eliot.nombreDeBoutons('Je peux finalement venir')) === 0
+        && (await eliot.nombreDeBoutons('Je n’ai personne d’autre')) === 0
+        && (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await eliot.cliquer('Annuler le Swend');
-      await ex.verifierTexte(eliot, 'Kevin a accepté de prendre votre place.', 'Eliot : "Kevin a accepté de prendre votre place."');
-      await ex.verifierTexte(eliot, 'Si vous annulez, le Swend prendra fin pour tout le monde.', 'Eliot : "fin pour tout le monde"');
-      await eliot.cliquer('Ne pas annuler');
-      await ex.verifier('"Ne pas annuler" : Swend toujours scellé', () => sql('select statut from pactes') === 'confirme');
+      await ex.verifier('fiche : pas de « Annuler le Swend »', async () => (await eliot.nombreDeBoutons('Annuler le Swend')) === 0);
+      if (baseAvecLot2()) {
+        const r = await appelerComme('eliot', 'annuler_swend', { p_pacte_id: sql('select id from pactes') });
+        await ex.verifier('API : la base refuse aussi (remplacement_accepte)', () => !r.ok && r.corps.includes('remplacement_accepte'),
+          { obtenu: () => `${r.statut} ${r.corps}` });
+      }
+      await ex.verifier('Swend toujours scellé', () => sql('select statut from pactes') === 'confirme');
     });
 
-    // D-027 lot 2 : un titulaire dont la place a été prise ne peut plus
-    // annuler. L'app publiée (lot 1) propose encore le bouton : la base
-    // refuse (remplacement_accepte) et l'app affiche son message générique
-    // (l'app du lot 3 ne proposera plus l'action). David, lui, peut annuler.
-    await ex.etape('Eliot (remplacé) ne peut plus annuler', async () => {
-      await eliot.cliquer('Annuler le Swend');
-      await eliot.cliquer('Annuler le Swend');
-      await ex.verifierTexte(eliot, 'Impossible d’annuler le Swend pour le moment. Réessayez.', 'Eliot : annulation refusée (app du lot 1 : message générique)');
-      await ex.verifier('Swend toujours scellé, aucune push d\'annulation',
-        () => sql('select statut from pactes') === 'confirme' && !notifs('kevin').includes('annulé') && !notifs('david').includes('annulé'),
+    await ex.etape('David, sans personne à solliciter, annule depuis « Un imprévu ? »', async () => {
+      await A.retirerPersonne(david, 'Léo Blanc', /Swend avec Eliot/);
+      await A.retirerPersonne(david, 'Nina Roy', /Swend avec Eliot/);
+      await A.ouvrirImprevu(david, /Swend avec Eliot/);
+      await ex.verifierTexte(david, 'Tu n’as encore prévu personne', 'David : liste vide');
+      await ex.verifierAbsent(david, /Kevin|Sylvain|Tom/, 'David : aucune personne de confiance d’Eliot');
+      await A.annulerDepuisImprevu(david);
+      await ex.verifier('Swend annulé en base par David', () => sql('select statut from pactes') === 'annule',
         { obtenu: () => sql('select statut from pactes') });
+      if (baseAvecLot2()) {
+        await ex.verifier('motif titulaire', () => sql('select annule_motif from pactes') === 'titulaire');
+      }
+      await ex.verifierTexte(david, 'Swend annulé', 'David : « Swend annulé »');
     });
 
-    await ex.etape('David annule', async () => {
-      await A.ouvrirSwend(david, /Swend avec Eliot/);
-      await david.cliquer('Annuler le Swend');
-      await david.cliquer('Annuler malgré tout');
-      await david.cliquer('Annuler le Swend');
-      await ex.verifier('Swend annulé en base par David', () => sql(`select statut || '|' || annule_motif from pactes`) === 'annule|titulaire',
-        { obtenu: () => sql(`select statut || '|' || annule_motif from pactes`) });
-      await ex.verifierTexte(david, 'Votre Swend avec Eliot est annulé.', 'David : "Votre Swend avec Eliot est annulé."');
-      await ex.verifier('Kevin : "Le Swend est annulé — Tu n’auras finalement pas besoin de prendre la place d’Eliot."',
-        () => notifs('kevin').endsWith('Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place d’Eliot.'),
+    await ex.etape('Notifications : Kevin et Eliot prévenus, rien pour David (auteur)', async () => {
+      const lot2 = baseAvecLot2();
+      await ex.verifier('Kevin (remplaçant) prévenu',
+        () => notifs('kevin').endsWith(lot2
+          ? 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place d’Eliot.'
+          : `Le Swend est annulé|Le Swend pour lequel tu devais prendre la place d’Eliot, ${quand()}, est annulé.`),
         { obtenu: () => notifs('kevin') });
-      await ex.verifier('Eliot : "Le Swend est annulé — David ne pourra finalement pas être là."',
-        () => notifs('eliot').endsWith('Le Swend est annulé|David ne pourra finalement pas être là.'), { obtenu: () => notifs('eliot') });
-      await ex.verifier('David : aucune push (auteur)', () => !notifs('david').includes('annulé'), { obtenu: () => notifs('david') });
+      await ex.verifier('Eliot prévenu, sans coulisse',
+        () => notifs('eliot').endsWith(lot2
+          ? 'Le Swend est annulé|David ne pourra finalement pas être là.'
+          : `Ton Swend est annulé|David a annulé votre Swend du ${quand()}.`),
+        { obtenu: () => notifs('eliot') });
+      await ex.verifier('David : aucune push d’annulation', () => !notifs('david').includes('annulé'), { obtenu: () => notifs('david') });
     });
 
     await ex.etape('Kevin garde le Swend annulé dans son historique', async () => {

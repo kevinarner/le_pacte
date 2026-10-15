@@ -7,7 +7,8 @@ import * as A from '../lib/actions.mjs';
 import { config } from '../lib/config.mjs';
 import { sql, demande, FICHES } from '../lib/donnees.mjs';
 
-const IMPREVU = /Qui peut prendre votre place|Personne n'est encore prévu|Aucune des personnes prévues|prendra votre place\./;
+// Écran « Un imprévu ? » encore actif (choix, attente ou personne n'a pu).
+const IMPREVU = /Tu ne peux plus être là \?|C’est envoyé\.|Personne n’a pu prendre ta place\./;
 
 // Comme un clic sur la notification : nouvelle page sur le lien, connexion.
 async function ouvrirLien(a, url) {

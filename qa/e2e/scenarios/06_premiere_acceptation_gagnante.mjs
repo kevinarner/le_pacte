@@ -49,7 +49,7 @@ export default {
       await ex.verifierAbsent(perdant, "Tu prends la place d'Eliot", `${perdant.compte.prenom} : ne prend pas la place`);
       await ex.verifierAbsent(perdant, "UNE DEMANDE T'ATTEND", `${perdant.compte.prenom} : plus de demande`);
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, `${gagnant.compte.prenom} prendra votre place`, `Eliot : "${gagnant.compte.prenom} prendra votre place"`);
+      await ex.verifierTexte(eliot, `${gagnant.compte.prenom} a accepté.`, `Eliot : « ${gagnant.compte.prenom} a accepté. »`);
     });
   },
 };

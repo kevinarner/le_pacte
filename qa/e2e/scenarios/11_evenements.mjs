@@ -8,9 +8,11 @@ import { photoDavid, verifierDavidNeVoitRien } from '../lib/confidentialite.mjs'
 
 const HORODATAGE = /\d{1,2} [a-zéû]+\.? · \d{2}:\d{2}/g;
 const EVTS = {
-  eliotKevin: ['Tu as demandé à Kevin de prendre ta place.', 'Tu as annulé ta demande à Kevin.',
+  // D-027 : plus d'annulation demande par demande ; « Je peux finalement
+  // venir » clôt la demande en attente.
+  eliotKevin: ['Tu as demandé à Kevin de prendre ta place.', 'Tu pourras finalement être là : ta demande à Kevin est close.',
     'Tu as demandé à Kevin de prendre ta place.', 'Kevin a accepté de prendre ta place.', 'Kevin ne peut finalement plus prendre ta place.'],
-  kevinAvantDesistement: ["Eliot t'a demandé de prendre sa place.", 'Eliot a annulé sa demande.',
+  kevinAvantDesistement: ["Eliot t'a demandé de prendre sa place.", 'Eliot pourra finalement être là : plus besoin de répondre.',
     "Eliot t'a demandé de prendre sa place.", "Tu as accepté de prendre la place d'Eliot."],
   // D-027 : après le désistement de Kevin, la demande à Sylvain est réactivée
   // automatiquement (Eliot ne redemande pas).
@@ -40,12 +42,12 @@ export default {
     const sylvain = await ex.sylvain();
     ex.memo.david = await photoDavid(ex);
 
-    await ex.etape('Demande, annulation, nouvelle demande à Kevin ; demande à Sylvain', async () => {
+    await ex.etape('Demande à Kevin, « Je peux finalement venir », puis demande groupée à Kevin et Sylvain', async () => {
       await A.ouvrirImprevu(eliot);
       await A.demander(eliot, 'Kevin Arner');
-      await A.annulerDemande(eliot, 'Kevin Arner');
-      await A.demander(eliot, 'Kevin Arner');
-      await A.demander(eliot, 'Sylvain Landiech');
+      await A.jePeuxFinalementVenir(eliot);
+      await A.ouvrirImprevu(eliot);
+      await A.demander(eliot, 'Kevin Arner', 'Sylvain Landiech');
     });
 
     await ex.etape('Kevin accepte (la demande à Sylvain est close)', async () => {

@@ -36,10 +36,10 @@ export default {
       await ex.verifier('Sylvain : aucun bouton "Accepter"', async () => (await sylvain.nombreDeBoutons('Accepter')) === 0);
     });
 
-    await ex.etape('Eliot : Kevin prendra votre place, Discuter conservé', async () => {
+    await ex.etape('Eliot : « Kevin a accepté. », Discuter conservé', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, 'Kevin prendra votre place', 'Eliot : "Kevin prendra votre place"');
-      await ex.verifierTexte(eliot, 'Votre Swend reste scellé.', 'Eliot : "Votre Swend reste scellé."');
+      await ex.verifierTexte(eliot, 'Kevin a accepté.', 'Eliot : « Kevin a accepté. »');
+      await ex.verifierTexte(eliot, 'Kevin sera là à ta place le jour J.', 'Eliot : « Kevin sera là à ta place le jour J. »');
       await ex.verifier('Eliot : "Écrire à Kevin"', async () => (await eliot.nombreDeBoutons('Écrire à Kevin')) === 1);
       await eliot.cliquer('Discuter');
       await ex.verifierTexte(eliot, 'Sylvain Landiech', '"Discuter" propose toujours Sylvain');
@@ -51,8 +51,13 @@ export default {
 
     await ex.etape('Un imprévu ? et Modifier ma liste après acceptation', async () => {
       await A.ouvrirImprevu(eliot);
-      await ex.verifierTexte(eliot, 'Kevin prendra votre place.', 'Un imprévu ? : "Kevin prendra votre place."');
-      await ex.verifier('Un imprévu ? : plus aucun "Lui demander"', async () => (await eliot.nombreDeBoutons('Lui demander')) === 0);
+      await ex.verifierTexte(eliot, 'Kevin a accepté.', 'Un imprévu ? : « Kevin a accepté. »');
+      await ex.verifierTexte(eliot, 'Kevin sera là à ta place le jour J.', 'Un imprévu ? : « Kevin sera là à ta place le jour J. »');
+      await ex.verifier('Un imprévu ? : plus aucun choix, ni retour, ni annulation',
+        async () => (await eliot.page.getByRole('checkbox').count()) === 0
+          && (await eliot.nombreDeBoutons('Je peux finalement venir')) === 0
+          && (await eliot.nombreDeBoutons('Je n’ai personne d’autre')) === 0
+          && (await eliot.nombreDeBoutons('Solliciter quelqu’un d’autre')) === 0);
       await eliot.accueil({ rafraichir: false });
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await eliot.cliquer('Voir les personnes prévues');

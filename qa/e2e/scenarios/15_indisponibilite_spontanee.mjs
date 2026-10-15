@@ -46,7 +46,10 @@ export default {
       await eliot.accueil({ rafraichir: false });
       await A.ouvrirImprevu(eliot);
       await ex.verifierTexte(eliot, /Kevin Arner\s+Indisponible/, 'Un imprévu ? : Kevin "Indisponible"');
-      await ex.verifier('Un imprévu ? : seul Sylvain en "Lui demander"', async () => (await eliot.nombreDeBoutons('Lui demander')) === 1);
+      await ex.verifier('Un imprévu ? : Kevin ne peut pas être choisi, Sylvain et Tom oui',
+        async () => (await eliot.page.getByRole('checkbox', { name: /Kevin/ }).count()) === 0
+          && (await eliot.page.getByRole('checkbox', { name: /Sylvain/ }).count()) === 1
+          && (await eliot.page.getByRole('checkbox', { name: /Tom/ }).count()) === 1);
       await A.ouvrirBox(eliot, "Kevin ne sera pas disponible en cas d'imprévu.");
       await ex.verifierTexte(eliot, "Kevin ne sera pas disponible en cas d'imprévu.", 'l\'événement figure dans la conversation');
       await eliot.accueil();

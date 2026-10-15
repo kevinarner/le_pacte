@@ -1,4 +1,5 @@
-// D-015 / D-027 — NOTIFICATIONS DES ACTIONS DIRECTES — annulation (→ Sylvain),
+// D-015 / D-027 — NOTIFICATIONS DES ACTIONS DIRECTES — « Je peux finalement
+// venir » (→ Sylvain),
 // refus (box ; push seulement au dernier refus, D-027), acceptation,
 // désistement (→ Eliot) : push (notifications_log) + box sur l'accueil, sans
 // doublon, et rien pour David.
@@ -11,7 +12,7 @@ const notifs = (nom) => sql(`select coalesce(string_agg(corps, ' | ' order by id
 
 export default {
   nom: 'notifications_actions',
-  titre: 'Annulation, refus, acceptation, désistement : la personne concernée est prévenue',
+  titre: 'Retour du titulaire, refus, acceptation, désistement : la personne concernée est prévenue',
   suites: ['full'],
   fixture: 'scelle',
   async executer(ex) {
@@ -20,10 +21,25 @@ export default {
     const sylvain = await ex.sylvain();
     ex.memo.david = await photoDavid(ex);
 
-    await ex.etape('Demandes à Kevin et Sylvain : notifiées une seule fois, sans box', async () => {
+    await ex.etape('Demande à Sylvain, puis « Je peux finalement venir » → Sylvain prévenu', async () => {
       await A.ouvrirImprevu(eliot);
-      await A.demander(eliot, 'Kevin Arner');
       await A.demander(eliot, 'Sylvain Landiech');
+      await ex.verifier('Sylvain : une notification "demande"', () => notifs('sylvain') === 'Eliot Martin te demande de prendre sa place pour un Swend.', { obtenu: () => notifs('sylvain') });
+      await A.ouvrirImprevu(eliot);
+      await A.jePeuxFinalementVenir(eliot);
+      await ex.verifier('Sylvain : push « Plus besoin de répondre / Eliot pourra finalement être là pour ce Swend. »',
+        () => notifs('sylvain').endsWith('Eliot pourra finalement être là pour ce Swend.'), { obtenu: () => notifs('sylvain') });
+      await sylvain.accueil();
+      await ex.verifierTexte(sylvain, 'Eliot pourra finalement être là : plus besoin de répondre.', 'Sylvain : box « plus besoin de répondre »');
+      await A.ouvrirBox(sylvain, 'Eliot pourra finalement être là : plus besoin de répondre.');
+      await sylvain.accueil();
+      await ex.verifierAbsent(sylvain, 'Eliot pourra finalement être là : plus besoin de répondre.', 'Sylvain : box disparue une fois lue');
+      await ex.verifier('Eliot : aucune notification pour ses propres actions', () => notifs('eliot') === '', { obtenu: () => notifs('eliot') });
+    });
+
+    await ex.etape('Demandes groupées à Kevin et Sylvain : notifiées une seule fois, sans box', async () => {
+      await A.ouvrirImprevu(eliot);
+      await A.demander(eliot, 'Kevin Arner', 'Sylvain Landiech');
       await ex.verifier('Kevin : une notification "demande"', () => notifs('kevin') === 'Eliot Martin te demande de prendre sa place pour un Swend.', { obtenu: () => notifs('kevin') });
       await ex.verifier('Eliot : aucune notification pour ses propres demandes', () => notifs('eliot') === '', { obtenu: () => notifs('eliot') });
       await kevin.accueil();
@@ -31,21 +47,7 @@ export default {
       await ex.verifierAbsent(kevin, "Eliot t'a demandé de prendre sa place.", 'Kevin : pas de box en double pour la demande');
     });
 
-    await ex.etape('Eliot annule la demande à Sylvain → Sylvain prévenu', async () => {
-      await A.ouvrirImprevu(eliot);
-      await A.annulerDemande(eliot, 'Sylvain Landiech');
-      await ex.verifier('Sylvain : push "Eliot a annulé sa demande."',
-        () => notifs('sylvain').endsWith('Eliot a annulé sa demande.'), { obtenu: () => notifs('sylvain') });
-      await sylvain.accueil();
-      await ex.verifierTexte(sylvain, 'Eliot a annulé sa demande.', 'Sylvain : box "Eliot a annulé sa demande."');
-      await A.ouvrirBox(sylvain, 'Eliot a annulé sa demande.');
-      await sylvain.accueil();
-      await ex.verifierAbsent(sylvain, 'Eliot a annulé sa demande.', 'Sylvain : box disparue une fois lue');
-    });
-
-    await ex.etape('Sylvain, redemandé, refuse → box pour Eliot (Kevin attend encore : pas de push, D-027)', async () => {
-      await A.ouvrirImprevu(eliot);
-      await A.demander(eliot, 'Sylvain Landiech');
+    await ex.etape('Sylvain refuse → box pour Eliot (Kevin attend encore : pas de push, D-027)', async () => {
       await A.repondre(sylvain, false);
       await ex.verifier('Eliot : aucune push, une demande (Kevin) est encore en attente',
         () => notifs('eliot') === '', { obtenu: () => notifs('eliot') });

@@ -44,7 +44,7 @@ export default {
       await A.ouvrirImprevu(eliot);
       await ex.verifierTexte(eliot, /Kevin Arner\s+Indisponible/, 'Kevin "Indisponible"');
       await ex.verifierTexte(eliot, /Sylvain Landiech\s+En attente/, 'Sylvain "En attente"');
-      await ex.verifier('aucun "Lui demander" pour Sylvain', async () => (await eliot.nombreDeBoutons('Lui demander')) === 0);
+      await ex.verifier('Sylvain ne peut pas être sollicité de nouveau (demande active)', async () => (await eliot.page.getByRole('checkbox', { name: /Sylvain/ }).count()) === 0);
     });
 
     await ex.etape('Sylvain voit la demande et accepte', async () => {
@@ -53,7 +53,7 @@ export default {
       await A.repondre(sylvain, true);
       await ex.verifier('Sylvain sélectionné', () => demande(FICHES.sylvain) === 'acceptee|t', { obtenu: () => demande(FICHES.sylvain) });
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, 'Sylvain prendra votre place', 'Eliot : "Sylvain prendra votre place"');
+      await ex.verifierTexte(eliot, 'Sylvain a accepté.', 'Eliot : « Sylvain a accepté. »');
     });
 
     await ex.etape('David ne voit rien', async () => {

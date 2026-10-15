@@ -45,7 +45,7 @@ export default {
     await ex.etape('Kevin ne peut pas prendre aussi la place de David', async () => {
       await A.ouvrirImprevu(david, /Swend avec Eliot/);
       await ex.verifierTexte(david, /Kevin Arner\s+Indisponible/, 'David : Kevin "Indisponible"');
-      await ex.verifier('David ne peut pas solliciter Kevin', async () => (await david.nombreDeBoutons('Lui demander')) === 0);
+      await ex.verifier('David ne peut pas solliciter Kevin', async () => (await david.page.getByRole('checkbox', { name: /Kevin/ }).count()) === 0);
       const r = await appelerComme('david', 'envoyer_demande_remplacement', { p_remplacant_id: FICHES.kevinCoteDavid });
       await ex.verifier('API : David ne peut pas envoyer de demande à Kevin', () => !r.ok, { obtenu: () => `${r.statut} ${r.corps}` });
       const r2 = await appelerComme('kevin', 'repondre_demande_remplacement', { p_remplacant_id: FICHES.kevinCoteDavid, p_accepte: true });
@@ -57,7 +57,7 @@ export default {
     await ex.etape('Confidentialité des deux côtés', async () => {
       await verifierDavidNeVoitRien(ex, ex.memo.david, { nomsInterdits: ['Sylvain', 'Tom'], comparerFiche: false });
       await A.ouvrirSwend(david, /Swend avec Eliot/);
-      await ex.verifierAbsent(david, 'prendra votre place', 'David : aucun remplaçant affiché de son côté');
+      await ex.verifierAbsent(david, 'sera là à ta place', 'David : aucun remplaçant affiché de son côté');
       await ex.verifierAbsent(david, "place d'Eliot", 'David : rien sur la place d\'Eliot');
       const fichesDavid = await lireComme('eliot', 'remplacants', 'select=id&cote=eq.destinataire');
       await ex.verifier('API : Eliot ne lit aucune personne de confiance de David', () => fichesDavid.length === 0, { obtenu: () => JSON.stringify(fichesDavid) });
@@ -77,7 +77,7 @@ export default {
         () => demande(FICHES.kevinCoteDavid) === 'acceptee|t' && sql('select statut from pactes') === 'confirme',
         { obtenu: () => `${demande(FICHES.kevinCoteDavid)} / ${sql('select statut from pactes')}` });
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierAbsent(eliot, 'Kevin prendra', 'Eliot ne sait pas que Kevin remplace David');
+      await ex.verifierAbsent(eliot, 'Kevin sera là', 'Eliot ne sait pas que Kevin remplace David');
     });
   },
 };

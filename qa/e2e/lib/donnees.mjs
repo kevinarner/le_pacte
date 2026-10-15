@@ -99,3 +99,7 @@ export async function modifierComme(nom, table, filtre, valeurs) {
   });
   return { ok: r.ok, statut: r.status, corps: await r.text() };
 }
+
+// Base E2E avec le lot 2 de D-027 (migration annulation_et_conversations,
+// paquet D-027-02) ou sans (QA_BASE=avant-D-027-02, production actuelle).
+export const baseAvecLot2 = () => sql("select to_regclass('public.fils_imprevu_fermes') is not null") === 't';
