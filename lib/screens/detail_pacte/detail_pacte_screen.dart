@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../models/annulation_swend.dart';
 import '../../models/chat_apres_swend.dart';
 import '../../models/gel_swend.dart';
+import '../../models/imprevu.dart';
 import '../../models/pacte.dart';
 import '../../models/perspective_pacte.dart';
 import '../../models/statut_pacte.dart';
@@ -16,7 +16,6 @@ import '../../utils/date_fr.dart';
 import '../../utils/noms.dart';
 import '../../widgets/ligne_info.dart';
 import '../creer_pacte/nouveau_swend.dart';
-import 'annulation_swend_dialogues.dart';
 import 'bloc_apres_swend.dart';
 import 'bloc_attente.dart';
 import 'bloc_choix_date.dart';
@@ -42,10 +41,43 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
   /// Chat après le Swend (D-023b), s'il est ouvert et que j'y participe.
   ChatApresSwend? _chat;
 
+  /// Où en est mon côté « en cas d'imprévu » (D-027), titulaire seulement.
+  SituationImprevu? _situation;
+
   @override
   void initState() {
     super.initState();
     _chargerChat();
+    _chargerSituation();
+  }
+
+  /// Titulaire d'un Swend scellé à venir : état « cherche » de la base
+  /// (`destination_rappel()`), pour résumer la recherche sur la fiche.
+  Future<void> _chargerSituation() async {
+    final p = _pacte;
+    final perspective = PerspectivePacte.de(p, AppStore.moi.id);
+    if (perspective == null ||
+        !perspective.estTitulaire ||
+        p.statut != StatutPacte.confirme ||
+        estPasse(p, DateTime.now())) {
+      return;
+    }
+    try {
+      final s = await PacteRepository.situationImprevu(
+        p.id,
+        perspective.jeSuisInitiateur ? 'initiateur' : 'destinataire',
+      );
+      if (!mounted) return;
+      final monCote = perspective.jeSuisInitiateur ? p.initiateur : p.destinataire;
+      setState(() {
+        _situation = s;
+        monCote.listeRemplacants
+          ..clear()
+          ..addAll(s.fiches);
+      });
+    } catch (_) {
+      // Sans elle, la carte « En cas d'imprévu » s'appuie sur les fiches.
+    }
   }
 
   /// Seulement pour un Swend passé, non annulé : la base n'ouvre un chat que
@@ -280,9 +312,12 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
             BlocPresence(
               pacte: pacte,
               jeSuisInitiateur: jeSuisInitiateur,
-              onChanged: () => setState(() {}),
+              situation: _situation,
+              onChanged: _apresChangement,
             ),
             const SizedBox(height: 12),
+            // Seul chemin vers l'annulation par un titulaire (D-027) :
+            // « Un imprévu ? » → … → « Je n'ai personne d'autre ».
             OutlinedButton.icon(
               onPressed: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
               style: OutlinedButton.styleFrom(
@@ -292,24 +327,6 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
               icon: const Icon(Icons.event_busy_outlined, size: 18),
               label: const Text('Un imprévu ?'),
             ),
-            // Annulation (D-022) : les deux titulaires seulement, jusqu'à
-            // l'heure du rendez-vous.
-            if (peutAnnulerSwend(
-              pacte,
-              estTitulaire: true,
-              maintenant: DateTime.now(),
-            )) ...[
-              const SizedBox(height: 20),
-              Center(
-                child: TextButton(
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppColors.erreur,
-                  ),
-                  onPressed: () => _annuler(pacte, jeSuisInitiateur),
-                  child: const Text('Annuler le Swend'),
-                ),
-              ),
-            ],
           ],
 
           // --- Cas : le pacte est arrivé à son terme ---
@@ -374,14 +391,12 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
     await launchUrl(Uri.parse(lien), webOnlyWindowName: '_blank');
   }
 
-  Future<void> _annuler(Pacte pacte, bool jeSuisInitiateur) async {
-    final annule = await lancerAnnulationSwend(
-      context,
-      pacte: pacte,
-      jeSuisInitiateur: jeSuisInitiateur,
-      onTrouverQuelquun: () => _ouvrirImprevu(pacte, jeSuisInitiateur),
-    );
-    if (annule && mounted) setState(() {});
+  /// Après une action sur la fiche ou dans « Un imprévu ? » : la situation
+  /// est relue (statut du Swend compris : il a pu être annulé).
+  Future<void> _apresChangement() async {
+    setState(() {});
+    await _recharger();
+    await _chargerSituation();
   }
 
   Future<void> _ouvrirImprevu(Pacte pacte, bool jeSuisInitiateur) async {
@@ -395,6 +410,6 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
         ),
       ),
     );
-    setState(() {});
+    await _apresChangement();
   }
 }

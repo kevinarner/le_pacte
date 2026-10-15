@@ -6,6 +6,7 @@ import '../models/delai_minimum.dart';
 import '../models/demande_statut.dart';
 import '../models/evenement_fil.dart';
 import '../models/fil_de_discussion.dart';
+import '../models/imprevu.dart';
 import '../models/message.dart';
 import '../models/pacte.dart';
 import '../models/remplacant.dart';
@@ -363,12 +364,92 @@ class PacteRepository {
     );
   }
 
-  /// Annule une demande encore en attente — impossible dès que la
-  /// personne a accepté (transfert définitif).
-  static Future<void> annulerDemandeRemplacement(String remplacantId) async {
+  /// Envoi groupé « Un imprévu ? » (D-027) : toutes les demandes partent
+  /// ensemble ou aucune. Renvoie, pour chaque personne, le canal de remise :
+  /// `notification` (compte Swend) ou `message` (sans compte : le titulaire
+  /// envoie lui-même le message d'urgence).
+  static Future<Map<String, String>> envoyerDemandes(
+    List<String> remplacantIds,
+  ) async {
+    final rows =
+        await _client.rpc(
+              'envoyer_demandes_remplacement',
+              params: {'p_remplacant_ids': remplacantIds},
+            )
+            as List<dynamic>;
+    return {
+      for (final r in rows)
+        (r as Map<String, dynamic>)['remplacant_id'] as String:
+            r['canal'] as String,
+    };
+  }
+
+  /// « Je peux finalement venir » (D-027) : avant toute acceptation, les
+  /// demandes en attente de mon côté sont closes, mon imprévu s'arrête.
+  static Future<void> jePeuxFinalementVenir(String pacteId) async {
     await _client.rpc(
-      'annuler_demande_remplacement',
-      params: {'p_remplacant_id': remplacantId},
+      'je_peux_finalement_venir',
+      params: {'p_pacte_id': pacteId},
+    );
+  }
+
+  /// Où en est MON côté d'un Swend scellé (D-027) : mes fiches, l'état
+  /// « cherche » de la base (`destination_rappel()`), et le dernier
+  /// désistement non suivi d'un nouvel envoi (événements de mes fils).
+  static Future<SituationImprevu> situationImprevu(
+    String pacteId,
+    String cote,
+  ) async {
+    final fiches = await remplacantsDe(pacteId, cote);
+    String? destination;
+    var baseARepondu = true;
+    try {
+      destination = await destinationRappel(pacteId);
+    } catch (_) {
+      baseARepondu = false;
+    }
+    final etat = etatCoteDepuis(
+      destinationRappel: destination,
+      baseARepondu: baseARepondu,
+      fiches: fiches,
+    );
+    Remplacant? desiste;
+    final ids = [for (final r in fiches) if (r.id != null) r.id!];
+    if (etat == EtatCote.cherche &&
+        ids.isNotEmpty &&
+        fiches.any((r) => r.demandeStatut == DemandeStatut.desistee)) {
+      try {
+        final rows = await _client
+            .from('evenements_fil')
+            .select('remplacant_id, code, created_at')
+            .inFilter('remplacant_id', ids)
+            .inFilter('code', ['desistement', 'demande_envoyee']);
+        final desistements = <String, DateTime>{};
+        DateTime? dernierEnvoi;
+        for (final r in rows as List) {
+          final row = r as Map<String, dynamic>;
+          final t = DateTime.parse(row['created_at'] as String);
+          if (row['code'] == 'desistement') {
+            final id = row['remplacant_id'] as String;
+            final avant = desistements[id];
+            if (avant == null || t.isAfter(avant)) desistements[id] = t;
+          } else if (dernierEnvoi == null || t.isAfter(dernierEnvoi)) {
+            dernierEnvoi = t;
+          }
+        }
+        desiste = desistementRecent(
+          fiches,
+          desistements: desistements,
+          dernierEnvoi: dernierEnvoi,
+        );
+      } catch (_) {
+        // Sans les événements : l'écran garde les textes de l'attente.
+      }
+    }
+    return SituationImprevu(
+      etat: etat,
+      fiches: fiches,
+      desistementRecent: desiste,
     );
   }
 
@@ -465,6 +546,9 @@ class PacteRepository {
       'swend_deja_en_cours',
       'chat_ferme',
       'non_autorise',
+      'aucun_imprevu',
+      'aucune_personne',
+      'remplacement_accepte',
     ];
     for (final code in codes) {
       if (erreur.message.contains(code)) return code;

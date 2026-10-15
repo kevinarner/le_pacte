@@ -246,13 +246,9 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
                     icon: const Icon(Icons.send_outlined, size: 16),
                     label: const Text("Envoyer l'invitation"),
                   ),
-                if (r.demandeStatut == DemandeStatut.envoyee)
-                  TextButton(
-                    style: TextButton.styleFrom(minimumSize: petitBouton),
-                    onPressed: enCours ? null : () => _annulerDemande(r),
-                    child: const Text('Annuler la demande'),
-                  )
-                else if (!r.selectionne)
+                // Pas d'annulation demande par demande (D-027) : une
+                // personne en attente ne peut pas non plus être retirée.
+                if (r.demandeStatut != DemandeStatut.envoyee && !r.selectionne)
                   TextButton(
                     style: TextButton.styleFrom(
                       minimumSize: petitBouton,
@@ -332,16 +328,6 @@ class _MesRemplacantsScreenState extends State<MesRemplacantsScreen> {
     await _action(r, () => PacteRepository.retirerRemplacant(r.id!), () {
       _enregistrees.remove(r);
     });
-  }
-
-  Future<void> _annulerDemande(Remplacant r) async {
-    await _action(
-      r,
-      () => PacteRepository.annulerDemandeRemplacement(r.id!),
-      () {
-        r.demandeStatut = null;
-      },
-    );
   }
 
   Future<void> _action(

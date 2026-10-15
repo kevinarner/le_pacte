@@ -259,7 +259,7 @@ void main() {
     });
   });
 
-  group('Annulation manuelle d\'un Swend (D-022)', () {
+  group('Annulation d\'un Swend (D-022, révisée par D-027)', () {
     CotePacte cote(List<Remplacant> fiches) => CotePacte(
       idTitulaire: 'eliot',
       nomTitulaire: 'Eliot Martin',
@@ -279,69 +279,6 @@ void main() {
         listeRemplacants: const [],
       ),
     );
-    test('aucun imprévu lancé : proposer d\'abord un remplaçant', () {
-      final c = ConfirmationAnnulation.pour(
-        cote([Remplacant(prenom: 'Kevin')]),
-      );
-      expect(c.cas, CasAnnulation.normal);
-      expect(c.titre, 'Annuler ce Swend ?');
-      expect(c.corps, 'Cette action mettra fin au Swend pour vous deux.');
-      expect(c.actionGarder, 'Ne pas annuler');
-      expect(c.actionAnnuler, 'Annuler le Swend');
-      expect(AvantAnnulation.titre, 'Vous ne pouvez plus être là ?');
-      expect(AvantAnnulation.actionTrouver, 'Trouver quelqu’un pour me remplacer');
-      expect(AvantAnnulation.actionAnnuler, 'Annuler malgré tout');
-    });
-    test('demande en attente : « Continuer à chercher », demandes annulées', () {
-      final c = ConfirmationAnnulation.pour(
-        cote([
-          Remplacant(prenom: 'Kevin', demandeStatut: DemandeStatut.envoyee),
-          Remplacant(prenom: 'Tom', demandeStatut: DemandeStatut.refusee),
-        ]),
-      );
-      expect(c.cas, CasAnnulation.enRecherche);
-      expect(
-        c.corps,
-        'Les demandes de remplacement en cours seront annulées et le Swend prendra fin pour vous deux.',
-      );
-      expect(c.actionGarder, 'Continuer à chercher');
-    });
-    test('seulement des refus / désistements : déjà cherché', () {
-      for (final statut in [DemandeStatut.refusee, DemandeStatut.desistee]) {
-        final c = ConfirmationAnnulation.pour(
-          cote([Remplacant(prenom: 'Tom', demandeStatut: statut)]),
-        );
-        expect(c.cas, CasAnnulation.enRecherche);
-        expect(
-          c.corps,
-          'Vous avez déjà cherché quelqu’un pour vous remplacer. Si vous annulez, le Swend prendra fin pour vous deux.',
-        );
-      }
-    });
-    test('demande close ou annulée seulement : cas normal', () {
-      final c = ConfirmationAnnulation.pour(
-        cote([Remplacant(prenom: 'Tom', demandeStatut: DemandeStatut.cloturee)]),
-      );
-      expect(c.cas, CasAnnulation.normal);
-    });
-    test('quelqu\'un a accepté : son prénom, fin pour tout le monde', () {
-      final c = ConfirmationAnnulation.pour(
-        cote([
-          Remplacant(prenom: 'Sylvain', demandeStatut: DemandeStatut.cloturee),
-          Remplacant(
-            prenom: 'Kevin ',
-            selectionne: true,
-            demandeStatut: DemandeStatut.acceptee,
-          ),
-        ]),
-      );
-      expect(c.cas, CasAnnulation.remplace);
-      expect(
-        c.corps,
-        'Kevin a accepté de prendre votre place.\nSi vous annulez, le Swend prendra fin pour tout le monde.',
-      );
-      expect(c.actionGarder, 'Ne pas annuler');
-    });
     test('annulable jusqu\'à l\'heure du rendez-vous, par un titulaire', () {
       final maintenant = DateTime(2031, 10, 13, 19, 59);
       final rdv = DateTime(2031, 10, 13, 20);
@@ -361,6 +298,16 @@ void main() {
         peutAnnulerSwend(swend(StatutPacte.annule, rdv), estTitulaire: true, maintenant: maintenant),
         isFalse,
       );
+      // D-027 : un titulaire dont la place a été prise ne peut plus annuler.
+      expect(
+        peutAnnulerSwend(
+          swend(StatutPacte.confirme, rdv),
+          estTitulaire: true,
+          maintenant: maintenant,
+          remplace: true,
+        ),
+        isFalse,
+      );
     });
     test('Mes Swends : annulés et passés à part, jamais présentés comme actifs', () {
       final maintenant = DateTime(2031, 10, 1);
@@ -372,13 +319,6 @@ void main() {
       expect(estPasseOuAnnule(swend(StatutPacte.annuleDoubleAbsence, futur), maintenant), isTrue);
       expect(estPasseOuAnnule(swend(StatutPacte.confirme, passe), maintenant), isTrue);
       expect(StatutPacte.annule.libelle, 'Annulé');
-    });
-    test('refus de la base : message compréhensible', () {
-      expect(
-        messageErreurAnnulation(Exception('... swend_passe ...')),
-        'L’heure du rendez-vous est passée : ce Swend ne peut plus être annulé.',
-      );
-      expect(messageErreurAnnulation(Exception('swend_inactif')), 'Ce Swend n’est plus actif.');
     });
   });
 

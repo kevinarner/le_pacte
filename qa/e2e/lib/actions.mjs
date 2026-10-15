@@ -17,10 +17,13 @@ export async function ouvrirSwend(a, motif) {
   await a.page.getByRole('button', { name: motif }).first().click();
   await a.attendreCalme();
 }
+// Écran « Un imprévu ? » (D-027) : une des situations possibles.
+export const ECRAN_IMPREVU = /Tu ne peux plus être là \?|C’est envoyé\.|Personne n’a pu prendre ta place\.| a accepté\.|ne peut finalement plus venir\.|L’heure du Swend est passée\./;
 export async function ouvrirImprevu(a, motif = /Swend avec/) {
   await ouvrirSwend(a, motif);
   await a.cliquer('Un imprévu ?');
-  await a.attendreTexte(/Qui peut prendre votre place|Personne n'est encore prévu|Aucune des personnes prévues|prendra votre place\./);
+  await a.attendreTexte(ECRAN_IMPREVU);
+  await a.attendreCalme();
 }
 export async function ouvrirModifierMaListe(a, motif = /Swend avec/) {
   await ouvrirSwend(a, motif);
@@ -98,19 +101,44 @@ export async function retirerPersonne(a, nomComplet, motif = /Swend avec/) {
   await a.cliquer('Retirer', { dernier: true }); // confirmation
 }
 
-// --- Un imprévu ? (titulaire) ---------------------------------------------
-export async function demander(a, nomComplet) {
-  await a.cliquerPres(nomComplet, 'Lui demander');
-  await a.cliquer('Envoyer la demande');
+// --- Un imprévu ? (titulaire, D-027) ---------------------------------------
+// Coche une personne dans la liste de choix.
+export async function cocher(a, nomComplet) {
+  const c = a.page.getByRole('checkbox', { name: new RegExp(nomComplet) }).first();
+  await c.waitFor({ state: 'visible', timeout: 15000 });
+  await c.click();
+  await a.attendreCalme();
 }
-export async function annulerDemande(a, nomComplet) {
-  await a.cliquerPres(nomComplet, 'Annuler la demande');
+// Choisit une ou plusieurs personnes et envoie, confirmation comprise
+// (depuis l'attente : « Solliciter quelqu'un d'autre » d'abord).
+export async function demander(a, ...noms) {
+  if ((await a.page.getByRole('checkbox').count()) === 0 && (await a.voit('Solliciter quelqu’un d’autre'))) {
+    await a.cliquer('Solliciter quelqu’un d’autre');
+  }
+  for (const n of noms) await cocher(a, n);
+  if (noms.length === 1) {
+    await a.cliquer(`Demander à ${noms[0].split(' ')[0]}`);
+    await a.cliquer('Envoyer la demande');
+  } else {
+    await a.cliquer(`Envoyer ${noms.length} demandes`);
+    await a.cliquer('Envoyer les demandes');
+  }
 }
-// Ouvre le choix Messages / WhatsApp (la demande est déjà partie).
+// Personne sans compte : la demande part, puis le choix Messages / WhatsApp
+// s'ouvre aussitôt.
 export async function inviterEtDemander(a, nomComplet) {
-  await a.cliquerPres(nomComplet, 'Inviter et demander');
-  await a.cliquer('Inviter et demander', { dernier: true });
+  await demander(a, nomComplet);
   await a.attendreTexte('Envoyer la demande');
+}
+export async function jePeuxFinalementVenir(a) {
+  await a.cliquer('Je peux finalement venir');
+  await a.cliquer('Je peux venir');
+}
+// Seul chemin d'annulation par un titulaire (D-027) : depuis « Un imprévu ? ».
+export async function annulerDepuisImprevu(a) {
+  await a.cliquer('Je n’ai personne d’autre');
+  await a.cliquer('Annuler le Swend');
+  await a.cliquer('Annuler le Swend', { dernier: true });
 }
 
 // --- Personne de confiance (tiers) -----------------------------------------

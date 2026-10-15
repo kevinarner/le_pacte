@@ -41,7 +41,7 @@ export default {
       await ex.verifierTexte(kevin, /Mes Swends\s+0 à venir/, 'Kevin : ne compte pas comme Swend à venir (0 à venir)');
     });
 
-    await ex.etape('7-8. Eliot : Un imprévu ? → Lui demander à Kevin', async () => {
+    await ex.etape('7-8. Eliot : Un imprévu ? → choisir Kevin, « Demander à Kevin »', async () => {
       await A.ouvrirImprevu(eliot);
       await A.demander(eliot, 'Kevin Arner');
       await ex.verifierTexte(eliot, 'En attente', 'demande envoyée (Kevin "En attente")');
@@ -55,9 +55,10 @@ export default {
       await ex.verifier('Kevin accepte (sélectionné en base)', () => sql(`select selectionne from remplacants where prenom = 'Kevin'`) === 't');
     });
 
-    await ex.etape('12. Eliot voit "Kevin prendra votre place"', async () => {
+    await ex.etape('12. Eliot voit « Kevin a accepté. / Kevin sera là à ta place le jour J. »', async () => {
       await A.ouvrirSwend(eliot, /Swend avec David/);
-      await ex.verifierTexte(eliot, 'Kevin prendra votre place', 'Eliot voit "Kevin prendra votre place"');
+      await ex.verifierTexte(eliot, 'Kevin a accepté.', 'Eliot voit « Kevin a accepté. »');
+      await ex.verifierTexte(eliot, 'Kevin sera là à ta place le jour J.', 'Eliot voit « Kevin sera là à ta place le jour J. »');
     });
 
     await ex.etape('13-14. Kevin prend la place d\'Eliot, et le Swend compte pour lui', async () => {

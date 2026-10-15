@@ -7,6 +7,8 @@
 #   qa/stack.sh stop     arrête tout
 #   qa/stack.sh status   état des services
 #   qa/stack.sh reset    reconstruit la base e2e de zéro (schéma + migrations)
+#   QA_BASE=avant-D-027-02 qa/stack.sh start   base e2e sans le lot 2 de D-027
+#                        (production actuelle) ; sans QA_BASE : toutes les migrations
 #   qa/stack.sh logs     chemins des journaux
 . "$(dirname "$0")/lib/commun.sh"
 . "$QA_ROOT/lib/garde_fou.sh"
@@ -66,7 +68,8 @@ cmd_start() {
   # (migrations, réplique, fixtures, script de construction).
   local empreinte fichier_empreinte="$QA_DATA_DIR/base_e2e.empreinte"
   empreinte="$(cat "$REPO_ROOT"/supabase/migrations/*.sql "$QA_ROOT"/db/replica/*.sql \
-    "$QA_ROOT/db/fixtures.sql" "$QA_ROOT/db/construire_base.sh" | sha256sum | cut -c1-16)"
+    "$QA_ROOT/db/fixtures.sql" "$QA_ROOT/db/construire_base.sh" "$QA_ROOT"/db/production/*.sql \
+    <(echo "QA_BASE=${QA_BASE:-}") | sha256sum | cut -c1-16)"
   if [ "$(qa_psql postgres -tAc "select count(*) from pg_database where datname = '$QA_DB'")" != "1" ] \
      || [ "$(cat "$fichier_empreinte" 2>/dev/null)" != "$empreinte" ]; then
     qa_titre "Construction de la base $QA_DB (schéma modifié ou absent)"

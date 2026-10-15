@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
+import '../../models/imprevu.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
 import '../../models/statut_presence.dart';
@@ -12,9 +13,9 @@ import '../../widgets/envoi_invitation.dart';
 import 'chat_screen.dart';
 import 'mes_remplacants_screen.dart';
 
-/// "En cas d'imprévu" (titulaire) : résume, sur la page du Swend, la
-/// personne qui a accepté de prendre ma place (s'il y en a une) ou les
-/// personnes prévues, avec deux actions distinctes : "Modifier ma liste"
+/// "En cas d'imprévu" (titulaire, au tutoiement, D-027) : résume, sur la
+/// page du Swend, la personne qui a accepté de prendre ma place, la
+/// recherche en cours, ou les personnes prévues, avec deux actions distinctes : "Modifier ma liste"
 /// (`MesRemplacantsScreen`, préparation uniquement) et "Discuter" (choix
 /// d'une conversation avec une personne de la liste déjà sur Swend).
 class BlocPresence extends StatelessWidget {
@@ -22,11 +23,16 @@ class BlocPresence extends StatelessWidget {
   final bool jeSuisInitiateur;
   final VoidCallback onChanged;
 
+  /// Situation lue par la fiche (état « cherche » de la base, D-027) ; sans
+  /// elle, seules les fiches sont utilisées.
+  final SituationImprevu? situation;
+
   const BlocPresence({
     super.key,
     required this.pacte,
     required this.jeSuisInitiateur,
     required this.onChanged,
+    this.situation,
   });
 
   CotePacte get _monCote =>
@@ -52,6 +58,14 @@ class BlocPresence extends StatelessWidget {
         break;
       }
     }
+    // Imprévu en cours de mon côté (D-027) : « C'est envoyé. », « Personne
+    // n'a pu prendre ta place. » ou le désistement, mêmes textes que
+    // « Un imprévu ? ». Jamais visible de l'autre titulaire.
+    final s = situation;
+    final enRecherche =
+        designe == null && s != null && s.etat == EtatCote.cherche
+        ? s.entete
+        : null;
 
     return Card(
       child: Padding(
@@ -71,16 +85,19 @@ class BlocPresence extends StatelessWidget {
             const SizedBox(height: 8),
             if (designe != null) ...[
               Text(
-                '${designe.prenom} prendra votre place',
+                TextesImprevu.accepte(designe.prenom.trim()),
                 style: const TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 15,
                 ),
               ),
               const SizedBox(height: 2),
-              const Text(
-                'Votre Swend reste scellé.',
-                style: TextStyle(fontSize: 12, color: AppColors.texteAttenue),
+              Text(
+                TextesImprevu.accepteJourJ(designe.prenom.trim()),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.texteAttenue,
+                ),
               ),
               const SizedBox(height: 10),
               if (designe.profilId != null)
@@ -113,6 +130,19 @@ class BlocPresence extends StatelessWidget {
                   ),
                 ),
               ),
+            ] else if (enRecherche != null) ...[
+              Text(
+                enRecherche.$1,
+                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                enRecherche.$2,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.texteAttenue,
+                ),
+              ),
             ] else ...[
               Text(
                 remplacants.isEmpty
@@ -128,17 +158,19 @@ class BlocPresence extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 remplacants.isNotEmpty && disponibles.isEmpty
-                    ? "Vous pouvez ajouter quelqu'un depuis « Modifier ma liste »."
+                    ? 'Tu peux ajouter quelqu’un depuis « Modifier ma liste ».'
                     : disponibles.length > 1
-                    ? 'Ces personnes pourront prendre votre place si vous ne pouvez finalement pas venir.'
+                    ? 'Ces personnes pourront prendre ta place si tu ne peux finalement pas venir.'
                     : disponibles.length == 1
-                    ? 'Cette personne pourra prendre votre place si vous ne pouvez finalement pas venir.'
-                    : 'Une personne de confiance pourra prendre votre place si vous ne pouvez finalement pas venir.',
+                    ? 'Cette personne pourra prendre ta place si tu ne peux finalement pas venir.'
+                    : 'Une personne de confiance pourra prendre ta place si tu ne peux finalement pas venir.',
                 style: const TextStyle(
                   fontSize: 13,
                   color: AppColors.texteAttenue,
                 ),
               ),
+            ],
+            if (designe == null) ...[
               // Demande réactivée pour une personne sans compte (D-027) :
               // aucune push ne peut la prévenir, l'action reste visible
               // ici tant que le message n'a pas été renvoyé.
@@ -232,8 +264,8 @@ class BlocPresence extends StatelessWidget {
                 const Padding(
                   padding: EdgeInsets.only(bottom: 12),
                   child: Text(
-                    "Aucune personne de votre liste n'est encore sur Swend. "
-                    'Vous pouvez les inviter depuis « Modifier ma liste ».',
+                    'Aucune personne de ta liste n’est encore sur Swend. '
+                    'Tu peux les inviter depuis « Modifier ma liste ».',
                     style: TextStyle(fontSize: 13, color: Colors.black54),
                   ),
                 )
