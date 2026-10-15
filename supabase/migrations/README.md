@@ -43,17 +43,23 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   seule des 3 comptes fondateurs : 1 compte chacun, email confirmé.
   Constat du 03/10 (lecture seule) : son déclencheur
   `trg_verrou_delai_minimum_swend` est **désactivé** en production (`D`,
-  origine inconnue) ; D-025 n'y est donc pas appliqué.
-  `20261003000000_fuseaux_horaires.sql` : **préparée, non exécutée** (R2,
+  origine inconnue) ; D-025 n'y était donc pas appliqué jusqu'à R2-01,
+  qui l'a corrigé et réactivé le 03/10 (`verifier.sql` : déclencheur `O`).
+  `20261003000000_fuseaux_horaires.sql` : **exécutée en production le 03/10**
+  par le paquet `R2-01` (`RESULTAT: SUCCES`, reçu
+  `journal/20261003T142147Z-appliquer.log`, branche `recu/R2-01`) (R2,
   convention temporelle ; D-025 corrigé et son déclencheur réactivé ; D-025b,
-  invariant pour toute écriture). Exécution prévue par le change packet
+  invariant pour toute écriture). Exécutée par le change packet
   `supabase/changements/R2-01/` (niveau 2), après le déploiement de l'app
   correspondante ; la correction des 2 Swends existants (dates, et
   `date_minimale` du Swend créé après D-025 pendant que le déclencheur était
   désactivé) est dans le paquet.
-  `20261003010000_nouveau_swend.sql` : **préparée, non exécutée** (D-023c,
+  `20261003010000_nouveau_swend.sql` : **exécutée en production le 04/10**
+  par le paquet `D-023c-01` (`appliquer` HTTP 201 ; `verifier` en échec,
+  HTTP 400 sur le droit d'exécution de `swend_en_cours()` : résumé à relire ;
+  reçu `journal/20261004T064215Z-appliquer.log`, branche `recu/D-023c-01`) (D-023c,
   « Faire un nouveau Swend » et fermeture du chat après le Swend au
-  scellement ; aucune donnée existante modifiée). Exécution prévue par le
+  scellement ; aucune donnée existante modifiée). Exécutée par le
   change packet `supabase/changements/D-023c-01/` (niveau 1), AVANT le
   déploiement de l'app correspondante. Elle redéfinit
   `ouvrir_chats_apres_swend()` : ne plus ré-exécuter
