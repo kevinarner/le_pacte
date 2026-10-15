@@ -40,6 +40,7 @@ class EvenementFil {
           'La place ${deNom(autre)} est à nouveau disponible : ta réponse est attendue.',
         'retour_titulaire' =>
           '$autre pourra finalement être là : plus besoin de répondre.',
+        'fil_ferme' => filFerme,
         _ => '',
       };
     }
@@ -55,9 +56,11 @@ class EvenementFil {
       'disponibilite_retablie' =>
         '$autre est de nouveau disponible en cas d\'imprévu.',
       'swend_commence' => finConversation,
-      'demande_reactivee' => 'Ta demande à $autre attend de nouveau sa réponse.',
+      'demande_reactivee' =>
+        'Ta demande à $autre attend de nouveau sa réponse.',
       'retour_titulaire' =>
         'Tu pourras finalement être là : ta demande à $autre est close.',
+      'fil_ferme' => filFerme,
       _ => '',
     };
   }
@@ -67,6 +70,13 @@ class EvenementFil {
   /// « non lu » : ce n'est pas une action de l'interlocuteur.
   static const finConversation =
       'Le Swend a commencé.\nCette conversation est désormais terminée.';
+
+  /// Conversation conservée après une annulation, fermée par le scellement
+  /// d'un nouveau Swend entre ses deux membres (D-027 lot 2, P2). Même
+  /// texte pour les deux lecteurs, jamais « non lu » (texte proposé, sur le
+  /// modèle du message système de D-023c).
+  static const filFerme =
+      'Un nouveau Swend a été scellé entre vous.\nCette conversation est désormais fermée.';
 
   /// Vrai si l'événement vient de l'interlocuteur et me concerne
   /// directement : il rend la conversation "non lue" et s'affiche en box

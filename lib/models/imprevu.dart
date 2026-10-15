@@ -86,9 +86,8 @@ class SituationImprevu {
 
   /// Déjà sollicitées et sans place prise (en attente, refus, clôture,
   /// désistement) : la liste de l'attente.
-  List<Remplacant> get sollicitees => fiches
-      .where((r) => !r.selectionne && r.demandeStatut != null)
-      .toList();
+  List<Remplacant> get sollicitees =>
+      fiches.where((r) => !r.selectionne && r.demandeStatut != null).toList();
 
   PhaseImprevu get phase => switch (etat) {
     EtatCote.remplace => PhaseImprevu.accepte,
@@ -130,7 +129,10 @@ class SituationImprevu {
               TextesImprevu.desistement(desistementRecent!.prenom.trim()),
               TextesImprevu.desistementSansReactivation,
             )
-          : (TextesImprevu.titrePersonneNaPu, TextesImprevu.sousTitrePersonneNaPu),
+          : (
+              TextesImprevu.titrePersonneNaPu,
+              TextesImprevu.sousTitrePersonneNaPu,
+            ),
     PhaseImprevu.accepte => (
       TextesImprevu.accepte(remplacant!.prenom.trim()),
       TextesImprevu.accepteJourJ(remplacant!.prenom.trim()),
@@ -211,19 +213,17 @@ abstract final class TextesImprevu {
   static const jeNaiPersonne = 'Je n’ai personne d’autre';
 
   /// Bouton adaptatif : « Demander à Kevin », « Envoyer 2 demandes ».
-  static String? boutonEnvoi(List<Remplacant> choisis) => switch (choisis
-      .length) {
-    0 => null,
-    1 => 'Demander à ${choisis.first.prenom.trim()}',
-    final n => 'Envoyer $n demandes',
-  };
+  static String? boutonEnvoi(List<Remplacant> choisis) =>
+      switch (choisis.length) {
+        0 => null,
+        1 => 'Demander à ${choisis.first.prenom.trim()}',
+        final n => 'Envoyer $n demandes',
+      };
 
   /// Confirmation avant l'envoi : (titre, corps, action).
   /// Une personne : texte validé rendu neutre (« S’il accepte, il… » →
   /// « Si Kevin accepte, Kevin… », même règle que l'acceptation du 12/10).
-  static (String, String, String) confirmationEnvoi(
-    List<Remplacant> choisis,
-  ) {
+  static (String, String, String) confirmationEnvoi(List<Remplacant> choisis) {
     if (choisis.length == 1) {
       final p = choisis.first.prenom.trim();
       return (

@@ -2,10 +2,10 @@
 # Répétition D-027-02 sur une base locale reproduisant la production attendue.
 . /home/user/le_pacte/qa/lib/commun.sh
 S=/tmp/claude-0/-home-user-le-pacte/05ea20a0-4299-572a-9d63-2d5619bb913e/scratchpad
-D=/home/user/le_pacte/supabase/changements/D-027-02
+D=/home/user/le_pacte_3b/supabase/changements/D-027-02
 B=swend_d027_02_rep
 etape() { echo "== $1"; qa_psql $B -v ON_ERROR_STOP=1 -q -f "$2" 2>&1 | grep -v NOTICE | grep -E "ERROR|^ *[0-9]|^ [a-z_]+ +\|" | head -4; }
-$S/base_avant_lot2.sh $B >/dev/null
+$S/base_avant_lot2_3b.sh $B >/dev/null
 qa_psql $B -v ON_ERROR_STOP=1 -q -f $S/prod_deux.sql
 # Noms des déclencheurs de production (écart historique admis, même définition).
 qa_psql $B -q -c "alter trigger trg_annuler_si_double_absence on public.remplacants rename to on_remplacant_selectionne" -c "alter trigger trg_synchroniser_remplacants_caches on public.remplacants rename to on_remplacant_change"
@@ -26,12 +26,13 @@ etape verifier $D/verifier.sql
 etape "appliquer de nouveau (refus attendu)" $D/appliquer.sql
 etape "sauvegarde de nouveau (refus attendu)" $D/sauvegarde.sql
 etape "rollback immédiat" $D/rollback.sql
-qa_psql $B -tA -c "select 'après rollback : md5 ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_proc p on p.proname = s.nom where s.md5_corps = md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) and coalesce((select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a), '') = coalesce(s.droits, '')) || '/9 identiques ; contraintes ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_constraint c on 'contrainte ' || c.conname = s.nom where pg_get_constraintdef(c.oid) = s.definition) || '/2 identiques ; colonnes D-027-02 ' || (select count(*) from information_schema.columns where table_schema='public' and column_name in ('nature','annule_motif'))"
+qa_psql $B -tA -c "select 'après rollback : md5 ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_proc p on p.proname = s.nom where s.md5_corps = md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) and coalesce((select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a), '') = coalesce(s.droits, '')) || '/10 identiques ; contraintes ' || (select count(*) from sauvegarde.d027_02_fonctions_20261015 s join pg_constraint c on 'contrainte ' || c.conname = s.nom where pg_get_constraintdef(c.oid) = s.definition) || '/2 identiques ; colonnes D-027-02 ' || (select count(*) from information_schema.columns where table_schema='public' and column_name in ('nature','annule_motif'))"
 etape "verifier après rollback (refus attendu)" $D/verifier.sql
 etape "rollback de nouveau (refus attendu)" $D/rollback.sql
 etape "réapplication" $D/appliquer.sql
 etape verifier $D/verifier.sql
-etape "usage réel simulé" $S/usage_rep.sql
+etape "usage réel simulé" $S/usage_rep2.sql
+qa_psql $B -tA -c "select 'push du chat d''annulation : ' || coalesce(string_agg(titre || ' | ' || corps, ' ; '), 'aucune') from notifications_log where corps like 'Swend annulé · %'"
 qa_psql $B -tA -c "select 'double remplacement par on_remplacant_selectionne : ' || statut || '|' || coalesce(annule_motif, 'null') from pactes where id = '00000000-0000-4000-a000-000000000004'"
 etape "rollback après usage" $D/rollback.sql
 qa_psql $B -tA -c "select 'après rollback (usage) : nature=' || exists (select 1 from information_schema.columns where table_name='chats_apres_swend' and column_name='nature') || ' mes_chats_swend=' || exists (select 1 from pg_proc where proname='mes_chats_swend') || ' motif=' || exists (select 1 from information_schema.columns where table_name='pactes' and column_name='annule_motif') || ' chats=' || (select count(*) from chats_apres_swend) || ' fil_ferme_gardé=' || ((select pg_get_constraintdef(oid) from pg_constraint where conname='evenements_fil_code_check') ilike '%fil_ferme%') || ' contrainte=' || (select pg_get_constraintdef(oid) from pg_constraint where conname='pactes_annulation_complete') || ' chats_d_annulation=' || (select count(*) from chats_apres_swend)"

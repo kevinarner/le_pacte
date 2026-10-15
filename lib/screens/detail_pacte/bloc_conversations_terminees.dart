@@ -8,9 +8,11 @@ import '../../theme/app_theme.dart';
 import 'chat_screen.dart';
 
 /// « En cas d'imprévu » une fois le Swend passé ou annulé (D-023a), côté
-/// titulaire : plus aucune action de gestion, seulement la relecture des
-/// conversations qui ont eu une activité (message ou événement) — en lecture
-/// seule. Une seule conversation : ouverte directement ; plusieurs : choix.
+/// titulaire : plus aucune action de gestion, seulement les conversations
+/// qui ont eu une activité (message ou événement) — en lecture seule, sauf
+/// les conversations conservées après une annulation (D-027 lot 2,
+/// « Reprendre une conversation »), décidé par la base. Une seule
+/// conversation : ouverte directement ; plusieurs : choix.
 /// Rien du tout s'il n'y a ni remplacement à rappeler ni conversation à relire.
 class BlocConversationsTerminees extends StatefulWidget {
   final CotePacte monCote;
@@ -34,6 +36,10 @@ class _BlocConversationsTermineesState
     extends State<BlocConversationsTerminees> {
   List<Remplacant>? _aRelire;
 
+  /// Fils où la base accepte encore un message (D-027 lot 2 : conversations
+  /// conservées après une annulation) ; vide sur une base sans D-027-02.
+  Set<String> _ecrivables = const {};
+
   @override
   void initState() {
     super.initState();
@@ -50,9 +56,24 @@ class _BlocConversationsTermineesState
     } catch (_) {
       actifs = {};
     }
+    final aRelire = filsARelire(fiches, actifs);
+    var ecrivables = const <String>{};
+    try {
+      ecrivables = await PacteRepository.filsEcrivables([
+        for (final r in aRelire) r.id!,
+      ]);
+    } catch (_) {
+      // Sans réponse : relecture seulement.
+    }
     if (!mounted) return;
-    setState(() => _aRelire = filsARelire(fiches, actifs));
+    setState(() {
+      _aRelire = aRelire;
+      _ecrivables = ecrivables;
+    });
   }
+
+  /// Au moins une conversation conservée et encore ouverte à l'écriture.
+  bool get _reprendre => _ecrivables.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -95,7 +116,11 @@ class _BlocConversationsTermineesState
               OutlinedButton.icon(
                 onPressed: () => _relire(context, aRelire),
                 icon: const Icon(Icons.forum_outlined, size: 16),
-                label: const Text('Relire une conversation'),
+                label: Text(
+                  _reprendre
+                      ? 'Reprendre une conversation'
+                      : 'Relire une conversation',
+                ),
               ),
           ],
         ),
@@ -117,7 +142,9 @@ class _BlocConversationsTermineesState
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'Relire la conversation avec…',
+                      _reprendre
+                          ? 'Reprendre la conversation avec…'
+                          : 'Relire la conversation avec…',
                       style: Theme.of(feuille).textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),

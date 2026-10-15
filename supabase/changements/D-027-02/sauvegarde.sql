@@ -1,6 +1,6 @@
 -- D-027-02 — sauvegarde ciblée, avant toute modification. Une transaction.
 -- Copie, dans le schéma interne `sauvegarde` (aucun accès pour l'app) :
---  - les définitions exactes des 9 fonctions remplacées et des 2 contraintes
+--  - les définitions exactes des 10 fonctions remplacées et des 2 contraintes
 --    redéfinies (pactes_annulation_complete, evenements_fil_code_check) ;
 --  - l'état d'annulation de tous les Swends et l'état des chats (identifiants,
 --    statuts et dates seulement : ni nom, ni numéro, ni message), pour
@@ -24,11 +24,12 @@ begin
      or not exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace and proname = 'pousser_personne') then
     raise exception 'D-027-02 : D-027-01 pas encore appliqué (ordre des migrations)';
   end if;
-  -- Les 9 fonctions remplacées sont exactement celles relues en production
+  -- Les 10 fonctions remplacées sont exactement celles relues en production
   -- le 15/10/2026 (corps normalisé).
   if (select count(*) from (values
     ('annuler_si_double_absence', 'c39f19ebc3b622dcbb657ca37fe199ae'),
     ('annuler_swend', '95d5c90fa45955ab8b58815f828ad057'),
+    ('envoyer_message_apres_swend', '32be7513934ac244a0cab43eaa2af531'),
     ('fermer_chats_apres_nouveau_swend', 'c5159594fa64abc660daa60161c96624'),
     ('fiche_de_confiance_accessible', '6d610f3ac43051dd3ce0376672a7c965'),
     ('fil_ecriture_ouverte', 'b62fe26276082878d218536c0f944c59'),
@@ -38,9 +39,9 @@ begin
     ('telephone_titulaire_accessible', '4cff9f4bd8bfc6078ae4da9fe13d0580')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 10
      or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
-         and proname in ('annuler_si_double_absence', 'annuler_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 9 then
+         and proname in ('annuler_si_double_absence', 'annuler_swend', 'envoyer_message_apres_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 10 then
     raise exception 'D-027-02 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
   if (select pg_get_constraintdef(oid) from pg_constraint where conname = 'evenements_fil_code_check'
@@ -83,7 +84,7 @@ select p.proname as nom, pg_get_function_identity_arguments(p.oid) as arguments,
        (select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a) as droits,
        md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) as md5_corps, now() as sauvegarde_le
 from pg_proc p
-where p.pronamespace = 'public'::regnamespace and p.proname in ('annuler_si_double_absence', 'annuler_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')
+where p.pronamespace = 'public'::regnamespace and p.proname in ('annuler_si_double_absence', 'annuler_swend', 'envoyer_message_apres_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')
 union all
 select 'contrainte ' || c.conname, '', pg_get_constraintdef(c.oid), null, null, now()
 from pg_constraint c
@@ -114,7 +115,7 @@ revoke all on table sauvegarde.d027_02_chats_20261015 from public, anon, authent
 
 do $$
 begin
-  if (select count(*) from sauvegarde.d027_02_fonctions_20261015) <> 15
+  if (select count(*) from sauvegarde.d027_02_fonctions_20261015) <> 16
      or (select count(*) from sauvegarde.d027_02_pactes_20261015) <> (select count(*) from public.pactes)
      or (select count(*) from sauvegarde.d027_02_chats_20261015) <> (select count(*) from public.chats_apres_swend) then
     raise exception 'D-027-02 sauvegarde : copie incomplète';

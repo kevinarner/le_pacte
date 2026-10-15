@@ -48,9 +48,7 @@ class BlocPresence extends StatelessWidget {
     // Ceux qui peuvent encore être sollicités : ni refus, ni désistement,
     // ni demande clôturée, ni indisponibilité signalée par la personne
     // (la liste complète reste dans "Modifier ma liste").
-    final disponibles = remplacants
-        .where((r) => !r.estIndisponible)
-        .toList();
+    final disponibles = remplacants.where((r) => !r.estIndisponible).toList();
     Remplacant? designe;
     for (final r in remplacants) {
       if (r.selectionne) {
@@ -133,7 +131,10 @@ class BlocPresence extends StatelessWidget {
             ] else if (enRecherche != null) ...[
               Text(
                 enRecherche.$1,
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -153,7 +154,10 @@ class BlocPresence extends StatelessWidget {
                           .map((r) => r.prenom.trim())
                           .where((p) => p.isNotEmpty)
                           .join(', '),
-                style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 15,
+                ),
               ),
               const SizedBox(height: 4),
               Text(

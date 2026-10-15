@@ -22,11 +22,12 @@ begin
                 and proname in ('appliquer_annulation', 'ouvrir_chat_annulation', 'mes_chats_swend', 'fiche_acces_d023a', 'fil_conserve_apres_annulation', 'cle_paire_fil_imprevu')) then
     raise exception 'D-027-02 : déjà appliqué (en tout ou partie)';
   end if;
-  -- Les 9 fonctions remplacées sont exactement celles relues en production
+  -- Les 10 fonctions remplacées sont exactement celles relues en production
   -- le 15/10/2026 (corps normalisé).
   if (select count(*) from (values
     ('annuler_si_double_absence', 'c39f19ebc3b622dcbb657ca37fe199ae'),
     ('annuler_swend', '95d5c90fa45955ab8b58815f828ad057'),
+    ('envoyer_message_apres_swend', '32be7513934ac244a0cab43eaa2af531'),
     ('fermer_chats_apres_nouveau_swend', 'c5159594fa64abc660daa60161c96624'),
     ('fiche_de_confiance_accessible', '6d610f3ac43051dd3ce0376672a7c965'),
     ('fil_ecriture_ouverte', 'b62fe26276082878d218536c0f944c59'),
@@ -36,9 +37,9 @@ begin
     ('telephone_titulaire_accessible', '4cff9f4bd8bfc6078ae4da9fe13d0580')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 10
      or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
-         and proname in ('annuler_si_double_absence', 'annuler_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 9 then
+         and proname in ('annuler_si_double_absence', 'annuler_swend', 'envoyer_message_apres_swend', 'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible', 'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte', 'retirer_remplacant', 'telephone_titulaire_accessible')) <> 10 then
     raise exception 'D-027-02 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
   -- Déclencheurs dont le lot 2 remplace la fonction (eux-mêmes inchangés) :
@@ -96,7 +97,8 @@ end $$;
 --     chats_apres_swend.nature = 'annulation' ; « Faire un nouveau Swend » et
 --     la fermeture au scellement (D-023c) s'y appliquent tels quels.
 --     mes_chats_apres_swend() (app publiée) ne renvoie que les chats après le
---     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3).
+--     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3). Push
+--     d'un message du chat d'annulation : « Swend annulé · Restaurant ».
 --  3. Conversations d'imprévu après annulation : une personne réellement
 --     sollicitée (une demande lui a été envoyée) ou avec qui une conversation
 --     existe (au moins un message) garde sa conversation lisible et ouverte à
@@ -202,6 +204,68 @@ begin
 end;
 $$;
 revoke execute on function public.ouvrir_chat_annulation(uuid) from public, anon, authenticated;
+
+-- Message dans un chat (D-023b) : la push du chat d'annulation dit « Swend
+-- annulé · Restaurant » (jamais « Après le Swend »). Corps identique à
+-- chat_apres_swend.sql, hors ce texte.
+create or replace function public.envoyer_message_apres_swend(p_chat_id uuid, p_contenu text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_chat record;
+  v_moi record;
+  v_texte text;
+  v_message uuid;
+  v_restaurant text;
+  v_autre record;
+begin
+  select c.id, c.pacte_id, c.ferme_le, c.nature into v_chat
+  from chats_apres_swend c where c.id = p_chat_id;
+  select id, prenom_affiche into v_moi
+  from participants_chat_apres_swend where chat_id = p_chat_id and profil_id = v_uid;
+  if v_uid is null or v_chat.id is null or v_moi.id is null then
+    raise exception 'non_autorise';
+  end if;
+  if v_chat.ferme_le is not null then
+    raise exception 'chat_ferme';
+  end if;
+  v_texte := regexp_replace(coalesce(p_contenu, ''), '^\s+|\s+$', '', 'g');
+  if v_texte = '' then
+    raise exception 'message_vide';
+  end if;
+  if char_length(v_texte) > 2000 then
+    raise exception 'message_trop_long';
+  end if;
+
+  insert into messages_apres_swend (chat_id, genre, participant_id, contenu)
+  values (p_chat_id, 'texte', v_moi.id, v_texte)
+  returning id into v_message;
+
+  -- Écrire, c'est avoir lu la conversation jusque-là.
+  insert into lectures_chat_apres_swend (chat_id, profil_id, lu_le)
+  values (p_chat_id, v_uid, clock_timestamp())
+  on conflict (chat_id, profil_id) do update set lu_le = greatest(lectures_chat_apres_swend.lu_le, excluded.lu_le);
+
+  select r.nom into v_restaurant
+  from pactes pa left join restaurants r on r.id = pa.restaurant_id where pa.id = v_chat.pacte_id;
+  for v_autre in
+    select profil_id from participants_chat_apres_swend
+    where chat_id = p_chat_id and profil_id is not null and profil_id <> v_uid order by role
+  loop
+    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' vous a écrit',
+      case when v_chat.nature = 'annulation' then 'Swend annulé · ' else 'Après le Swend · ' end
+        || coalesce(v_restaurant, ''),
+      jsonb_build_object('type', 'chat_apres_swend', 'chat_id', p_chat_id, 'pacte_id', v_chat.pacte_id));
+  end loop;
+  return v_message;
+end;
+$$;
+revoke execute on function public.envoyer_message_apres_swend(uuid, text) from public, anon;
+grant execute on function public.envoyer_message_apres_swend(uuid, text) to authenticated;
 
 -- Tous mes chats entre participants d'un Swend, avec leur nature (app du
 -- lot 3). Mêmes colonnes que mes_chats_apres_swend(), plus `nature`.
@@ -785,10 +849,11 @@ begin
          and proname in ('appliquer_annulation', 'ouvrir_chat_annulation', 'mes_chats_swend', 'fiche_acces_d023a', 'fil_conserve_apres_annulation', 'cle_paire_fil_imprevu')) <> 6 then
     raise exception 'D-027-02 : objets D-027 lot 2 incomplets';
   end if;
-  -- Les 9 fonctions sont exactement celles testées (corps normalisé).
+  -- Les 10 fonctions sont exactement celles testées (corps normalisé).
   if (select count(*) from (values
     ('annuler_si_double_absence', 'ad2e9d2d81e68bfe6ad44acd6f7ac0d0'),
     ('annuler_swend', '049ffc128d473917fa03dcfaf35744f8'),
+    ('envoyer_message_apres_swend', '72fc47459dc58c2fe317b698335a99a6'),
     ('fermer_chats_apres_nouveau_swend', '7ea52f3bd16ced80ebacddcec552ef09'),
     ('fiche_de_confiance_accessible', '10b81890c80d2a154f374fd58c5faa35'),
     ('fil_ecriture_ouverte', 'aa414126be7f5b25f4e5078816d72029'),
@@ -798,7 +863,7 @@ begin
     ('telephone_titulaire_accessible', 'a3c60d57136e91714fe1d191dbdf2794')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9 then
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 10 then
     raise exception 'D-027-02 : une fonction n''est pas celle testée';
   end if;
   -- D-024 : la règle du numéro est exactement l'ancienne règle d'accès.

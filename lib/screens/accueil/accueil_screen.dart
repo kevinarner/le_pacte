@@ -52,7 +52,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
     try {
       final resultat = (await PacteRepository.mesPactes())
           .where(
-            (p) => !_desisteDe(p) && !_annuleSansMoi(p) && !_passeSansMoi(p),
+            (p) => !_desisteDe(p) && !_passeSansMoi(p),
           )
           .toList();
       _trierParPriorite(resultat);
@@ -141,15 +141,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
     );
   }
 
-  /// Swend annulé où je n'étais qu'une personne de confiance sans avoir
-  /// accepté de venir (prévue, sollicitée, ayant refusé) : il ne reste pas
-  /// dans mon historique (D-022). Les titulaires et le remplaçant accepté
-  /// le gardent.
-  bool _annuleSansMoi(Pacte p) {
-    if (!estAnnule(p)) return false;
-    final v = PerspectivePacte.de(p, AppStore.moi.id);
-    return v != null && !v.estTitulaire && !v.maFiche!.selectionne;
-  }
+  // Swend annulé où je suis une personne de confiance : la base ne me le
+  // renvoie que si j'y ai encore accès (remplaçant sélectionné, ou D-027
+  // lot 2 : conversation conservée — personne sollicitée ou avec qui des
+  // messages ont été échangés) ; il reste alors dans mon historique pour
+  // retrouver cette conversation.
 
   /// Swend passé où je n'étais qu'une personne de confiance sans avoir pris
   /// la place (prévue, sollicitée, ayant refusé, clôturée) : il ne reste pas
@@ -175,6 +171,7 @@ class _AccueilScreenState extends State<AccueilScreen> {
   /// suis plus affilié à ce Swend (les données restent, pour la
   /// conversation et l'historique).
   bool _desisteDe(Pacte p) {
+    if (estAnnule(p)) return false; // conversation conservée (D-027)
     final v = PerspectivePacte.de(p, AppStore.moi.id);
     return v != null &&
         !v.estTitulaire &&
@@ -420,9 +417,12 @@ class _AccueilScreenState extends State<AccueilScreen> {
                         fontSize: 13,
                       ),
                     ),
-                  if (!annule && _chats[pacte.id] != null) ...[
+                  // Chat après le Swend ; Swend annulé : chat d'annulation
+                  // entre titulaires (D-027 lot 2).
+                  if (_chats[pacte.id] case final chat?
+                      when !annule || chat.estAnnulation) ...[
                     const SizedBox(height: 8),
-                    _ligneChat(_chats[pacte.id]!),
+                    _ligneChat(chat),
                   ],
                   if (pacte.dateRetenue != null && !annule) ...[
                     const SizedBox(height: 6),

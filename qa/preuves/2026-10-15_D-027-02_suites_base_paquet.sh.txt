@@ -1,0 +1,20 @@
+#!/bin/bash
+# Suites SQL métier sur une base où le lot 2 vient du paquet D-027-02 (noms de déclencheurs de production).
+. /home/user/le_pacte/qa/lib/commun.sh
+S=/tmp/claude-0/-home-user-le-pacte/05ea20a0-4299-572a-9d63-2d5619bb913e/scratchpad
+W=/home/user/le_pacte_3b
+D=$W/supabase/changements/D-027-02
+B=swend_d027_02_suites
+$S/base_avant_lot2_3b.sh $B >/dev/null || exit 1
+qa_psql $B -v ON_ERROR_STOP=1 -q -f $S/prod_deux.sql
+qa_psql $B -q -c "alter trigger trg_annuler_si_double_absence on public.remplacants rename to on_remplacant_selectionne" -c "alter trigger trg_synchroniser_remplacants_caches on public.remplacants rename to on_remplacant_change"
+for f in sauvegarde appliquer verifier; do qa_psql $B -v ON_ERROR_STOP=1 -q -f $D/$f.sql >/dev/null 2>&1 || { echo "ECHEC $f"; exit 1; }; done
+echo "# D-027-02 — suites SQL métier sur une base où le lot 2 vient du paquet (noms de déclencheurs de production)"
+ok=0; ko=0
+for f in $W/qa/metier/sql/*.sql; do
+  if ! qa_psql $B -v ON_ERROR_STOP=1 -f "$f" > $S/rep_$(basename $f).log 2>&1; then echo "$(basename $f) : ARRÊTÉE"; ko=$((ko+1)); continue; fi
+  r=$(qa_psql $B -tA -F' ' -c "select count(*) filter (where ok), count(*) filter (where not ok) from test_resultats")
+  echo "$(basename $f) : ${r% *} réussies, ${r#* } échecs"
+  ok=$((ok + ${r% *})); ko=$((ko + ${r#* }))
+done
+echo "TOTAL suites SQL sur base issue du paquet (noms de production) : $ok réussies, $ko échecs"

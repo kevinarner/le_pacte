@@ -414,7 +414,10 @@ class PacteRepository {
       fiches: fiches,
     );
     Remplacant? desiste;
-    final ids = [for (final r in fiches) if (r.id != null) r.id!];
+    final ids = [
+      for (final r in fiches)
+        if (r.id != null) r.id!,
+    ];
     if (etat == EtatCote.cherche &&
         ids.isNotEmpty &&
         fiches.any((r) => r.demandeStatut == DemandeStatut.desistee)) {
@@ -734,6 +737,27 @@ class PacteRepository {
       for (final r in [...messages as List, ...evenements as List])
         (r as Map<String, dynamic>)['remplacant_id'] as String,
     };
+  }
+
+  /// La base accepte-t-elle encore un message dans ce fil ? Avant l'heure
+  /// d'un Swend en cours, et (D-027 lot 2) dans une conversation conservée
+  /// après annulation tant qu'aucun nouveau Swend n'a été scellé entre ses
+  /// deux membres. Même fonction sur les deux bases (`fil_ecriture_ouverte`).
+  static Future<bool> filEcritureOuverte(String remplacantId) async {
+    final r = await _client.rpc(
+      'fil_ecriture_ouverte',
+      params: {'p_remplacant_id': remplacantId},
+    );
+    return r == true;
+  }
+
+  /// Parmi ces fils, ceux où l'on peut encore écrire.
+  static Future<Set<String>> filsEcrivables(List<String> remplacantIds) async {
+    final ecrivables = <String>{};
+    for (final id in remplacantIds) {
+      if (await filEcritureOuverte(id)) ecrivables.add(id);
+    }
+    return ecrivables;
   }
 
   /// Marque une conversation comme lue par moi (jusqu'à maintenant).

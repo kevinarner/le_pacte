@@ -22,7 +22,9 @@ d'imprévu » : annulation et conversations), décrit dans `DECISIONS.md`
 3. **Chat d'annulation** entre les deux titulaires seulement, ouvert dans la
    même transaction, sans push (`chats_apres_swend.nature = 'annulation'`),
    lu par `mes_chats_swend()` ; `mes_chats_apres_swend()` (app publiée) ne
-   renvoie que les chats après le Swend.
+   renvoie que les chats après le Swend. Un message écrit dans ce chat est
+   notifié « Prénom vous a écrit · Swend annulé · Restaurant »
+   (`envoyer_message_apres_swend()`, jamais « Après le Swend »).
 4. **Conversations d'imprévu conservées** après annulation pour les
    personnes réellement sollicitées : lecture et écriture jusqu'au
    scellement d'un nouveau Swend entre les deux mêmes personnes (fermeture
@@ -68,7 +70,8 @@ Objets de production :
   `annuler_si_double_absence()`, `proteger_annulation_pacte()`,
   `fermer_chats_apres_nouveau_swend()`, `mes_chats_apres_swend()`,
   `fiche_de_confiance_accessible(uuid)`, `fil_ecriture_ouverte(uuid)`,
-  `telephone_titulaire_accessible(uuid)`, `retirer_remplacant(uuid)` ;
+  `telephone_titulaire_accessible(uuid)`, `retirer_remplacant(uuid)`,
+  `envoyer_message_apres_swend(uuid, text)` (texte de la push seulement) ;
 - contraintes redéfinies : `pactes_annulation_complete` (une date sans
   auteur est admise pour les annulations système ; un motif `titulaire`
   exige un auteur), `evenements_fil_code_check` (+ `fil_ferme`) ;
@@ -97,7 +100,7 @@ SQL : voir « Ordre d'exécution »).
 D-027-01 appliqué, D-027-02 non appliqué ; 0 Swend scellé puis annulé,
 0 Swend annulé avec conversation, 0 chat, 0 annulation datée sans auteur ;
 contraintes `pactes_annulation_complete` et `evenements_fil_code_check`
-identiques à la base de test. Les 9 fonctions remplacées : 7 identiques aux
+identiques à la base de test. Les 10 fonctions remplacées : 8 identiques aux
 migrations du dépôt ; **2 dans une version de production antérieure** :
 `annuler_swend` (`95d5c90f…` : sans la modification du commit `5358f5d`,
 texte au remplaçant) et `annuler_si_double_absence` (`c39f19eb…` : sans
@@ -122,6 +125,7 @@ l'annulation sur `pactes` ; ils sont copiés dans la sauvegarde, et
 select (select json_object_agg(p.proname, md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')))
           from pg_proc p where p.pronamespace = 'public'::regnamespace
            and p.proname in ('annuler_si_double_absence', 'annuler_swend',
+             'envoyer_message_apres_swend',
              'fermer_chats_apres_nouveau_swend', 'fiche_de_confiance_accessible',
              'fil_ecriture_ouverte', 'mes_chats_apres_swend', 'proteger_annulation_pacte',
              'retirer_remplacant', 'telephone_titulaire_accessible')) as md5_fonctions,
@@ -138,7 +142,8 @@ select (select json_object_agg(p.proname, md5(regexp_replace(p.prosrc, '\s+', ' 
 ```
 
 Empreintes attendues (corps normalisé) : `annuler_si_double_absence`
-`c39f19eb…`, `annuler_swend` `95d5c90f…`, `fermer_chats_apres_nouveau_swend`
+`c39f19eb…`, `annuler_swend` `95d5c90f…`, `envoyer_message_apres_swend`
+`32be7513…`, `fermer_chats_apres_nouveau_swend`
 `c5159594…`, `fiche_de_confiance_accessible` `6d610f3a…`,
 `fil_ecriture_ouverte` `b62fe262…`, `mes_chats_apres_swend` `ef7f9efe…`,
 `proteger_annulation_pacte` `c8381429…`, `retirer_remplacant` `3c85b326…`,
@@ -147,7 +152,7 @@ Empreintes attendues (corps normalisé) : `annuler_si_double_absence`
 
 `sauvegarde.sql` et `appliquer.sql` revérifient tout avant d'écrire et
 annulent tout sinon : D-027-01 appliqué, D-027-02 pas encore appliqué,
-9 empreintes identiques, contraintes d'origine, déclencheurs ci-dessus, **aucun Swend scellé puis
+10 empreintes identiques, contraintes d'origine, déclencheurs ci-dessus, **aucun Swend scellé puis
 annulé avec une conversation** (sinon la règle des conversations conservées
 rendrait un accès retiré : arbitrage produit nécessaire, paquet à refaire),
 sauvegarde faite (pour appliquer).
@@ -173,7 +178,7 @@ conservés dans `qa/preuves/2026-10-15_D-027-02_repetition*`) :
   0 conversation fermée, 0 motif, 3 Swends = 3 sauvegardés) ;
 - seconde exécution d'`appliquer.sql` et de `sauvegarde.sql` refusée
   (« déjà appliqué ») ;
-- `rollback.sql` immédiat OK : 9/9 fonctions à l'empreinte et aux droits de
+- `rollback.sql` immédiat OK : 10/10 fonctions à l'empreinte et aux droits de
   la sauvegarde, 2/2 contraintes identiques, colonnes retirées ;
   `verifier.sql` refuse ensuite ; second rollback refusé ; réapplication OK ;
 - usage réel simulé (annulation par Eliot avec Kevin sollicité, double
@@ -206,7 +211,7 @@ conservés dans `qa/preuves/2026-10-15_D-027-02_repetition*`) :
   - un nouveau Swend scellé entre deux personnes ferme leurs conversations
     d'imprévu conservées (événement `fil_ferme`).
 - Durée : une transaction courte (2 colonnes avec valeur par défaut
-  constante, 1 table, 15 fonctions, 4 contraintes ; verrous brefs sur
+  constante, 1 table, 16 fonctions, 4 contraintes ; verrous brefs sur
   `pactes`, `chats_apres_swend`, `evenements_fil`).
 
 ## Vérifications après exécution
@@ -225,7 +230,7 @@ Quand : régression constatée sur l'annulation, le double remplacement, les
 conversations ou leurs accès. Exécuter
 `scripts/prod_ecrire.sh D-027-02 <empreinte> --rollback`.
 
-Effet : les 9 fonctions retrouvent leur définition de production d'origine
+Effet : les 10 fonctions retrouvent leur définition de production d'origine
 (contrôlée contre la sauvegarde : empreinte et droits) ; fonctions internes
 et table `fils_imprevu_fermes` du lot 2 supprimées ; colonne `annule_motif`
 supprimée (motifs copiés avant dans `sauvegarde.d027_02_rollback_annulations_<horodatage>`,
@@ -255,7 +260,7 @@ la base.
 `sauvegarde.sql` (étape `sauvegarde`, avant toute modification), dans le
 schéma interne `sauvegarde` (aucun accès pour l'app, vérifié) :
 - `d027_02_fonctions_20261015` : définition exacte (`pg_get_functiondef`),
-  droits et empreinte de chacune des 9 fonctions remplacées, et définitions
+  droits et empreinte de chacune des 10 fonctions remplacées, et définitions
   des contraintes `pactes_annulation_complete` et `evenements_fil_code_check` ;
 - `d027_02_pactes_20261015` : statut, scellement, auteur et date
   d'annulation de tous les Swends (identifiants et dates seulement) ;
@@ -316,23 +321,33 @@ une conversation conservée (conforme à la nouvelle règle) mais affichée
 comme terminée de l'autre côté, chat d'annulation invisible, événement
 `fil_ferme` sans libellé ; aucun numéro ni aucune autre fiche révélés.
 Le risque résiduel est donc une confusion d'affichage, limitée aux Swends
-qui vivent un imprévu ou une annulation pendant cette fenêtre. Mesures :
-- l'app du lot 3 embarque son identifiant de build et un contrôle de
-  version (rechargement proposé ou imposé quand la version publiée
-  change) : valable pour les lots suivants, pas pour les sessions du lot 1 ;
-- option à décider (Eliot) : mesurer l'adoption (identifiant de build
-  envoyé par l'app du lot 3, dernier vu par compte) pour vérifier en
-  lecture seule, avant le Go, qu'aucun compte actif récent n'utilise encore
-  une ancienne build ;
-- option à décider (Eliot) : précondition supplémentaire à l'exécution
-  (aucun Swend scellé à venir avec une demande, une sélection ou un
-  message) pour que la fenêtre soit vide au moment de l'exécution ;
-- dans tous les cas : délai après la publication (par exemple 48 h) et
-  demande aux utilisateurs actifs, peu nombreux, de recharger ou fermer
-  l'app installée.
+qui vivent un imprévu ou une annulation pendant cette fenêtre.
 
-Étapes : (1) app du lot 3 publiée (niveau 1, Go à part) après V1 et V2 ;
-(2) fenêtre d'adoption ci-dessus (délai, rechargements demandés, mesure si
-retenue) ; (3) V4, Go, puis exécution de ce paquet par la porte
-(sauvegarde, appliquer, verifier) ; (4) vérifications en lecture seule
-(jobs pg_cron).
+**Ce que ce lot ne fait pas (décidé avec le Go du lot 3)** : ni mesure
+d'adoption, ni rechargement automatique, ni contrôle de version. Aucun
+délai d'attente n'est donc une garantie : une session jamais rechargée
+reste du lot 1 quel que soit le délai, et **rien, côté serveur ou app, ne
+permet de prouver qu'aucun appareil n'utilise encore le lot 1** au moment
+de l'exécution. La transition repose sur la coordination avec les
+utilisateurs, peu nombreux et connus, et sur l'innocuité mesurée ci-dessus
+(V3) pour un appareil oublié.
+
+**Procédure retenue (utilisateurs connus)** :
+1. app du lot 3 publiée (niveau 1, Go à part) après V1 et V2 ; relever
+   l'identifiant de build publié (`.last_build_id` de `gh-pages`) ;
+2. fixer une fenêtre courte et annoncée (par exemple un soir sans Swend
+   scellé à venir dans les heures qui suivent) ; prévenir chaque
+   utilisateur actif ;
+3. dans la fenêtre, faire recharger l'app par chacun : onglet rechargé,
+   app installée fermée (balayée) puis rouverte ; chacun confirme (par
+   exemple en ouvrant « Un imprévu ? » ou un Swend : seul le lot 3 affiche
+   « Tu ne peux plus être là ? ») ; noter qui n'a pas confirmé ;
+4. juste avant le Go, en lecture seule (V4) : préconditions ci-dessus
+   (10 empreintes, D-027-02 absent, aucun Swend scellé puis annulé avec
+   conversation), build publiée inchangée, et état des Swends à venir
+   (aucun Swend scellé à venir avec une demande, une sélection ou un
+   message de préférence — sinon prévenir les personnes concernées) ;
+5. Go d'Eliot puis exécution de ce paquet par la porte (sauvegarde,
+   appliquer, verifier) ;
+6. vérifications en lecture seule (jobs pg_cron) ; redemander un
+   rechargement à toute personne non confirmée à l'étape 3.

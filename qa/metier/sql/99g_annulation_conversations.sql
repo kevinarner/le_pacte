@@ -105,8 +105,9 @@ select verifier('B', 'Kevin et Camille ne voient ni le chat, ni ses participants
   and cs_lire(:'C', format('select count(*)::text from mes_chats_swend() where chat_id = %L', :'cha')) = '0');
 select g_n0() as n0 \gset
 select verifier('B', 'Eliot écrit à David dans le chat d''annulation', cs_envoyer(:'E', :'cha', 'On remet ça ?') = 'OK');
-select verifier('B', 'David reçoit seulement la push de message habituelle (sans contenu)',
-  g_push(:n0, :'D') like 'Eliot vous a écrit|%' and g_push(:n0, :'D') not like '%remet%' and g_nb_push(:n0) = 1,
+select verifier('B', 'David reçoit seulement la push de message (sans contenu) : « Swend annulé · … »',
+  g_push(:n0, :'D') like 'Eliot vous a écrit|Swend annulé · %' and g_push(:n0, :'D') not like '%remet%'
+  and g_nb_push(:n0) = 1,
   g_push(:n0, :'D'));
 select verifier('B', 'Kevin ne peut pas écrire dans ce chat',
   cs_envoyer(:'K', :'cha', 'Coucou') like '%non_autorise%');

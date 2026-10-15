@@ -75,9 +75,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
         _monCote.listeRemplacants
           ..clear()
           ..addAll(s.fiches);
-        _choisis.removeWhere(
-          (id) => !s.sollicitables.any((r) => r.id == id),
-        );
+        _choisis.removeWhere((id) => !s.sollicitables.any((r) => r.id == id));
         if (s.phase == PhaseImprevu.accepte || s.sollicitables.isEmpty) {
           _selection = false;
         }
@@ -355,7 +353,10 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                 const SizedBox(height: 4),
                 const Text(
                   TextesImprevu.demandeAttendDeNouveau,
-                  style: TextStyle(fontSize: 12.5, color: AppColors.texteAttenue),
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    color: AppColors.texteAttenue,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 FilledButton.icon(
@@ -364,14 +365,18 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
                   label: Text(TextesImprevu.renvoyerLeMessage(r.prenom.trim())),
                 ),
               ],
-              if (avecActions && (r.profilId != null || (enAttente && !aRenvoyer)))
+              if (avecActions &&
+                  (r.profilId != null || (enAttente && !aRenvoyer)))
                 Padding(
                   padding: const EdgeInsets.only(top: 6),
                   child: r.profilId != null
                       ? TextButton(
                           style: styleLien,
                           onPressed: () => _ouvrirChat(r),
-                          child: const Text(TextesImprevu.discuter, style: lien),
+                          child: const Text(
+                            TextesImprevu.discuter,
+                            style: lien,
+                          ),
                         )
                       : TextButton(
                           style: styleLien,
@@ -465,7 +470,8 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     _selection = false;
     await _charger();
     final sansCompte = choisis.where(
-      (r) => canaux[r.id] == 'message' || (canaux.isEmpty && r.profilId == null),
+      (r) =>
+          canaux[r.id] == 'message' || (canaux.isEmpty && r.profilId == null),
     );
     final seul = choisis.length == 1;
     for (final r in sansCompte) {
@@ -525,7 +531,9 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
     if (!ok || !mounted) return;
     _selection = false;
     await _charger();
-    final ajoutee = _situation?.fiches.where((r) => r.id == nouvelId).firstOrNull;
+    final ajoutee = _situation?.fiches
+        .where((r) => r.id == nouvelId)
+        .firstOrNull;
     if (ajoutee != null && ajoutee.profilId == null && mounted) {
       await _envoyerMessageUrgence(ajoutee);
     }
