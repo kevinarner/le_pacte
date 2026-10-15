@@ -36,8 +36,8 @@ export default {
     await ex.etape('Eliot sollicite Kevin, ils échangent ; Sylvain et Tom seulement prévus', async () => {
       await A.ouvrirImprevu(eliot);
       await A.demander(eliot, 'Kevin Arner');
-      await A.ouvrirConversationTiers(kevin);
-      await A.envoyerMessage(kevin, 'Je regarde mon agenda');
+      await A.ouvrirConversationTitulaire(eliot, 'Kevin Arner');
+      await A.envoyerMessage(eliot, 'Tu pourrais me remplacer ?');
     });
 
     await ex.etape('David annule le Swend', async () => {
@@ -72,13 +72,15 @@ export default {
         await eliot.attendreTexte('Vous pouvez en reparler ici.');
         await ex.verifierTexte(eliot, 'Swend annulé', 'chat : sous-titre « Swend annulé »');
         await ex.verifierAbsent(eliot, 'À vous de débriefer.', 'chat : pas le texte du chat après le Swend');
+        await eliot.accueil(); // chat quitté : le message de David reste non lu
         const chat = sql(`select id from chats_apres_swend where nature = 'annulation'`);
         const r = await appelerComme('david', 'envoyer_message_apres_swend', { p_chat_id: chat, p_contenu: 'Une autre fois ?' });
         await ex.verifier('push à Eliot : « David vous a écrit » / « Swend annulé · Au père Lapin »',
           () => r.ok && derniereNotif('eliot') === 'David vous a écrit|Swend annulé · Au père Lapin', { obtenu: () => `${r.corps} ${derniereNotif('eliot')}` });
         await eliot.accueil();
         await ex.verifierTexte(eliot, 'David vous a écrit', 'Eliot : carte « David vous a écrit »');
-        await ex.verifierTexte(eliot, /Swend annulé · Au père Lapin/, 'Eliot : carte « Swend annulé · Au père Lapin »');
+        // Swend annulé : l'app ne garde pas le restaurant retenu (date seulement).
+        await ex.verifierTexte(eliot, /David vous a écrit\s+Swend annulé · \d+ /, 'Eliot : carte « Swend annulé · <date> »');
         await eliot.cliquerTexte('David vous a écrit');
         await eliot.attendreTexte('Une autre fois ?');
       });
@@ -86,10 +88,10 @@ export default {
       await ex.etape('Eliot reprend sa conversation avec Kevin (conservée, écrivable)', async () => {
         await A.ouvrirSwend(eliot, /Swend avec David/);
         await eliot.cliquer('Reprendre une conversation');
-        await eliot.attendreTexte('Je regarde mon agenda');
+        await eliot.attendreTexte('Tu pourrais me remplacer ?');
         await ex.verifierAbsent(eliot, 'Cette conversation est terminée', 'Eliot : pas de bandeau de fin');
         await A.envoyerMessage(eliot, 'Finalement c’est annulé, merci quand même');
-        await ex.verifier('message d’Eliot enregistré', () => messagesDe('eliot') === '1', { obtenu: () => messagesDe('eliot') });
+        await ex.verifier('message d’Eliot enregistré', () => messagesDe('eliot') === '2', { obtenu: () => messagesDe('eliot') });
       });
 
       await ex.etape('Kevin (sollicité, non sélectionné) : Swend annulé, conversation écrivable, sans numéro', async () => {
@@ -100,7 +102,7 @@ export default {
         await kevin.cliquer('Écrire à Eliot', { exact: false });
         await kevin.attendreTexte('Finalement c’est annulé, merci quand même');
         await A.envoyerMessage(kevin, 'Pas de souci');
-        await ex.verifier('message de Kevin enregistré', () => messagesDe('kevin') === '2', { obtenu: () => messagesDe('kevin') });
+        await ex.verifier('message de Kevin enregistré', () => messagesDe('kevin') === '1', { obtenu: () => messagesDe('kevin') });
         const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
         await ex.verifier('API : aucun numéro d’Eliot pour Kevin (D-024)', () => t.ok && !t.corps.includes('06'), { obtenu: () => t.corps });
       });
@@ -135,7 +137,7 @@ export default {
       await ex.etape('Base sans D-027-02 : relecture seule, Kevin n’a plus le Swend', async () => {
         await A.ouvrirSwend(eliot, /Swend avec David/);
         await eliot.cliquer('Relire une conversation');
-        await eliot.attendreTexte('Je regarde mon agenda');
+        await eliot.attendreTexte('Tu pourrais me remplacer ?');
         await ex.verifierTexte(eliot, 'Cette conversation est terminée. Elle reste consultable.', 'Eliot : lecture seule');
         await ex.verifier('Eliot : aucune zone de saisie', async () => (await champSaisie(eliot)) === 0);
         const p = await lireComme('kevin', 'pactes', 'select=id');

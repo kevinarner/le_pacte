@@ -182,7 +182,9 @@ class _BlocTiersState extends State<BlocTiers> {
         if (_fiche.selectionne) ...[
           const SizedBox(height: 4),
           _texte(
-            'Tu n’auras finalement pas besoin de prendre la place ${deNom(_titulaire)}.',
+            // Apostrophe typographique, comme le texte validé de la push.
+            'Tu n’auras finalement pas besoin de prendre la place '
+            '${deNom(_titulaire).replaceAll("'", '’')}.',
           ),
         ],
         // Conversation conservée (D-027 lot 2) : on peut encore écrire ;
