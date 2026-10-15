@@ -52,7 +52,9 @@ export default {
       await A.ouvrirSwend(eliot, /Swend avec David/);
       await ex.verifierAbsent(eliot, 'sera là à ta place', 'Eliot : plus « Kevin sera là à ta place »');
       await ex.verifierTexte(eliot, "EN CAS D'IMPRÉVU", 'Eliot : bloc "En cas d\'imprévu" de retour');
-      await ex.verifierTexte(eliot, /EN CAS D'IMPRÉVU\s+Tom\s/, 'EN CAS D\'IMPRÉVU : seulement Tom (Kevin désisté, Sylvain a refusé)');
+      // Imprévu en cours (D-027) : la fiche reprend l'en-tête de « Un imprévu ? ».
+      await ex.verifierTexte(eliot, /EN CAS D'IMPRÉVU\s+Kevin ne peut finalement plus venir\.\s+Tu peux solliciter quelqu’un d’autre\./,
+        'EN CAS D\'IMPRÉVU : « Kevin ne peut finalement plus venir. » / « Tu peux solliciter quelqu’un d’autre. »');
       await A.ouvrirImprevu(eliot);
       await ex.verifierTexte(eliot, /Kevin Arner\s+Indisponible/, 'Un imprévu ? : Kevin "Indisponible"');
       await ex.verifierTexte(eliot, /Sylvain Landiech\s+Indisponible/, 'Un imprévu ? : Sylvain "Indisponible"');
