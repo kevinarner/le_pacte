@@ -27,25 +27,31 @@ void main() {
   };
 
   group('Nature du chat', () {
-    test('base sans D-027-02 (pas de colonne nature) : chat après le Swend', () {
-      final c = ChatApresSwend.depuis(ligne());
-      expect(c.nature, 'apres_swend');
-      expect(c.estAnnulation, isFalse);
-      expect(c.sousTitreChat, 'Après le Swend');
-      expect(c.texteVide, 'À vous de débriefer.');
-    });
-    test('chat d\'annulation : textes propres, jamais « Alors, ce Swend ? »', () {
-      final c = ChatApresSwend.depuis(ligne(nature: 'annulation'));
-      expect(c.estAnnulation, isTrue);
-      expect(c.sousTitreChat, 'Swend annulé');
-      expect(c.texteVide, 'Vous pouvez en reparler ici.');
-      expect(c.revelation, isNull);
-      expect(c.avecQui, 'Avec David');
-      // Jamais ouvert, sans message : pas de carte d'invitation.
-      expect(c.aUneCarteAccueil, isFalse);
-      expect(cartesAccueilApresSwend([c]), isEmpty);
-      expect(c.peutFaireNouveauSwend, isTrue);
-    });
+    test(
+      'base sans D-027-02 (pas de colonne nature) : chat après le Swend',
+      () {
+        final c = ChatApresSwend.depuis(ligne());
+        expect(c.nature, 'apres_swend');
+        expect(c.estAnnulation, isFalse);
+        expect(c.sousTitreChat, 'Après le Swend');
+        expect(c.texteVide, 'À vous de débriefer.');
+      },
+    );
+    test(
+      'chat d\'annulation : textes propres, jamais « Alors, ce Swend ? »',
+      () {
+        final c = ChatApresSwend.depuis(ligne(nature: 'annulation'));
+        expect(c.estAnnulation, isTrue);
+        expect(c.sousTitreChat, 'Swend annulé');
+        expect(c.texteVide, 'Vous pouvez en reparler ici.');
+        expect(c.revelation, isNull);
+        expect(c.avecQui, 'Avec David');
+        // Jamais ouvert, sans message : pas de carte d'invitation.
+        expect(c.aUneCarteAccueil, isFalse);
+        expect(cartesAccueilApresSwend([c]), isEmpty);
+        expect(c.peutFaireNouveauSwend, isTrue);
+      },
+    );
     test('chat d\'annulation : carte seulement pour un message non lu', () {
       final c = ChatApresSwend.depuis(
         ligne(nature: 'annulation', nonLus: 1, dernier: 'David'),
@@ -58,11 +64,14 @@ void main() {
       );
       expect(c.libelleFiche, 'David vous a écrit');
     });
-    test('chat après le Swend inchangé : invitation tant que jamais ouvert', () {
-      final c = ChatApresSwend.depuis(ligne(nature: 'apres_swend'));
-      expect(c.aUneCarteAccueil, isTrue);
-      expect(c.titreCarteAccueil, 'Alors, ce Swend ?');
-    });
+    test(
+      'chat après le Swend inchangé : invitation tant que jamais ouvert',
+      () {
+        final c = ChatApresSwend.depuis(ligne(nature: 'apres_swend'));
+        expect(c.aUneCarteAccueil, isTrue);
+        expect(c.titreCarteAccueil, 'Alors, ce Swend ?');
+      },
+    );
   });
 
   group('Conversation d\'imprévu fermée par un nouveau Swend (P2)', () {

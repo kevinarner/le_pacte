@@ -127,7 +127,10 @@ class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
             ),
             Text(
               chat?.sousTitreChat ?? 'Après le Swend',
-              style: const TextStyle(fontSize: 12, color: AppColors.texteAttenue),
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.texteAttenue,
+              ),
             ),
           ],
         ),

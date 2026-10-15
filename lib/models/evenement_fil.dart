@@ -56,7 +56,8 @@ class EvenementFil {
       'disponibilite_retablie' =>
         '$autre est de nouveau disponible en cas d\'imprévu.',
       'swend_commence' => finConversation,
-      'demande_reactivee' => 'Ta demande à $autre attend de nouveau sa réponse.',
+      'demande_reactivee' =>
+        'Ta demande à $autre attend de nouveau sa réponse.',
       'retour_titulaire' =>
         'Tu pourras finalement être là : ta demande à $autre est close.',
       'fil_ferme' => filFerme,

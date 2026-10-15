@@ -158,7 +158,8 @@ class ChatApresSwend {
   }
 
   /// En-tête du chat sous les participants.
-  String get sousTitreChat => estAnnulation ? titreChatAnnulation : 'Après le Swend';
+  String get sousTitreChat =>
+      estAnnulation ? titreChatAnnulation : 'Après le Swend';
 
   /// État vide, avant le premier message.
   String get texteVide =>

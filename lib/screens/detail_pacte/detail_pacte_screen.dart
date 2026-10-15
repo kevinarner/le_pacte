@@ -68,7 +68,9 @@ class _DetailPacteScreenState extends State<DetailPacteScreen> {
         perspective.jeSuisInitiateur ? 'initiateur' : 'destinataire',
       );
       if (!mounted) return;
-      final monCote = perspective.jeSuisInitiateur ? p.initiateur : p.destinataire;
+      final monCote = perspective.jeSuisInitiateur
+          ? p.initiateur
+          : p.destinataire;
       setState(() {
         _situation = s;
         monCote.listeRemplacants

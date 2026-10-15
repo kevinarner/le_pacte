@@ -37,8 +37,7 @@ class ChatApresSwendRepository {
 
   /// PostgREST : fonction inconnue de la base (PGRST202).
   static bool fonctionAbsente(PostgrestException e) =>
-      e.code == 'PGRST202' ||
-      e.message.contains('Could not find the function');
+      e.code == 'PGRST202' || e.message.contains('Could not find the function');
 
   /// Le chat de ce Swend, s'il est ouvert et que j'y participe.
   static Future<ChatApresSwend?> chatDuPacte(String pacteId) async =>

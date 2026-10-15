@@ -414,7 +414,10 @@ class PacteRepository {
       fiches: fiches,
     );
     Remplacant? desiste;
-    final ids = [for (final r in fiches) if (r.id != null) r.id!];
+    final ids = [
+      for (final r in fiches)
+        if (r.id != null) r.id!,
+    ];
     if (etat == EtatCote.cherche &&
         ids.isNotEmpty &&
         fiches.any((r) => r.demandeStatut == DemandeStatut.desistee)) {
