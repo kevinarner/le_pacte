@@ -106,7 +106,7 @@ select verifier('B', 'Kevin et Camille ne voient ni le chat, ni ses participants
 select g_n0() as n0 \gset
 select verifier('B', 'Eliot écrit à David dans le chat d''annulation', cs_envoyer(:'E', :'cha', 'On remet ça ?') = 'OK');
 select verifier('B', 'David reçoit seulement la push de message (sans contenu) : « Swend annulé · … »',
-  g_push(:n0, :'D') like 'Eliot vous a écrit|Swend annulé · %' and g_push(:n0, :'D') not like '%remet%'
+  g_push(:n0, :'D') like 'Eliot t’a écrit|Swend annulé · %' and g_push(:n0, :'D') not like '%remet%'
   and g_nb_push(:n0) = 1,
   g_push(:n0, :'D'));
 select verifier('B', 'Kevin ne peut pas écrire dans ce chat',

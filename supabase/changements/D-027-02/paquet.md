@@ -23,8 +23,11 @@ d'imprévu » : annulation et conversations), décrit dans `DECISIONS.md`
    même transaction, sans push (`chats_apres_swend.nature = 'annulation'`),
    lu par `mes_chats_swend()` ; `mes_chats_apres_swend()` (app publiée) ne
    renvoie que les chats après le Swend. Un message écrit dans ce chat est
-   notifié « Prénom vous a écrit · Swend annulé · Restaurant »
-   (`envoyer_message_apres_swend()`, jamais « Après le Swend »).
+   notifié « Prénom t’a écrit / Swend annulé · Restaurant »
+   (`envoyer_message_apres_swend()`, jamais « Après le Swend ») ; le titre
+   passe au tutoiement pour les deux natures (« Prénom t’a écrit / Après le
+   Swend · Restaurant » pour le chat après le Swend, au lieu de « Prénom
+   vous a écrit »).
 4. **Conversations d'imprévu conservées** après annulation pour les
    personnes réellement sollicitées : lecture et écriture jusqu'au
    scellement d'un nouveau Swend entre les deux mêmes personnes (fermeture
@@ -71,7 +74,7 @@ Objets de production :
   `fermer_chats_apres_nouveau_swend()`, `mes_chats_apres_swend()`,
   `fiche_de_confiance_accessible(uuid)`, `fil_ecriture_ouverte(uuid)`,
   `telephone_titulaire_accessible(uuid)`, `retirer_remplacant(uuid)`,
-  `envoyer_message_apres_swend(uuid, text)` (texte de la push seulement) ;
+  `envoyer_message_apres_swend(uuid, text)` (textes de la push seulement) ;
 - contraintes redéfinies : `pactes_annulation_complete` (une date sans
   auteur est admise pour les annulations système ; un motif `titulaire`
   exige un auteur), `evenements_fil_code_check` (+ `fil_ferme`) ;
@@ -204,6 +207,8 @@ conservés dans `qa/preuves/2026-10-15_D-027-02_repetition*`) :
   - un titulaire remplacé qui tente d'annuler est refusé
     (`remplacement_accepte`) ;
   - textes des push d'annulation et du double remplacement (D-027) ;
+  - titre des push de message des chats entre participants : « Prénom t’a
+    écrit » (au lieu de « Prénom vous a écrit ») ;
   - à chaque annulation : chat d'annulation entre titulaires (invisible
     dans une app qui ne lit pas `mes_chats_swend()`), conversations
     d'imprévu conservées pour les personnes sollicitées (dans l'app du

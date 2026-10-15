@@ -346,7 +346,7 @@ class BlocPresence extends StatelessWidget {
       onChanged();
     } catch (_) {
       messenger.showSnackBar(
-        const SnackBar(content: Text('Impossible pour le moment. Réessayez.')),
+        const SnackBar(content: Text('Impossible pour le moment. Réessaie.')),
       );
     }
   }

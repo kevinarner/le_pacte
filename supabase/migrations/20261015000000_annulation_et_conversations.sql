@@ -15,7 +15,8 @@
 --     la fermeture au scellement (D-023c) s'y appliquent tels quels.
 --     mes_chats_apres_swend() (app publiée) ne renvoie que les chats après le
 --     Swend ; mes_chats_swend() renvoie les deux natures (app du lot 3). Push
---     d'un message du chat d'annulation : « Swend annulé · Restaurant ».
+--     d'un message du chat d'annulation : « Swend annulé · Restaurant » ; titre
+--     des push de message des deux natures : « [Prénom] t’a écrit ».
 --  3. Conversations d'imprévu après annulation : une personne réellement
 --     sollicitée (une demande lui a été envoyée) ou avec qui une conversation
 --     existe (au moins un message) garde sa conversation lisible et ouverte à
@@ -123,8 +124,9 @@ $$;
 revoke execute on function public.ouvrir_chat_annulation(uuid) from public, anon, authenticated;
 
 -- Message dans un chat (D-023b) : la push du chat d'annulation dit « Swend
--- annulé · Restaurant » (jamais « Après le Swend »). Corps identique à
--- chat_apres_swend.sql, hors ce texte.
+-- annulé · Restaurant » (jamais « Après le Swend ») ; titre individuel au
+-- tutoiement, « [Prénom] t’a écrit », pour les deux natures. Corps identique
+-- à chat_apres_swend.sql, hors ces textes.
 create or replace function public.envoyer_message_apres_swend(p_chat_id uuid, p_contenu text)
 returns uuid
 language plpgsql
@@ -173,7 +175,7 @@ begin
     select profil_id from participants_chat_apres_swend
     where chat_id = p_chat_id and profil_id is not null and profil_id <> v_uid order by role
   loop
-    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' vous a écrit',
+    perform notifier(v_autre.profil_id, v_moi.prenom_affiche || ' t’a écrit',
       case when v_chat.nature = 'annulation' then 'Swend annulé · ' else 'Après le Swend · ' end
         || coalesce(v_restaurant, ''),
       jsonb_build_object('type', 'chat_apres_swend', 'chat_id', p_chat_id, 'pacte_id', v_chat.pacte_id));

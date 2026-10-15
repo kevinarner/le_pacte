@@ -2,7 +2,7 @@
   "id": "D-027-02",
   "niveau": 2,
   "projet": "ssciqjpaibdorvnkkhsk",
-  "objectif": "D-027 lot 2 (En cas d imprévu, annulation et conversations) : un titulaire déjà remplacé ne peut plus annuler ; annulation unique (titulaire, double remplacement) avec notifications D-027 et motif ; chat d annulation entre les deux titulaires, immédiat, sans push (push de ses messages : Swend annulé) ; conversations d imprévu des personnes réellement sollicitées ou ayant échangé conservées et écrivables après annulation jusqu au scellement d un nouveau Swend entre les deux mêmes personnes ; numéro du titulaire (D-024) inchangé. Aucune donnée existante modifiée.",
+  "objectif": "D-027 lot 2 (En cas d imprévu, annulation et conversations) : un titulaire déjà remplacé ne peut plus annuler ; annulation unique (titulaire, double remplacement) avec notifications D-027 et motif ; chat d annulation entre les deux titulaires, immédiat, sans push (push de ses messages : Swend annulé) ; titre des push de message au tutoiement (Prénom t a écrit) ; conversations d imprévu des personnes réellement sollicitées ou ayant échangé conservées et écrivables après annulation jusqu au scellement d un nouveau Swend entre les deux mêmes personnes ; numéro du titulaire (D-024) inchangé. Aucune donnée existante modifiée.",
   "sauvegardes": [
     {
       "nom": "sauvegarde",
@@ -16,13 +16,13 @@
       "nom": "appliquer",
       "type": "sql_ecriture",
       "fichier": "appliquer.sql",
-      "sha256": "91ad084757fab5c48efb8ee9f1237428ce3b24ff7e0d612f4ec9f142df3a4c49"
+      "sha256": "907df4746da2a6ad5f46bb4f0523a290a539cf1d2d931e136172a3ecd61322d5"
     },
     {
       "nom": "verifier",
       "type": "sql_lecture",
       "fichier": "verifier.sql",
-      "sha256": "5751d2e75e2fb89b7706c29733969d489809ceb4d07dcc7b193d7181aa29789d"
+      "sha256": "1fbae4d8d09d9a91cf360ac22e2c8ff81f8c235f6891bff117d749ad4119fbe1"
     }
   ],
   "rollback": [
