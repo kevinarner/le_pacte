@@ -44,7 +44,8 @@ export default {
         await ex.verifierAbsent(kevin, 'Cette conversation est terminée', 'Kevin : conversation toujours ouverte');
       } else {
         await ex.verifier('base sans D-027-02 : message refusé', () => n() === '0', { obtenu: n });
-        await ex.verifierTexte(kevin, 'Cette conversation est terminée. Elle reste consultable.', 'Kevin : conversation terminée affichée');
+        // Kevin, seulement prévu, perd l'accès (règle D-023a de la base actuelle).
+        await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin : conversation plus accessible (D-023a)');
         await ex.verifier('Kevin : plus de zone de saisie', async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
       }
       const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });

@@ -11,7 +11,7 @@
 //  - chat pas encore ouvert : un nouveau Swend scellé avant l'heure
 //    d'ouverture → le chat ne s'ouvre jamais, la fiche reste consultable.
 import * as A from '../lib/actions.mjs';
-import { sql, FICHES, appelerComme, insererComme, chargerFixture } from '../lib/donnees.mjs';
+import { sql, FICHES, appelerComme, insererComme, chargerFixture, baseAvecLot2 } from '../lib/donnees.mjs';
 import { COMPTES, CONTACTS_SANS_COMPTE as C } from '../lib/config.mjs';
 import { numerosNonAutorises, reponses } from '../lib/numeros.mjs';
 
@@ -21,11 +21,13 @@ const n0 = () => sql('select coalesce(max(id), 0) from notifications_log');
 // Moteur d'ouverture à l'heure d'ouverture du Swend passé (figé) + décalage.
 const moteur = (decalage) => sql(`select ouvrir_chats_apres_swend(ouverture_chat_apres_swend(p.date_retenue) + interval '${decalage}')
   from pactes p join swends_figes f on f.pacte_id = p.id`);
-// Le chat après le Swend (un Swend annulé a son propre chat d'annulation, D-027 lot 2).
-const chatId = () => sql('select coalesce(max(id::text), \'\') from chats_apres_swend where nature = \'apres_swend\'');
+// Le chat après le Swend (un Swend annulé a son propre chat d'annulation, D-027 lot 2 ;
+// sans D-027-02, pas de colonne `nature` et aucun chat d'annulation).
+const seulementApres = (alias = '') => (baseAvecLot2() ? `${alias}nature = 'apres_swend'` : 'true');
+const chatId = () => sql(`select coalesce(max(id::text), '') from chats_apres_swend where ${seulementApres()}`);
 const etatChat = () => sql(`select coalesce((select case when ferme_le is null then 'ouvert' else 'ferme:' || motif_fermeture end
   || '|systeme=' || (select count(*) from messages_apres_swend m where m.chat_id = c.id and m.genre = 'systeme')
-  || '|messages=' || (select count(*) from messages_apres_swend m where m.chat_id = c.id) from chats_apres_swend c where c.nature = 'apres_swend'), 'aucun')`);
+  || '|messages=' || (select count(*) from messages_apres_swend m where m.chat_id = c.id) from chats_apres_swend c where ${seulementApres('c.')}), 'aucun')`);
 const pushChat = (n) => sql(`select count(*) from notifications_log where id > ${n}
   and (data->>'type' = 'chat_apres_swend' or data ? 'chat_id')`);
 const restaurant = () => sql('select id from restaurants limit 1');
@@ -197,8 +199,13 @@ export default {
       const annulation = () => sql(`select coalesce(string_agg(nature || ':' || case when ferme_le is null then 'ouvert' else 'ferme' end
         || ':' || (select count(*) from participants_chat_apres_swend a where a.chat_id = c.id), ','), 'aucun')
         from chats_apres_swend c where c.pacte_id = '${nouveauEntre('eliot', 'david')}'`);
-      await ex.verifier('D-027 lot 2 : le nouveau Swend annulé a son propre chat d\'annulation (2 titulaires, ouvert)',
-        () => annulation() === 'annulation:ouvert:2', { obtenu: annulation });
+      if (baseAvecLot2()) {
+        await ex.verifier('D-027 lot 2 : le nouveau Swend annulé a son propre chat d\'annulation (2 titulaires, ouvert)',
+          () => annulation() === 'annulation:ouvert:2', { obtenu: annulation });
+      } else {
+        await ex.verifier('base sans D-027-02 : aucun chat pour le nouveau Swend annulé',
+          () => sql(`select count(*) from chats_apres_swend where pacte_id = '${nouveauEntre('eliot', 'david')}'`) === '0');
+      }
       const e2 = await ex.redemarrer('eliot');
       await verifierFermeSurFiche(ex, e2, /Swend avec David[\s\S]*Voir la conversation/);
     });
