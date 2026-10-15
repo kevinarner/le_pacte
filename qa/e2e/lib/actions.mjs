@@ -112,6 +112,11 @@ export async function cocher(a, nomComplet) {
 // Choisit une ou plusieurs personnes et envoie, confirmation comprise
 // (depuis l'attente : « Solliciter quelqu'un d'autre » d'abord).
 export async function demander(a, ...noms) {
+  // L'écran peut encore se mettre à jour (retour d'une feuille, rechargement) :
+  // attendre des cases à cocher ou « Solliciter quelqu'un d'autre ».
+  await a.attendreCalme();
+  await a.attendre(async () => (await a.page.getByRole('checkbox').count()) > 0 || a.voit('Solliciter quelqu’un d’autre'),
+    'des cases à cocher ou « Solliciter quelqu’un d’autre »');
   if ((await a.page.getByRole('checkbox').count()) === 0 && (await a.voit('Solliciter quelqu’un d’autre'))) {
     await a.cliquer('Solliciter quelqu’un d’autre');
   }
