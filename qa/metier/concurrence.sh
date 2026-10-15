@@ -76,9 +76,11 @@ for i in $(seq 1 10); do
 done
 resultat "rappels : 3 exécutions simultanées du moteur, jamais de push en double" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
 
-# 5. Annulation (D-022) pendant qu'une personne accepte : jamais d'état
-#    incohérent. Soit l'acceptation passe d'abord (Kevin remplaçant, puis
-#    prévenu de l'annulation), soit l'annulation d'abord (demande close).
+# 5. Annulation (D-022, D-027 lot 2) pendant qu'une personne accepte : jamais
+#    d'état incohérent. Soit l'acceptation passe d'abord (Kevin remplaçant ;
+#    Eliot, remplacé, ne peut plus annuler : Swend maintenu, aucune push
+#    d'annulation), soit l'annulation d'abord (demande close, Kevin prévenu
+#    une seule fois « Le Swend est annulé »).
 ok=0; detail=""
 for i in $(seq 1 10); do
   read p k <<< "$(P <<SQL | tail -1
@@ -94,11 +96,11 @@ SQL
   wait
   etat=$(P -c "select p.statut || '|' || coalesce(r.demande_statut, 'null') || '|' || r.selectionne from pactes p join remplacants r on r.pacte_id = p.id where p.id = '$p'")
   push=$(P -c "select string_agg(titre, ' + ') from notifications_log where id > $n0 and profile_id = '$K' and (titre = 'Le Swend est annulé' or titre like 'La demande n%')")
-  if { [ "$etat" = "annule|acceptee|true" ] && [ "$push" = "Le Swend est annulé" ]; } \
-     || { [ "$etat" = "annule|cloturee|false" ] && [[ "$push" == "La demande n"* ]] && [[ "$push" != *" + "* ]]; }; then
+  if { [ "$etat" = "confirme|acceptee|true" ] && [ -z "$push" ]; } \
+     || { [ "$etat" = "annule|cloturee|false" ] && [ "$push" = "Le Swend est annulé" ]; }; then
     ok=$((ok+1)); else detail="essai $i : état=$etat push=$push"; fi
 done
-resultat "annulation et acceptation simultanées : Swend annulé, Kevin prévenu une seule fois, jamais d'état incohérent" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+resultat "annulation et acceptation simultanées : remplacé → plus d'annulation, ou annulé → Kevin prévenu une seule fois" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
 
 # 6. Gel à H (D-023a) : une acceptation commencée juste avant H et tenue
 #    ouverte pendant que le moteur passe à H. Le moteur attend le verrou, puis
@@ -363,3 +365,86 @@ SQL
   else detail="course $i : acceptation=${r1:-OK} envoi=${r2:-OK} état=$etat"; fi
 done
 resultat "envoi groupé et acceptation simultanés : tout le groupe ou rien, jamais en attente à côté de la place prise" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"
+
+# 16-18. Annulation et conversations (D-027 lot 2). Outils de
+#     sql/99g_annulation_conversations.sql (ac_chat, ac_ferme, ac_annulation)
+#     et sql/99e_nouveau_swend.sql (nv_swend, nv_sceller).
+code_de() { grep -oE "swend_inactif|remplacement_accepte|demande_non_active|place_deja_prise|swend_passe" <<< "$1" | head -1; }
+
+# 16. Les deux titulaires annulent en même temps : une seule annulation (par
+#     le premier), l'autre refusée ; un seul chat d'annulation ; le perdant
+#     reçoit une seule push, le gagnant aucune.
+ok=0; detail=""
+for i in $(seq 1 "$COURSES"); do
+  p=$(P -c "select g_swend(now() + interval '2 days')")
+  n0=$(P -c "select g_n0()")
+  f1=$(mktemp); f2=$(mktemp)
+  appeler $E "select annuler_swend('$p');" > "$f1" &
+  appeler $D "select annuler_swend('$p');" > "$f2" & wait
+  r1=$(code_de "$(cat "$f1")"); r2=$(code_de "$(cat "$f2")"); e1=$(cat "$f1"); e2=$(cat "$f2"); rm -f "$f1" "$f2"
+  etat=$(P -c "select ac_annulation('$p') || '|' || (select count(*) from chats_apres_swend where pacte_id = '$p') || '|' || ac_chat('$p')")
+  pe=$(P -c "select g_push($n0, '$E')"); pd=$(P -c "select g_push($n0, '$D')")
+  if { [ -z "$e1" ] && [ "$r2" = swend_inactif ] && [ "$etat" = "annule|titulaire|Eliot|date|1|annulation" ] \
+       && [ -z "$pe" ] && [ "$pd" = "Le Swend est annulé|Eliot ne pourra finalement pas être là." ]; } \
+     || { [ -z "$e2" ] && [ "$r1" = swend_inactif ] && [ "$etat" = "annule|titulaire|David|date|1|annulation" ] \
+       && [ -z "$pd" ] && [ "$pe" = "Le Swend est annulé|David ne pourra finalement pas être là." ]; }; then ok=$((ok+1))
+  else detail="course $i : Eliot=${e1:-OK} David=${e2:-OK} état=$etat pushE=$pe pushD=$pd"; fi
+done
+resultat "double annulation simultanée : une seule annulation, un seul chat, une push au seul perdant" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"
+
+# 17. Annulation et double remplacement simultanés (Kevin déjà sélectionné
+#     côté Eliot ; Camille accepte côté David pendant que David annule) :
+#     soit double remplacement (annulation de David refusée), soit annulation
+#     par David (acceptation refusée, demande close). Un seul chat, une seule
+#     push d'annulation par personne.
+ok=0; detail=""; vus=""
+for i in $(seq 1 "$COURSES"); do
+  read p k c <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '2 days') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select ajouter_fiche('$D', :'p', 'destinataire', 'Camille', '0600000004') as c \gset
+select g_rpc('$E', 'envoyer_demande_remplacement', :'k') \gset
+select g_rpc('$K', 'repondre_demande_remplacement', :'k', 'true') \gset
+select g_rpc('$D', 'envoyer_demande_remplacement', :'c') \gset
+select :'p' || ' ' || :'k' || ' ' || :'c';
+SQL
+)"
+  n0=$(P -c "select g_n0()")
+  f1=$(mktemp); f2=$(mktemp)
+  appeler $C "select repondre_demande_remplacement('$c', true);" > "$f1" &
+  appeler $D "select annuler_swend('$p');" > "$f2" & wait
+  e1=$(cat "$f1"); e2=$(cat "$f2"); r2=$(code_de "$e2"); rm -f "$f1" "$f2"
+  etat=$(P -c "select ac_annulation('$p') || '|' || statut_fiche('$c') || '|' || (select count(*) from chats_apres_swend where pacte_id = '$p')")
+  doublons=$(P -c "select count(*) from (select profile_id from notifications_log where id > $n0 and titre like 'Le Swend est annulé%' group by profile_id having count(*) > 1) x")
+  if { [ -z "$e1" ] && [ "$r2" = swend_inactif ] && [ "$etat" = "annuleDoubleAbsence|double_remplacement|null|date|acceptee+sel|1" ]; } \
+     || { [ -n "$e1" ] && [ -z "$e2" ] && [ "$etat" = "annule|titulaire|David|date|cloturee|1" ]; }; then
+    if [ "$doublons" = 0 ]; then ok=$((ok+1)); vus="$vus${etat%%|*} "; else detail="course $i : push en double"; fi
+  else detail="course $i : acceptation=${e1:-OK} annulation=${e2:-OK} état=$etat"; fi
+done
+resultat "annulation et double remplacement simultanés : l'un ou l'autre, un seul chat, aucune push en double" "$([ "$ok" = "$COURSES" ] && echo 1)" "$ok/$COURSES — $detail"
+
+# 18. Annulation et scellement d'un nouveau Swend Eliot–Kevin simultanés
+#     (Kevin sollicité côté Eliot). Dans tous les ordres (une transaction
+#     tenue ouverte d'un côté ou de l'autre, ou lancées ensemble), la
+#     conversation Eliot–Kevin finit fermée, avec un seul événement.
+ok=0; detail=""
+for i in $(seq 1 9); do
+  read p k s2 <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '2 days') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select g_rpc('$E', 'envoyer_demande_remplacement', :'k') \gset
+select nv_swend('$E', '$K', now() + interval '$((80 + i)) days', 'enAttenteChoixDateDestinataire') as s2 \gset
+select :'p' || ' ' || :'k' || ' ' || :'s2';
+SQL
+)"
+  case $((i % 3)) in
+    0) ( P -c "begin; select nv_sceller('$s2'); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+       sleep 0.4; appeler $E "select annuler_swend('$p');" >/dev/null; wait ;;
+    1) ( P -c "begin; set local role authenticated; select set_config('request.jwt.claim.sub', '$E', true); select annuler_swend('$p'); select pg_sleep(1.5); commit;" >/dev/null 2>&1 ) &
+       sleep 0.4; P -c "select nv_sceller('$s2')" >/dev/null 2>&1; wait ;;
+    2) appeler $E "select annuler_swend('$p');" >/dev/null & P -c "select nv_sceller('$s2')" >/dev/null 2>&1 & wait ;;
+  esac
+  etat=$(P -c "select (select statut from pactes where id = '$p') || '|' || ((select scelle_le from pactes where id = '$s2') is not null) || '|' || ac_ferme('$k') || '|' || (select count(*) from evenements_fil where remplacant_id = '$k' and code = 'fil_ferme')")
+  if [ "$etat" = "annule|true|true|1" ]; then ok=$((ok+1)); else detail="essai $i : $etat"; fi
+done
+resultat "annulation et scellement Eliot–Kevin simultanés : conversation toujours fermée, un seul événement" "$([ "$ok" = 9 ] && echo 1)" "$ok/9 — $detail"

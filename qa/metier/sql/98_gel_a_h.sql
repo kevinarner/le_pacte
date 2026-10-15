@@ -229,21 +229,27 @@ select figer_swends_passes('2037-10-25 19:00+00') \gset
 select verifier('F', 'hiver : traité à 20h00 Paris exactement', g_fige(:'p5') = 'traite');
 
 -- ===================================================================
--- G. Swend annulé : conversations en lecture seule immédiatement
+-- G. Swend annulé (D-027 lot 2) : la conversation existante reste
+--    accessible et écrivable ; le fil vierge n'est plus accessible
 -- ===================================================================
 select g_swend(now() + interval '1 day') as p7 \gset
 select ajouter_fiche(:'E', :'p7', 'initiateur', 'Kevin', '0600000003') as k7 \gset
+select ajouter_fiche(:'E', :'p7', 'initiateur', 'Thomas', '0600000005') as t7 \gset
 select g_ecrire(:'K', :'k7', 'Bon appétit !') \gset
 select verifier('G', 'avant l''annulation : on écrit', g_ecrire(:'E', :'k7', 'Merci') = 'OK');
 select verifier('G', 'Eliot annule le Swend', g_rpc(:'E', 'annuler_swend', :'p7') = 'OK');
-select verifier('G', 'annulé : plus d''écriture, même avant l''heure',
-  g_ecrire(:'E', :'k7', 'Dommage') like '%row-level security%' and g_ecrire(:'K', :'k7', 'Pas grave') like '%row-level security%');
-select verifier('G', 'annulé : Eliot relit l''historique ; Kevin (seulement prévu) n''y a plus accès',
-  g_lire(:'E', :'k7') = 2 and g_lire(:'K', :'k7') = 0);
+select verifier('G', 'annulé : la conversation existante reste écrivable des deux côtés (D-027)',
+  g_ecrire(:'E', :'k7', 'Dommage') = 'OK' and g_ecrire(:'K', :'k7', 'Pas grave') = 'OK');
+select verifier('G', 'annulé : Eliot et Kevin (prévu, conversation existante) relisent tout',
+  g_lire(:'E', :'k7') = 4 and g_lire(:'K', :'k7') = 4);
+select verifier('G', 'annulé : le fil vierge de Thomas (jamais sollicité) n''est plus écrivable',
+  g_ecrire(:'E', :'t7', 'Coucou') like '%row-level security%');
 select g_dater(:'p7', now() - interval '1 second');
 select figer_swends_passes() \gset
 select verifier('G', 'annulé puis passé : pas traité par le moteur, aucun événement de fin',
   g_fige(:'p7') = 'non' and g_codes(:'k7') not like '%swend_commence%');
+select verifier('G', 'annulé puis passé : la conversation reste écrivable (pas de borne horaire)',
+  g_ecrire(:'K', :'k7', 'Toujours là') = 'OK');
 -- Double remplacement.
 select g_swend(now() + interval '1 day') as p8 \gset
 select ajouter_fiche(:'E', :'p8', 'initiateur', 'Kevin', '0600000003') as k8 \gset
@@ -252,9 +258,9 @@ select g_rpc(:'E', 'envoyer_demande_remplacement', :'k8') \gset
 select g_rpc(:'D', 'envoyer_demande_remplacement', :'c8') \gset
 select g_rpc(:'K', 'repondre_demande_remplacement', :'k8', 'true') \gset
 select g_rpc(:'C', 'repondre_demande_remplacement', :'c8', 'true') \gset
-select verifier('G', 'double remplacement : Swend annulé et conversations en lecture seule',
+select verifier('G', 'double remplacement : Swend annulé, conversations des sélectionnés écrivables (D-027)',
   (select statut from pactes where id = :'p8') = 'annuleDoubleAbsence'
-  and g_ecrire(:'K', :'k8', 'Oh') like '%row-level security%' and g_ecrire(:'D', :'c8', 'Oh') like '%row-level security%');
+  and g_ecrire(:'K', :'k8', 'Oh') = 'OK' and g_ecrire(:'D', :'c8', 'Oh') = 'OK');
 
 -- ===================================================================
 -- H. Retirer une personne : rien n'est détruit
@@ -343,8 +349,8 @@ select verifier('K', 'rattrapage : même un appel de l''app est refusé (swend_p
   g_rpc(:'K', 'repondre_demande_remplacement', :'k11', 'true') like '%swend_passe%');
 
 -- ===================================================================
--- L. Swend annulé : les conversations ayant eu une activité restent
---    relisibles (lecture seule) par ceux qui y avaient accès
+-- L. Swend annulé (D-027 lot 2) : les conversations des personnes
+--    sollicitées ou ayant échangé restent accessibles et écrivables
 -- ===================================================================
 select g_swend(now() + interval '1 day') as p12 \gset
 select ajouter_fiche(:'E', :'p12', 'initiateur', 'Kevin', '0600000003') as k12 \gset
@@ -357,7 +363,8 @@ select g_rpc(:'E', 'envoyer_demande_remplacement', :'k12') \gset
 select g_rpc(:'K', 'repondre_demande_remplacement', :'k12', 'true') \gset
 select g_ecrire(:'E', :'k12', 'Merci Kevin') \gset
 select g_ecrire(:'C', :'c12', 'Bon Swend !') \gset
-select g_rpc(:'E', 'annuler_swend', :'p12') \gset
+-- Eliot a été remplacé par Kevin : c'est David qui annule (D-027 lot 2).
+select g_rpc(:'D', 'annuler_swend', :'p12') \gset
 select verifier('L', 'Swend annulé', (select statut from pactes where id = :'p12') = 'annule');
 -- La requête de l'app (filsAvecActivite) : fiches ayant un message ou un
 -- événement, lues sous la RLS d'Eliot.
@@ -372,14 +379,18 @@ select verifier('L', 'Eliot relit le message à Kevin et les événements du fil
 select verifier('L', 'Kevin (remplaçant accepté) relit sa conversation',
   g_lire(:'K', :'k12') = 1
   and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k12')) >= 1);
-select verifier('L', 'Camille (seulement prévue) n''a plus accès à sa conversation ni au Swend',
-  g_lire(:'C', :'c12') = 0
-  and compter_en_tant_que(:'C', format('select count(*)::int from pactes where id = %L', :'p12')) = 0
-  and compter_en_tant_que(:'C', format('select count(*)::int from remplacants where id = %L', :'c12')) = 0);
+select verifier('L', 'Camille (prévue, conversation existante) garde sa conversation et le Swend (D-027)',
+  g_lire(:'C', :'c12') = 1
+  and compter_en_tant_que(:'C', format('select count(*)::int from pactes where id = %L', :'p12')) = 1
+  and compter_en_tant_que(:'C', format('select count(*)::int from remplacants where id = %L', :'c12')) = 1);
+select verifier('L', 'Camille ne voit aucune autre fiche du Swend',
+  compter_en_tant_que(:'C', format('select count(*)::int from remplacants where pacte_id = %L and id <> %L', :'p12', :'c12')) = 0);
 select verifier('L', 'Eliot relit toujours la conversation avec Camille', g_lire(:'E', :'c12') = 1);
-select verifier('L', 'personne ne peut plus y écrire',
-  g_ecrire(:'E', :'k12', 'x') like '%row-level security%' and g_ecrire(:'K', :'k12', 'x') like '%row-level security%'
-  and g_ecrire(:'C', :'c12', 'x') like '%row-level security%');
+select verifier('L', 'les conversations conservées restent écrivables (Eliot, Kevin, Camille)',
+  g_ecrire(:'E', :'k12', 'x') = 'OK' and g_ecrire(:'K', :'k12', 'x') = 'OK'
+  and g_ecrire(:'C', :'c12', 'x') = 'OK' and g_ecrire(:'E', :'tom12', 'x') = 'OK');
+select verifier('L', 'le fil vierge de Thomas n''est plus écrivable',
+  g_ecrire(:'E', :'t12', 'x') like '%row-level security%');
 select verifier('L', 'David ne lit aucune de ces conversations',
   compter_en_tant_que(:'D', format('select count(*)::int from messages where remplacant_id in (%L, %L)', :'k12', :'c12')) = 0
   and compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id in (%L, %L, %L)', :'k12', :'c12', :'tom12')) = 0);
@@ -488,9 +499,13 @@ select verifier('M', 'annulé : Eliot garde le Swend et ses conversations',
   g_acces(:'E', :'p14', :'k14') like '1/1/%' and g_acces(:'E', :'p14', :'c14') = '1/1/1/0',
   g_acces(:'E', :'p14', :'c14'));
 select verifier('M', 'annulé : Kevin (sélectionné) garde Swend et conversation', g_acces(:'K', :'p14', :'k14') like '1/1/%', g_acces(:'K', :'p14', :'k14'));
-select verifier('M', 'annulé : Camille (prévue) et Walter (a refusé) n''ont plus accès',
-  g_acces(:'C', :'p14', :'c14') = '0/0/0/0' and g_acces(:'W', :'p14', :'w14') = '0/0/0/0',
+select verifier('M', 'annulé : Camille (prévue, a écrit) et Walter (sollicité, a refusé) gardent leur conversation (D-027)',
+  g_acces(:'C', :'p14', :'c14') = '1/1/1/0' and g_acces(:'W', :'p14', :'w14') like '1/1/0/%'
+  and g_acces(:'W', :'p14', :'w14') <> '1/1/0/0',
   g_acces(:'C', :'p14', :'c14') || ' ' || g_acces(:'W', :'p14', :'w14'));
+select verifier('M', 'annulé : chacun ne voit que sa fiche (Camille ne voit pas Kevin, Walter ne voit pas Camille)',
+  g_acces(:'C', :'p14', :'k14') = '1/0/0/0' and g_acces(:'W', :'p14', :'c14') = '1/0/0/0',
+  g_acces(:'C', :'p14', :'k14') || ' ' || g_acces(:'W', :'p14', :'c14'));
 select verifier('M', 'annulé : David garde sa conversation avec Walter', g_acces(:'D', :'p14', :'w14') like '1/1/%');
 
 -- Double remplacement : les deux remplaçants sélectionnés gardent l'accès.
@@ -567,12 +582,23 @@ select verifier('N', 'après H : Walter (a refusé) n''obtient plus rien', g_tel
 select g_swend(now() + interval '1 day') as p18 \gset
 select ajouter_fiche(:'E', :'p18', 'initiateur', 'Kevin', '0600000003') as k18 \gset
 select ajouter_fiche(:'E', :'p18', 'initiateur', 'Camille', '0600000004') as c18 \gset
+select ajouter_fiche(:'D', :'p18', 'destinataire', 'Walter', '0600000007') as w18 \gset
 select g_rpc(:'E', 'envoyer_demande_remplacement', :'k18') \gset
 select g_rpc(:'K', 'repondre_demande_remplacement', :'k18', 'true') \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'w18') \gset
+select g_rpc(:'W', 'repondre_demande_remplacement', :'w18', 'false') \gset
 select verifier('N', 'avant l''annulation : Camille (prévue) obtient le numéro', g_tel(:'C', 'telephone_titulaire_accessible', :'c18') = '0600000001');
-select g_rpc(:'E', 'annuler_swend', :'p18') \gset
+select verifier('N', 'avant l''annulation : Walter (a refusé) obtient le numéro de David', g_tel(:'W', 'telephone_titulaire_accessible', :'w18') = '0600000002');
+-- Eliot a été remplacé (Kevin sélectionné) : il ne peut plus annuler (D-027
+-- lot 2) ; David annule.
+select verifier('N', 'Eliot (remplacé) ne peut pas annuler', g_rpc(:'E', 'annuler_swend', :'p18') like '%remplacement_accepte%');
+select verifier('N', 'David annule', g_rpc(:'D', 'annuler_swend', :'p18') = 'OK');
+-- D-024 inchangé : seul le remplaçant sélectionné garde le numéro.
 select verifier('N', 'annulé : Camille (prévue) n''obtient plus rien ; Kevin (sélectionné) oui',
   g_tel(:'C', 'telephone_titulaire_accessible', :'c18') = '' and g_tel(:'K', 'telephone_titulaire_accessible', :'k18') = '0600000001');
+select verifier('N', 'annulé : Walter (a refusé) garde sa conversation mais n''obtient aucun numéro (D-024 inchangé)',
+  g_acces(:'W', :'p18', :'w18') like '1/1/%' and g_tel(:'W', 'telephone_titulaire_accessible', :'w18') = '',
+  g_acces(:'W', :'p18', :'w18'));
 -- Avant scellage (D-019) : rien.
 insert into pactes (id, statut, type, dates_proposees, date_retenue, restaurant_id, initiateur_id, initiateur_nom,
                     destinataire_nom, destinataire_telephone)

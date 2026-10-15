@@ -1,4 +1,6 @@
--- Annulation manuelle d'un Swend scellé (D-022). Déterministe : Swends
+-- Annulation manuelle d'un Swend scellé (D-022, révisée par D-027 lot 2 :
+-- titulaire remplacé refusé, textes, chat d'annulation, conversations
+-- conservées — détails dans 99g_annulation_conversations.sql). Déterministe : Swends
 -- datés du lundi 13 octobre 2031 à 20h00 (Paris), bien après l'horloge
 -- réelle ; seule la vérification « après l'heure » utilise un Swend passé.
 -- Utilise les outils de 10_imprevu.sql (verifier, en_tant_que, ajouter_fiche).
@@ -66,8 +68,8 @@ select verifier('N', 'un inconnu ne peut pas annuler', d22_annuler(:'Z', :'p') l
 select verifier('N', 'le Swend est toujours scellé', d22_statut(:'p') = 'confirme');
 select verifier('N', 'Eliot annule', d22_annuler(:'E', :'p') = 'OK');
 select verifier('N', 'Swend annulé immédiatement', d22_statut(:'p') = 'annule');
-select verifier('N', 'David : push validée, sans motif',
-  push_annul(:n0, :'D') = 'Ton Swend est annulé|Eliot a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin.',
+select verifier('N', 'David : push D-027, sans motif ni coulisse',
+  push_annul(:n0, :'D') = 'Le Swend est annulé|Eliot ne pourra finalement pas être là.',
   push_annul(:n0, :'D'));
 select verifier('N', 'push de David : ouvre la fiche du Swend',
   (select data = jsonb_build_object('type', 'pacte', 'pacte_id', :'p') from notifications_log where id > :n0 and profile_id = :'D'));
@@ -85,8 +87,8 @@ select swend_annulable() as p \gset
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select d22_annuler(:'D', :'p') as r \gset
 select verifier('N', 'David (destinataire) annule', :'r' = 'OK' and d22_statut(:'p') = 'annule', :'r');
-select verifier('N', 'Eliot : « David a annulé votre Swend… »',
-  push_annul(:n0, :'E') = 'Ton Swend est annulé|David a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin.',
+select verifier('N', 'Eliot : « David ne pourra finalement pas être là. »',
+  push_annul(:n0, :'E') = 'Le Swend est annulé|David ne pourra finalement pas être là.',
   push_annul(:n0, :'E'));
 
 -- ===================================================================
@@ -105,10 +107,10 @@ select verifier('B', 'Eliot annule malgré ses demandes en cours', d22_annuler(:
 select verifier('B', 'demandes en attente clôturées (Kevin, Camille), refus conservé (Thomas)',
   statut_fiche(:'k') = 'cloturee' and statut_fiche(:'c') = 'cloturee' and statut_fiche(:'t') = 'refusee',
   statut_fiche(:'k') || ' / ' || statut_fiche(:'c') || ' / ' || statut_fiche(:'t'));
-select verifier('B', 'Kevin : « La demande n’est plus d’actualité »',
-  push_annul(:n0, :'K') = 'La demande n’est plus d’actualité|Le Swend a été annulé.', push_annul(:n0, :'K'));
+select verifier('B', 'Kevin : « Le Swend est annulé / Tu n’as plus besoin de répondre. »',
+  push_annul(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.', push_annul(:n0, :'K'));
 select verifier('B', 'Camille : même push',
-  push_annul(:n0, :'C') = 'La demande n’est plus d’actualité|Le Swend a été annulé.', push_annul(:n0, :'C'));
+  push_annul(:n0, :'C') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.', push_annul(:n0, :'C'));
 select verifier('B', 'push de Kevin : ouvre sa conversation avec Eliot',
   (select data->>'type' = 'chat' and data->>'remplacant_id' = :'k' and data->>'nom_interlocuteur' = 'Eliot E'
    from notifications_log where id > :n0 and profile_id = :'K'));
@@ -116,14 +118,14 @@ select verifier('B', 'Thomas (déjà refusé) : aucune push', push_annul(:n0, :'
 select verifier('B', 'jamais « C''est bon, quelqu''un a pu prendre la place »',
   not exists (select 1 from notifications_log where id > :n0 and corps like '%quelqu''un a pu prendre la place%'));
 select verifier('B', 'David prévenu ; 3 push en tout',
-  push_annul(:n0, :'D') like 'Ton Swend est annulé|Eliot a annulé votre Swend%' and d22_nb_push(:n0) = 3);
+  push_annul(:n0, :'D') = 'Le Swend est annulé|Eliot ne pourra finalement pas être là.' and d22_nb_push(:n0) = 3);
 select verifier('B', 'événement « clôture » dans les fils de Kevin et Camille',
   (select count(*) from evenements_fil where remplacant_id in (:'k', :'c') and code = 'demande_cloturee') = 2);
 select verifier('B', 'Kevin ne peut plus accepter',
   en_tant_que(:'K', format('select repondre_demande_remplacement(%L, true)', :'k')) <> 'OK' and statut_fiche(:'k') = 'cloturee');
 
 -- ===================================================================
--- R. Kevin a accepté de remplacer Eliot : Eliot peut quand même annuler
+-- R. Kevin a accepté de remplacer Eliot : Eliot ne peut plus annuler (D-027)
 -- ===================================================================
 select swend_annulable() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
@@ -134,21 +136,14 @@ select d22_accepter(:'K', :'k');
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select verifier('R', 'Kevin (remplaçant accepté) ne peut pas annuler', d22_annuler(:'K', :'p') like '%non_autorise%');
 select d22_annuler(:'E', :'p') as r \gset
-select verifier('R', 'Eliot annule même si Kevin a accepté', :'r' = 'OK' and d22_statut(:'p') = 'annule', :'r');
-select verifier('R', 'Kevin : « Eliot a annulé le Swend du … »',
-  push_annul(:n0, :'K') = 'Le Swend est annulé|Eliot a annulé le Swend du lundi 13 octobre à 20h00 · Au Père Lapin.',
-  push_annul(:n0, :'K'));
-select verifier('R', 'Camille (demande déjà close quand Kevin a accepté) : aucune push', push_annul(:n0, :'C') = '');
-select verifier('R', 'David : aucune mention de Kevin ; 2 push en tout',
-  push_annul(:n0, :'D') not like '%Kevin%' and d22_nb_push(:n0) = 2);
-select verifier('R', 'Kevin ne peut plus se désister d''un Swend annulé',
-  en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'k')) like '%swend_inactif%');
--- D-023a : conversation lisible mais en lecture seule dès l'annulation.
-select verifier('R', 'conversation Eliot ↔ Kevin toujours lisible par Kevin (historique conservé)',
-  compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k')) >= 1);
-select verifier('R', 'conversation en lecture seule après l''annulation (D-023a)',
-  en_tant_que(:'E', format('insert into messages (remplacant_id, expediteur_id, contenu) values (%L, %L, %L)', :'k', :'E', 'Merci quand même')) like '%row-level security%'
-  and en_tant_que(:'K', format('insert into messages (remplacant_id, expediteur_id, contenu) values (%L, %L, %L)', :'k', :'K', 'Dommage')) like '%row-level security%');
+select verifier('R', 'Eliot (déjà remplacé) ne peut plus annuler : remplacement_accepte, rien ne bouge',
+  :'r' like '%remplacement_accepte%' and d22_statut(:'p') = 'confirme' and statut_fiche(:'k') = 'acceptee+sel', :'r');
+select verifier('R', 'refus : aucune push, aucun chat', d22_nb_push(:n0) = 0
+  and not exists (select 1 from chats_apres_swend where pacte_id = :'p'));
+select verifier('R', 'Kevin peut toujours se désister (Swend en cours)',
+  en_tant_que(:'K', format('select se_desister_du_remplacement(%L)', :'k')) = 'OK');
+select verifier('R', 'après le désistement, Eliot peut de nouveau annuler',
+  d22_annuler(:'E', :'p') = 'OK' and d22_statut(:'p') = 'annule');
 
 -- R2. Kevin remplace Eliot, mais c'est David qui annule
 select swend_annulable() as p \gset
@@ -158,11 +153,11 @@ select d22_accepter(:'K', :'k');
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select d22_annuler(:'D', :'p') as r \gset
 select verifier('R', 'David annule alors que Kevin remplace Eliot', :'r' = 'OK' and d22_statut(:'p') = 'annule', :'r');
-select verifier('R', 'Kevin : « David a annulé le Swend du … »',
-  push_annul(:n0, :'K') = 'Le Swend est annulé|David a annulé le Swend du lundi 13 octobre à 20h00 · Au Père Lapin.',
+select verifier('R', 'Kevin : « Tu n’auras finalement pas besoin de prendre la place d’Eliot. »',
+  push_annul(:n0, :'K') = 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place d’Eliot.',
   push_annul(:n0, :'K'));
-select verifier('R', 'Eliot : « David a annulé votre Swend du … » (inchangé) ; David : rien ; 2 push en tout',
-  push_annul(:n0, :'E') = 'Ton Swend est annulé|David a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin.'
+select verifier('R', 'Eliot : « David ne pourra finalement pas être là. » ; David : rien ; 2 push en tout',
+  push_annul(:n0, :'E') = 'Le Swend est annulé|David ne pourra finalement pas être là.'
   and push_annul(:n0, :'D') = '' and d22_nb_push(:n0) = 2, push_annul(:n0, :'E'));
 
 -- ===================================================================
@@ -176,13 +171,13 @@ select d22_accepter(:'C', :'c');
 select d22_demander(:'E', :'k');
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select verifier('X', 'Eliot annule', d22_annuler(:'E', :'p') = 'OK');
-select verifier('X', 'Camille (remplaçante de David) : « Eliot a annulé le Swend du … »',
-  push_annul(:n0, :'C') = 'Le Swend est annulé|Eliot a annulé le Swend du lundi 13 octobre à 20h00 · Au Père Lapin.',
+select verifier('X', 'Camille (remplaçante de David) : « Tu n’auras finalement pas besoin de prendre la place de David. »',
+  push_annul(:n0, :'C') = 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place de David.',
   push_annul(:n0, :'C'));
-select verifier('X', 'Kevin : « La demande n’est plus d’actualité »',
-  push_annul(:n0, :'K') = 'La demande n’est plus d’actualité|Le Swend a été annulé.');
+select verifier('X', 'Kevin : « Tu n’as plus besoin de répondre. »',
+  push_annul(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.');
 select verifier('X', 'David : aucune mention de Camille ni de Kevin',
-  push_annul(:n0, :'D') = 'Ton Swend est annulé|Eliot a annulé votre Swend du lundi 13 octobre à 20h00 · Au Père Lapin.');
+  push_annul(:n0, :'D') = 'Le Swend est annulé|Eliot ne pourra finalement pas être là.');
 select verifier('X', 'Eliot : aucune push ; 3 en tout', push_annul(:n0, :'E') = '' and d22_nb_push(:n0) = 3);
 
 -- ===================================================================
@@ -196,7 +191,7 @@ select d22_demander(:'D', :'k2');
 select coalesce(max(id), 0) as n0 from notifications_log \gset
 select verifier('M', 'David annule', d22_annuler(:'D', :'p') = 'OK');
 select verifier('M', 'les deux demandes à Kevin sont closes', statut_fiche(:'k') = 'cloturee' and statut_fiche(:'k2') = 'cloturee');
-select verifier('M', 'Kevin : une seule push', push_annul(:n0, :'K') = 'La demande n’est plus d’actualité|Le Swend a été annulé.', push_annul(:n0, :'K'));
+select verifier('M', 'Kevin : une seule push', push_annul(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.', push_annul(:n0, :'K'));
 
 -- ===================================================================
 -- H. Jusqu'à l'heure du rendez-vous seulement
@@ -281,8 +276,8 @@ create or replace function d22_auteur(p uuid) returns text language sql as $$
   from pactes where id = p
 $$;
 select swend_annulable() as p \gset
-select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
-select d22_demander(:'E', :'k');
+select ajouter_fiche(:'D', :'p', 'destinataire', 'Kevin', '0600000003') as k \gset
+select d22_demander(:'D', :'k');
 select d22_accepter(:'K', :'k');
 select verifier('Q', 'Swend actif : ni auteur ni date', d22_auteur(:'p') = 'null|null');
 select verifier('Q', 'Kevin (remplaçant accepté) ne peut toujours pas annuler ; rien n''est enregistré',
@@ -330,8 +325,13 @@ select d22_demander(:'E', :'kd');
 select d22_accepter(:'K', :'kd');
 select d22_demander(:'D', :'cd');
 select d22_accepter(:'C', :'cd');
-select verifier('Q', 'double remplacement : annulé automatiquement, auteur non renseigné',
-  d22_statut(:'pd') = 'annuleDoubleAbsence' and d22_auteur(:'pd') = 'null|null');
+select verifier('Q', 'double remplacement : annulé automatiquement, date et motif sans auteur (D-027)',
+  d22_statut(:'pd') = 'annuleDoubleAbsence' and d22_auteur(:'pd') = 'null|date'
+  and (select annule_motif from pactes where id = :'pd') = 'double_remplacement');
+select verifier('Q', 'annulation par un titulaire : motif « titulaire »',
+  (select annule_motif from pactes where id = :'p') = 'titulaire');
+select verifier('Q', 'l''app ne peut pas écrire le motif',
+  en_tant_que(:'E', format('update pactes set annule_motif = %L where id = %L', 'operationnelle', :'p')) like '%modification_interdite%');
 
 -- Anciennes annulations (avant D-022) : auteur et date inconnus, restent NULL.
 insert into pactes (statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom,

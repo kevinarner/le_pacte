@@ -155,7 +155,7 @@ select ouvrir_chats_apres_swend('2031-10-13 22:59 Europe/Paris');
 select verifier('B', 'avant 23:00 : aucun chat, aucune push',
   cs_chat(:'a') is null and cs_push(:'n0', :'a') = '');
 select verifier('B', 'avant l''ouverture : aucun chat visible, même pour les titulaires',
-  cs_lire(:'E', 'select count(*)::text from chats_apres_swend') = '0'
+  cs_lire(:'E', 'select count(*)::text from chats_apres_swend where nature = ''apres_swend''') = '0'
   and cs_lire(:'E', 'select count(*)::text from mes_chats_apres_swend()') = '0');
 select ouvrir_chats_apres_swend('2031-10-13 23:00 Europe/Paris');
 select cs_chat(:'a') as ca \gset
@@ -236,9 +236,17 @@ select cs_swend('2031-11-10 12:00 Europe/Paris') as e_non_fige \gset
 select ouvrir_chats_apres_swend('2031-11-11 12:00 Europe/Paris');
 select verifier('E', 'double remplacement : Swend bien annulé par la base',
   (select statut from pactes where id = :'e_double') = 'annuleDoubleAbsence');
-select verifier('E', 'aucun chat : annulé, double remplacement, non scellé, maintenu',
-  cs_chat(:'e_annule') is null and cs_chat(:'e_double') is null
+select verifier('E', 'aucun chat après Swend : annulé, double remplacement, non scellé, maintenu',
+  cs_chat(:'e_annule') is null
+  and not exists (select 1 from chats_apres_swend where pacte_id = :'e_double' and nature = 'apres_swend')
   and cs_chat(:'e_non_scelle') is null and cs_chat(:'e_maintenu') is null);
+-- D-027 lot 2 : le double remplacement ouvre le chat d'annulation entre
+-- titulaires (pas un chat après Swend) ; une annulation écrite
+-- directement en base (hors annuler_swend) n'en ouvre aucun.
+select verifier('E', 'double remplacement : chat d''annulation (titulaires seulement), pas de chat après Swend',
+  (select nature from chats_apres_swend where pacte_id = :'e_double') = 'annulation'
+  and cs_participants(:'e_double') = 'destinataire:David,initiateur:Eliot',
+  cs_participants(:'e_double'));
 select verifier('E', 'aucun chat tant que le Swend n''est pas figé par D-023a',
   cs_chat(:'e_non_fige') is null);
 select figer_swends_passes('2031-11-11 12:00 Europe/Paris');
@@ -393,8 +401,10 @@ create publication supabase_realtime;
 \o /dev/null
 \ir ../../../supabase/migrations/20260930010000_chat_apres_swend.sql
 \ir ../../../supabase/migrations/20260930010000_chat_apres_swend.sql
--- D-023c redéfinit le moteur et recrée ses déclencheurs (actifs).
+-- D-023c redéfinit le moteur et recrée ses déclencheurs (actifs) ; D-027
+-- lot 2 redéfinit la fermeture au scellement et mes_chats_apres_swend().
 \ir ../../../supabase/migrations/20261003010000_nouveau_swend.sql
+\ir ../../../supabase/migrations/20261015000000_annulation_et_conversations.sql
 \o
 select verifier('M', 'messages du chat ajoutés une fois à supabase_realtime (migration rejouée 2 fois)',
   (select count(*) from pg_publication_tables where pubname = 'supabase_realtime'

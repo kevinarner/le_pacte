@@ -122,7 +122,9 @@ Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
 ### 3.5 Annulation d’un Swend scellé (D-022)
 
-> **Révisé par D-027 (12/10/2026).** Une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend` ; plus de bouton générique sur la fiche ; un titulaire dont la place a été prise ne peut plus annuler lui-même ; annulation automatique à H-3 puis à H si un imprévu déclaré n’a trouvé personne ; textes, chat d’annulation entre titulaires et conversations après annulation : `DECISIONS.md`, D-027, points 10 à 17. Les règles ci-dessous restent celles de l’implémentation jusqu’aux lots 2 à 4 de D-027.
+> **Révisé par D-027 (12/10/2026).** Une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend` ; plus de bouton générique sur la fiche ; un titulaire dont la place a été prise ne peut plus annuler lui-même ; annulation automatique à H-3 puis à H si un imprévu déclaré n’a trouvé personne ; textes, chat d’annulation entre titulaires et conversations après annulation : `DECISIONS.md`, D-027, points 10 à 17. Les règles ci-dessous restent celles de l’implémentation **en production** jusqu’aux lots 2 à 4 de D-027.
+
+> **Lot 2 de D-027 (annulation et conversations) : implémenté côté serveur le 15/10/2026, pas en production, pas exposé par l’app** (il attend une app du lot 3 compatible ; paquet `D-027-02`). Une fois en production : un titulaire dont la place a été prise ne peut plus annuler (`remplacement_accepte`), l’autre titulaire le peut ; notifications : autre titulaire « Le Swend est annulé / Eliot ne pourra finalement pas être là. », remplaçant sélectionné « Le Swend est annulé / Tu n’auras finalement pas besoin de prendre la place d’Eliot. », demande en attente « Le Swend est annulé / Tu n’as plus besoin de répondre. », rien pour l’auteur ni pour les refus ; chat d’annulation entre les deux titulaires, ouvert immédiatement, sans push ; conversations d’imprévu conservées et ouvertes à l’écriture pour les personnes réellement sollicitées ou avec qui des messages ont été échangés (voir 3.6). Détail : `DECISIONS.md`, D-027, « Choix techniques (lot 2) ».
 
 Seuls les deux titulaires originaux peuvent annuler un Swend scellé. Un remplaçant ne peut jamais annuler : il peut seulement accepter ou refuser une demande, ou se désister. Un titulaire peut annuler même si quelqu’un a déjà accepté de prendre sa place.
 
@@ -246,6 +248,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 - Cet événement ne crée jamais de « non lu ».
 - Une conversation vierge ne reçoit rien : elle devient simplement non modifiable.
 - Un Swend annulé : ses conversations passent en lecture seule dès l’annulation (sans cet événement).
+  *Lot 2 de D-027, pas encore en production : après une annulation, la conversation reste lisible **et ouverte à l’écriture** pour une personne réellement sollicitée (une demande lui a été envoyée) ou avec qui des messages ont été échangés, sans limite de date, jusqu’à ce qu’un nouveau Swend soit scellé entre elle et ce titulaire (événement « fil fermé », lecture seule ensuite) ; un nouveau Swend avec quelqu’un d’autre ne ferme rien. Une personne seulement prévue, sans conversation, ou retirée avant l’annulation n’obtient rien. Le numéro du titulaire suit toujours la règle ci-dessous (« Accès une fois le Swend passé ou annulé ») : seul le remplaçant sélectionné le garde.*
 - Relecture : sur la fiche d’un Swend passé ou annulé, `Relire une conversation` propose au titulaire les conversations qui ont eu une activité (ouverte directement s’il n’y en a qu’une, sinon choix) ; la personne de confiance qui garde le Swend dans son historique a `Relire la conversation`. Les conversations vierges ne sont jamais proposées. Aucune écriture possible.
 
 #### Swend passé
@@ -259,7 +262,7 @@ Une conversation qui a réellement eu une activité (un message ou un événemen
 
 - Les deux titulaires gardent le Swend et peuvent relire toutes les conversations de leur côté qui ont eu une activité, y compris avec une personne qui n’a finalement pas participé.
 - Le remplaçant effectivement sélectionné garde le Swend dans son historique et peut relire sa propre conversation (en cas de double remplacement, chacun des deux).
-- Une personne seulement prévue, sollicitée, ayant refusé ou s’étant désistée n’a plus accès au Swend ni à sa conversation, ni à aucune donnée du Swend, y compris le numéro de téléphone du titulaire. Les données restent conservées ; seul son accès disparaît.
+- Une personne seulement prévue, sollicitée, ayant refusé ou s’étant désistée n’a plus accès au Swend ni à sa conversation, ni à aucune donnée du Swend, y compris le numéro de téléphone du titulaire. Les données restent conservées ; seul son accès disparaît. *Lot 2 de D-027 (pas en production) : après une **annulation**, la personne réellement sollicitée (ou avec qui des messages ont été échangés) garde le Swend et sa seule conversation, sans aucun autre accès et sans le numéro du titulaire (D-024 inchangé) ; une fiche ne peut plus être retirée d’un Swend annulé.*
 - Une personne retirée de la liste n’a plus accès, à aucun moment ; un utilisateur extérieur n’a jamais accès.
 - Avant l’heure du Swend, sur un Swend en cours, chaque personne de confiance non retirée garde les accès de son rôle.
 - Garanti par la base (RLS), pas seulement par l’écran.
@@ -282,7 +285,7 @@ Après un Swend qui a eu lieu, le silence est levé : un chat s’ouvre automati
 
 - H+3 si H+3 tombe au plus tard à 23:00 (heure de Paris) le jour du Swend ; sinon 10:00 le lendemain. Exemples : 12h → 15h ; 20h → 23h ; 20h01, 20h30, 22h → lendemain 10h.
 - Le chat et sa notification deviennent disponibles au même moment ; rien n’existe avant.
-- Jamais de chat pour un Swend annulé (y compris annulation pour double remplacement).
+- Jamais de chat pour un Swend annulé (y compris annulation pour double remplacement). *Lot 2 de D-027 (pas en production) : un Swend annulé a à la place un chat d’annulation entre ses deux titulaires seulement (jamais un remplaçant), ouvert à l’annulation, sans push d’ouverture ; il n’est jamais présenté comme un « Alors, ce Swend ? » et le chat après le Swend ne s’ouvre jamais ensuite.*
 - Pas de rattrapage : un Swend dont l’ouverture tombe avant la mise en service de D-023b n’a pas de chat.
 - Si l’ouverture est traitée en retard, le chat s’ouvre quand même ; la notification seulement si le retard ne dépasse pas 12 heures.
 
@@ -342,6 +345,8 @@ Fermeture par un nouveau Swend scellé : §3.8 (D-023c).
 #### Chat pas encore ouvert
 
 - Si un nouveau Swend est scellé entre deux personnes avant l’heure d’ouverture du chat d’un Swend précédent (date antérieure) dont elles sont participantes potentielles (les deux titulaires et le remplaçant sélectionné s’il existe, même règle que l’ouverture), ce chat ne s’ouvre jamais : aucun faux chat fermé, aucun message système, aucun accès à une conversation. Le Swend passé reste consultable.
+
+*Lot 2 de D-027 (pas en production) : la fermeture au scellement s’applique telle quelle au chat d’annulation entre deux titulaires, et `Faire un nouveau Swend` y est proposé de la même façon. Les conversations d’imprévu conservées après une annulation (voir 3.6) sont fermées paire par paire, au scellement d’un Swend entre leurs deux membres, y compris si ce scellement a eu lieu avant l’annulation (après le scellement du Swend annulé).*
 
 #### Faire un nouveau Swend (fiche « Après le Swend », chat ouvert)
 

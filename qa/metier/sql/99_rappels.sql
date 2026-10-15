@@ -244,17 +244,17 @@ create or replace function push_depuis(p_n0 bigint, p_profil uuid) returns text 
   select coalesce(string_agg(titre || '|' || corps, ' ## ' order by id), '') from notifications_log where id > p_n0 and profile_id = p_profil
 $$;
 select verifier('X', 'Swend annulé pour double remplacement', (select statut from pactes where id = :'p') = 'annuleDoubleAbsence');
-select verifier('X', 'Eliot : « Ton Swend est annulé », avec David',
-  push_depuis(:n0, :'E') = 'Ton Swend est annulé|Toi et David avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du lundi 12 octobre à 20h00 · Au Père Lapin est annulé.',
+select verifier('X', 'Eliot : « Ni toi ni David ne pourrez finalement être là. » (D-027)',
+  push_depuis(:n0, :'E') = 'Le Swend est annulé.|Ni toi ni David ne pourrez finalement être là.',
   push_depuis(:n0, :'E'));
-select verifier('X', 'David : « Ton Swend est annulé », avec Eliot — et pas de push « Camille a accepté »',
-  push_depuis(:n0, :'D') = 'Ton Swend est annulé|Toi et Eliot avez chacun fait appel à quelqu’un pour prendre votre place. Le Swend du lundi 12 octobre à 20h00 · Au Père Lapin est annulé.',
+select verifier('X', 'David : « Ni toi ni Eliot… » — et pas de push « Camille a accepté »',
+  push_depuis(:n0, :'D') = 'Le Swend est annulé.|Ni toi ni Eliot ne pourrez finalement être là.',
   push_depuis(:n0, :'D'));
-select verifier('X', 'Kevin (remplaçant d''Eliot) : « Le Swend est annulé », sans le nom de Camille',
-  push_depuis(:n0, :'K') = 'Le Swend est annulé|Tu n’as finalement plus besoin de prendre la place d’Eliot lundi 12 octobre à 20h00 · Au Père Lapin : David a lui aussi fait appel à quelqu’un pour le remplacer.',
+select verifier('X', 'Kevin (remplaçant d''Eliot) : son seul rôle, sans le nom de Camille ni de David',
+  push_depuis(:n0, :'K') = 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place d’Eliot.',
   push_depuis(:n0, :'K'));
-select verifier('X', 'Camille (remplaçante de David) : « Le Swend est annulé », sans le nom de Kevin',
-  push_depuis(:n0, :'C') = 'Le Swend est annulé|Tu n’as finalement plus besoin de prendre la place de David lundi 12 octobre à 20h00 · Au Père Lapin : Eliot a lui aussi fait appel à quelqu’un pour le remplacer.',
+select verifier('X', 'Camille (remplaçante de David) : son seul rôle, sans le nom de Kevin ni d''Eliot',
+  push_depuis(:n0, :'C') = 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place de David.',
   push_depuis(:n0, :'C'));
 select verifier('X', 'exactement 4 push, vers la fiche du Swend',
   (select count(*) from notifications_log where id > :n0) = 4

@@ -76,6 +76,27 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   avec la base sans D-027). Elle redéfinit 9 fonctions
   d'`gel_a_h.sql` et `fil_evenements_et_lectures.sql` : ne plus ré-exécuter
   ces migrations seules après elle (la rejouer ensuite).
+  `20261015000000_annulation_et_conversations.sql` : **pas encore exécutée
+  en production** (D-027 lot 2, « En cas d'imprévu » : annulation réservée
+  au titulaire non remplacé, annulation unique avec motif et notifications,
+  chat d'annulation entre titulaires, conversations d'imprévu conservées et
+  écrivables après annulation, fermeture paire par paire, D-024 inchangé ;
+  aucune donnée existante modifiée). À exécuter par le change packet
+  `supabase/changements/D-027-02/` (niveau 2, préparé, sans validation),
+  **après** D-027-01 et **après** la publication d'une app du lot 3
+  compatible (voir le paquet). Elle redéfinit 9 fonctions
+  (`gel_a_h.sql`, `annulation_manuelle.sql`, `chat_apres_swend.sql`,
+  `nouveau_swend.sql`, `confidentialite_telephones.sql`) et la contrainte
+  des événements de `imprevu_etats_et_actions.sql` : ne plus ré-exécuter
+  ces migrations seules après elle (la rejouer ensuite ; c'est ce que font
+  les suites QA `99b` et `99f`). Production : `annuler_swend()` et
+  `annuler_si_double_absence()` y sont dans une version antérieure à celle
+  des fichiers `annulation_manuelle.sql` / `rappels_jour_j.sql` du dépôt :
+  elles n'ont pas les modifications de ces deux fonctions faites aux
+  commits `5358f5d` (texte au remplaçant) et `7be0d90` (élision du prénom)
+  (constaté en lecture seule le 15/10). Le lot 2 remplace les deux
+  fonctions ; le paquet D-027-02 vérifie et restaure les versions de
+  production.
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque

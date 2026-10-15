@@ -179,6 +179,18 @@ initial), concurrence (retour du titulaire et acceptation simultanés, envoi
 groupé et acceptation simultanés), scénarios E2E `09b_desistement_reouverture`
 (réactivation) et `29_renvoyer_message` (« Renvoyer le message à Tom »).
 
+« En cas d'imprévu », lot 2 (D-027) : tests SQL
+`99g_annulation_conversations.sql` (titulaire remplacé refusé, notifications
+de l'annulation et du double remplacement, chat d'annulation : participants,
+visibilité, aucune push, jamais de chat après le Swend ensuite, « Faire un
+nouveau Swend » et fermeture D-023c ; conversations conservées par rôle avec
+accès, écriture et numéro D-024 ; fermeture paire par paire, y compris
+scellement antérieur à l'annulation ; droits), suites réalignées (`80`, `90`,
+`97`, `98`, `99`, `99b`), concurrence (double annulation simultanée,
+annulation et double remplacement simultanés, annulation et scellement
+Eliot–Kevin simultanés). `99b` et `99f` rejouent d'anciennes migrations
+(idempotence) puis rejouent la migration du lot 2 pour rétablir l'état réel.
+
 Délai minimum (D-025) : tests SQL `99c_delai_minimum.sql` (J+14 / J+15 aux
 bornes du jour de Paris, valeur envoyée ignorée, fondateurs : email confirmé
 de `auth.users` seulement, exemption par Swend, date retenue, immuabilité,

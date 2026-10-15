@@ -105,3 +105,12 @@ qa	imprevus_declares	cote	text	NO
 qa	imprevus_declares	declare_le	timestamp with time zone	NO
 qa	imprevus_declares	pacte_id	uuid	NO
 qa	remplacants	message_a_renvoyer	boolean	NO
+# D-027 lot 2 (migration annulation_et_conversations) : pas encore en
+# production. Retirer ces lignes et rafraîchir l'instantané après
+# l'exécution du paquet D-027-02.
+qa	chats_apres_swend	nature	text	NO
+qa	fils_imprevu_fermes	ferme_le	timestamp with time zone	NO
+qa	fils_imprevu_fermes	motif	text	NO
+qa	fils_imprevu_fermes	nouveau_pacte_id	uuid	YES
+qa	fils_imprevu_fermes	remplacant_id	uuid	NO
+qa	pactes	annule_motif	text	YES
