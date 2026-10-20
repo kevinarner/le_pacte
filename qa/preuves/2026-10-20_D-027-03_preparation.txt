@@ -45,3 +45,11 @@
 - main : d61275a, ancêtre de 8bc5bed (fast-forward possible)
 
 ## Contrôles prêts : 2026-10-20_D-027-03_controles.sql (A avant le Go, B après l'exécution, C jobs après 6 min)
+
+## Exécution et publication (20/10/2026)
+- contrôle A 15:09 UTC conforme ; Go d'Eliot enregistré (2e9f7de)
+- porte : 15:24:16 → 15:24:20 UTC, RESULTAT: SUCCES (reçu 34026d0, branche recu/D-027-03)
+- contrôle B 15:26 UTC conforme (10 empreintes, droits inchangés, 4 jobs, 0 annulation, 0 Swend modifié, sauvegarde 8 / 2)
+- gh-pages 70fae74 → 2809eae (build 0ef9f22b19a28aa1eb1179716064a796), Pages n°93 success 15:28:04 UTC
+- contrôle C 15:32 UTC (depuis 15:24:20) : swend-echeance-h3 8/8, swend-chat-apres 8/8, swend-gel-a-h 2/2,
+  swend-rappels 2/2, tous succeeded, durée max 25 ms, aucun job déclenché à la main

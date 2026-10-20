@@ -98,24 +98,26 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   (constaté en lecture seule le 15/10). Le lot 2 remplace les deux
   fonctions ; le paquet D-027-02 vérifie et restaure les versions de
   production.
-  `20261020000000_echeance_h3.sql` : **pas encore exécutée en production**
+  `20261020000000_echeance_h3.sql` : **exécutée en production le 20/10/2026**
   (D-027 révisé le 20/10 : H-3 limite ferme ; refus `echeance_h3`,
   heure lue après les verrous, désistement tardif = annulation,
   `appliquer_echeances_h3()` en tête de `envoyer_rappels_dus()` et de
   `figer_swends_passes()`, rattrapage après H ; aucune donnée existante
   modifiée). Le job `swend-echeance-h3` (chaque minute)
   n'est pas dans la migration : `supabase/planification/echeance_h3_pg_cron.sql`,
-  créé par le paquet dans la même transaction. À exécuter par le change packet
-  `supabase/changements/D-027-03/` (niveau 2, préparé, sans validation),
-  **après** D-027-02, dans la même fenêtre que l'app correspondante. Elle
+  créé par le paquet dans la même transaction. Exécutée par le change packet
+  `supabase/changements/D-027-03/` (niveau 2, Go d'Eliot, 15:24:16 →
+  15:24:20 UTC, `SUCCES`, reçu branche `recu/D-027-03`), après D-027-02,
+  app correspondante publiée dans la même fenêtre. Elle
   redéfinit 6 fonctions de `imprevu_etats_et_actions.sql`,
   `envoyer_rappels_dus()` de `rappels_jour_j.sql` et `figer_swends_passes()`
   de `gel_a_h.sql` : ne plus ré-exécuter ces migrations seules après elle (la rejouer ensuite ; c'est ce que font le
   banc et la suite QA `99f`).
 - La planification de l'échéance H-3 (pg_cron, D-027 révisé le 20/10) n'est
   pas une migration : `supabase/planification/echeance_h3_pg_cron.sql`
-  (job `swend-echeance-h3`, chaque minute). **Pas encore en production** :
-  créée par le paquet D-027-03, retirée par son rollback ; jamais à la main.
+  (job `swend-echeance-h3`, chaque minute). **Active en production depuis le
+  20/10** (créée par le paquet D-027-03, retirée par son rollback ; jamais à
+  la main ; exécutions vérifiées : `succeeded`, une par minute).
 - La planification du chat après le Swend (pg_cron, D-023b) n'est pas une
   migration : `supabase/planification/chat_apres_swend_pg_cron.sql`.
   **Active en production depuis le 30/09** (job `swend-chat-apres`, chaque
