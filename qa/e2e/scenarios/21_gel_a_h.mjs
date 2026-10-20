@@ -4,8 +4,14 @@
 // moteur clôt la demande (une push à Kevin, aucune autre), les conversations
 // restent lisibles mais terminées (événement de fin), sans box non lue. David
 // ne voit rien. Le Swend reste `confirme` et rejoint « Passés et annulés ».
+// Base avec l'échéance H-3 (D-027-03) : la demande de Kevin encore en attente
+// à H signifie que la recherche d'Eliot n'était pas résolue à H-3 et qu'aucun
+// traitement n'a réussi entre H-3 et H (le Swend est déplacé d'un coup après
+// H) ; à la reprise, le gel applique d'abord l'échéance : Swend annulé, jamais
+// figé, demande close, push d'annulation, chat d'annulation, conversations
+// conservées (règles habituelles), jamais de chat après le Swend.
 import * as A from '../lib/actions.mjs';
-import { sql, demande, FICHES, appelerComme, lireComme, insererComme } from '../lib/donnees.mjs';
+import { sql, demande, FICHES, appelerComme, lireComme, insererComme, baseAvecEcheanceH3 } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
 
 const pushDepuis = (n0) => sql(`select coalesce(string_agg(p.prenom || '|' || n.titre || '|' || n.corps, ' ## ' order by n.id), '')
@@ -91,6 +97,49 @@ export default {
         await ex.verifier(`API : ${f} après H → swend_passe`, () => !r.ok && r.corps.includes('swend_passe'), { obtenu: () => r.corps });
       }
     });
+
+    if (baseAvecEcheanceH3()) {
+      await ex.etape('Reprise du gel après H (aucun traitement entre H-3 et H) : l’échéance d’abord, Swend annulé', async () => {
+        const avant = n0();
+        sql('select figer_swends_passes()');
+        const etat = () => sql(`select statut || '|' || coalesce(annule_motif, '-') || '|' || (select count(*) from swends_figes) from pactes`);
+        await ex.verifier('Swend annulé (echeance_h3), jamais figé', () => etat() === 'annule|echeance_h3|0', { obtenu: etat });
+        await ex.verifier('demande de Kevin close', () => demande(FICHES.kevin) === 'cloturee|f', { obtenu: () => demande(FICHES.kevin) });
+        await ex.verifier('push de l’annulation, une par personne, jamais « La demande n’est plus d’actualité »',
+          () => pushDepuis(avant) === 'Eliot|Le Swend est annulé|Personne n’a pu prendre ta place à temps. ## '
+            + 'David|Le Swend est annulé|Eliot ne pourra finalement pas être là. ## Kevin|Le Swend est annulé|Tu n’as plus besoin de répondre.',
+          { obtenu: () => pushDepuis(avant) });
+        const apres = n0();
+        sql(`insert into chat_apres_swend_service (id, mise_en_service) values (true, now() - interval '30 days')
+             on conflict (id) do update set mise_en_service = excluded.mise_en_service`);
+        sql('select figer_swends_passes()');
+        sql('select appliquer_echeances_h3()');
+        sql(`select ouvrir_chats_apres_swend(ouverture_chat_apres_swend((select date_retenue from pactes)) + interval '1 minute')`);
+        const chats = () => sql(`select coalesce(string_agg(nature, ','), '') from chats_apres_swend`);
+        await ex.verifier('traitements suivants (gel, échéance, chat après le Swend) : aucun doublon, seul le chat d’annulation, aucun événement de fin',
+          () => pushDepuis(apres) === '' && chats() === 'annulation'
+            && sql(`select count(*) from evenements_fil where code = 'swend_commence'`) === '0',
+          { obtenu: () => `${pushDepuis(apres)} / ${chats()}` });
+      });
+
+      await ex.etape('Après l’annulation : écrans et conversations conservées', async () => {
+        await A.ouvrirSwend(eliot, /Swend avec David/);
+        await ex.verifierTexte(eliot, 'Ton Swend avec David est annulé.', 'Eliot : « Ton Swend avec David est annulé. »');
+        const david = await ex.david();
+        await A.ouvrirSwend(david, /Swend avec Eliot/);
+        await ex.verifierTexte(david, 'Ton Swend avec Eliot est annulé.', 'David : « Ton Swend avec Eliot est annulé. »');
+        await ex.verifierAbsent(david, /Kevin|Sylvain|Tom/, 'David : aucune personne de confiance d’Eliot');
+        // Kevin avait perdu l'accès à H : nouvelle session pour relire sa liste.
+        const k2 = await ex.redemarrer('kevin');
+        await A.ouvrirSwend(k2, /Swend d'Eliot avec David/);
+        await ex.verifierTexte(k2, 'Ce Swend a été annulé.', 'Kevin : « Ce Swend a été annulé. » (conversation conservée, P1)');
+        const r = await insererComme('kevin', 'messages', { remplacant_id: FICHES.kevin, expediteur_id: COMPTES.kevin.id, contenu: 'Dommage' });
+        await ex.verifier('conversation Eliot–Kevin conservée et écrivable (D-027, P1)', () => r.ok, { obtenu: () => `${r.statut} ${r.corps}` });
+        const s2 = await insererComme('eliot', 'messages', { remplacant_id: FICHES.sylvain, expediteur_id: COMPTES.eliot.id, contenu: 'Finalement annulé' });
+        await ex.verifier('conversation Eliot–Sylvain (messages échangés) conservée et écrivable', () => s2.ok, { obtenu: () => `${s2.statut} ${s2.corps}` });
+      });
+      return;
+    }
 
     await ex.etape('Moteur à H : demande close, Kevin prévenu une seule fois', async () => {
       const avant = n0();

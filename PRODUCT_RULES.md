@@ -227,6 +227,8 @@ L’application masque ces actions. Si elle en affiche encore une brièvement (h
 
 #### Demandes encore en attente
 
+> **Révisé par D-027 (20/10/2026, H-3 limite ferme ; paquet `D-027-03`, pas encore en production).** Une demande encore en attente à H signifie qu’une recherche n’était pas résolue à H-3 : le Swend est alors annulé (motif `echeance_h3`, règles habituelles de l’annulation : « Tu n’as plus besoin de répondre. », chat d’annulation, conversations conservées), jamais figé. Cela arrive normalement dans la minute qui suit H-3 ; si aucun traitement n’a réussi entre H-3 et H, le premier qui réussit ensuite — gel à H compris — annule le Swend, quel que soit le retard. La clôture ci-dessous ne concerne plus que les Swends figés avant cette règle.
+
 Toute demande encore en attente à l’heure du Swend est clôturée automatiquement (au plus quelques minutes après). La personne sollicitée reçoit une push :
 
 | Titre | Message |

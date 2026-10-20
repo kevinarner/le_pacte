@@ -150,8 +150,11 @@ class _AccueilScreenState extends State<AccueilScreen> {
   /// Swend passé où je n'étais qu'une personne de confiance sans avoir pris
   /// la place (prévue, sollicitée, ayant refusé, clôturée) : il ne reste pas
   /// dans mon historique (D-023a). Les titulaires et le remplaçant
-  /// sélectionné le gardent.
+  /// sélectionné le gardent. Un Swend annulé, même passé (annulé à
+  /// l'échéance H-3 après une interruption des traitements, ou annulé avant
+  /// H puis dépassé), suit la règle ci-dessus : la base décide.
   bool _passeSansMoi(Pacte p) {
+    if (estAnnule(p)) return false;
     if (!estPasse(p, DateTime.now())) return false;
     final v = PerspectivePacte.de(p, AppStore.moi.id);
     return v != null && !v.estTitulaire && !v.maFiche!.selectionne;

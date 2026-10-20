@@ -1,0 +1,22 @@
+# D-027-03 — rattrapage après H : la suite qa/metier/sql/99h_echeance_h3.sql (section H : jobs en échec entre H-3 et H, puis reprise)
+# exécutée sur une base où l'échéance vient du paquet AVANT cette correction (appliquer_echeances_h3 82b7fc5e…, figer_swends_passes 2803314c…, celui de production).
+# Attendu : la reprise ne doit jamais figer un Swend dont la recherche n'était pas résolue à H-3. Obtenu avec l'ancien code : 9 échecs
+# (Swend figé et maintenu, « La demande n’est plus d’actualité », événement de fin, « Alors, ce Swend ? »).
+# Même suite après la correction (migration actuelle appliquée sur la même base) : 66 réussies, 0 échec.
+
+ H        | reprise par le gel : Swend annulé (echeance_h3), pas figé                                                                         | ÉCHEC    | confirme|null|null|null traite
+ H        | reprise par le gel : push de l'annulation, une par personne, jamais « La demande n’est plus d’actualité »                         | ÉCHEC    | K:La demande n’est plus d’actualité|L’heure du Swend est passée.
+ H        | reprise par le gel : chat d'annulation, aucun événement de fin du Swend                                                           | ÉCHEC    | aucun demande_envoyee,demande_cloturee,swend_commence
+ H        | traitements suivants (chat après le Swend, échéance, gel, rappels) : rien de plus, aucun doublon                                  | ÉCHEC    | D:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat. ## E:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat.
+ H        | reprise par le job de l'échéance (H + 2 h) : Swend annulé                                                                         | ÉCHEC    | 
+ H        | puis gel et chat après le Swend : jamais figé, seul le chat d'annulation, push une fois chacun                                    | ÉCHEC    | K:La demande n’est plus d’actualité|L’heure du Swend est passée. ## D:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat. ## E:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat.
+ H        | reprise par le moteur des rappels : Swend annulé, aucun rappel, push une fois chacun                                              | ÉCHEC    | 
+ H        | puis gel : annulé, chat d'annulation seulement, jamais « Alors, ce Swend ? »                                                      | ÉCHEC    | K:La demande n’est plus d’actualité|L’heure du Swend est passée. ## D:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat. ## E:Alors, ce Swend ?|Le silence est levé. Vous pouvez maintenant en reparler dans le chat.
+ H        | reprise 3 jours après H : annulé quand même, chat d'annulation, push une fois chacun                                              | ÉCHEC    | 
+ reussis | echecs 
+      57 |      9
+
+# Après correction :
+ reussis | echecs 
+---------+--------
+      66 |      0

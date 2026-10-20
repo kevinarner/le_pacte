@@ -1,6 +1,6 @@
 -- D-027-03 — sauvegarde ciblée, avant toute modification. Une transaction.
 -- Copie, dans le schéma interne `sauvegarde` (aucun accès pour l'app), la
--- définition exacte, les droits et l'empreinte des 7 fonctions remplacées,
+-- définition exacte, les droits et l'empreinte des 8 fonctions remplacées,
 -- et l'état d'annulation de tous les Swends (identifiants, statuts et dates
 -- seulement). Échoue (rien n'est créé) si l'état n'est pas celui relu le
 -- 20/10/2026, si D-027-03 est déjà appliqué ou si la sauvegarde existe déjà.
@@ -20,21 +20,22 @@ begin
              and proname in ('echeance_h3_atteinte', 'appliquer_echeances_h3')) then
     raise exception 'D-027-03 : déjà appliqué (en tout ou partie)';
   end if;
-  -- Les 7 fonctions remplacées sont exactement celles relues en production
+  -- Les 8 fonctions remplacées sont exactement celles relues en production
   -- le 20/10/2026 (corps normalisé), une seule par nom.
   if (select count(*) from (values
     ('ajouter_et_demander_remplacement', 'd1e31b1225cbc29dbde728653e46d426'),
     ('annuler_demande_remplacement', '0b313996d6679b5eb80a21347ef49978'),
     ('envoyer_demandes_remplacement', '2b2bb34414a655a6ffc3dd07ce3ca726'),
     ('envoyer_rappels_dus', 'fa9ffe2576c7950f8555660332b95ced'),
+    ('figer_swends_passes', '2803314c7ef40523b367df0dab59a605'),
     ('je_peux_finalement_venir', '9631961e9c168952cbc9e0c25584463f'),
     ('repondre_demande_remplacement', '902fd1203365bfbe2e234d5152610b44'),
     ('se_desister_du_remplacement', 'ce38814eb3f7e8b883fcfe0cced2dd78')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 7
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 8
      or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
-         and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 7 then
+         and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'figer_swends_passes', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 8 then
     raise exception 'D-027-03 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
   -- Le moteur des rappels (qui appliquera aussi l'échéance) : job actif,
@@ -47,13 +48,18 @@ begin
      or to_regprocedure('cron.schedule(text, text, text)') is null then
     raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
-  -- Aucun Swend en imprévu dont l'heure tombe dans les 3 h 10 qui viennent :
-  -- sinon le premier passage du job l'annulerait aussitôt (arbitrage nécessaire).
+  -- Aucun Swend confirmé non figé, déjà passé ou dont l'heure tombe dans
+  -- les 3 h 10 qui viennent, avec un côté en imprévu sans remplaçant : le
+  -- premier passage d'un job l'annulerait aussitôt, y compris un Swend passé
+  -- maintenu sous l'ancienne règle (rattrapage). Arbitrage nécessaire.
   if exists (select 1 from public.pactes p
-             where p.statut = 'confirme' and p.date_retenue > now()
+             where p.statut = 'confirme'
                and p.date_retenue <= now() + interval '3 hours 10 minutes'
-               and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id)) then
-    raise exception 'D-027-03 : un Swend en imprévu a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
+               and not exists (select 1 from public.swends_figes f where f.pacte_id = p.id)
+               and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id
+                             and not exists (select 1 from public.remplacants r
+                                             where r.pacte_id = p.id and r.cote = d.cote and r.selectionne))) then
+    raise exception 'D-027-03 : un Swend en imprévu non résolu est passé ou a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
   end if;
   if to_regclass('sauvegarde.d027_03_fonctions_20261020') is not null
      or to_regclass('sauvegarde.d027_03_pactes_20261020') is not null then
@@ -70,7 +76,7 @@ select p.proname as nom, pg_get_function_identity_arguments(p.oid) as arguments,
        (select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a) as droits,
        md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) as md5_corps, now() as sauvegarde_le
 from pg_proc p
-where p.pronamespace = 'public'::regnamespace and p.proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement');
+where p.pronamespace = 'public'::regnamespace and p.proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'figer_swends_passes', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement');
 
 create table sauvegarde.d027_03_pactes_20261020 as
 select p.id, p.statut, p.date_retenue, p.annule_par, p.annule_le, p.annule_motif, now() as sauvegarde_le
@@ -81,7 +87,7 @@ revoke all on table sauvegarde.d027_03_pactes_20261020 from public, anon, authen
 
 do $$
 begin
-  if (select count(*) from sauvegarde.d027_03_fonctions_20261020) <> 7
+  if (select count(*) from sauvegarde.d027_03_fonctions_20261020) <> 8
      or (select count(*) from sauvegarde.d027_03_pactes_20261020) <> (select count(*) from public.pactes) then
     raise exception 'D-027-03 sauvegarde : copie incomplète';
   end if;

@@ -227,14 +227,16 @@ SQL
 done
 resultat "échéance H-3 : job de l'échéance et moteur des rappels simultanés, une seule annulation, aucun doublon ni rappel" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
 
-# 8. Gel à H : trois exécutions simultanées du moteur → une seule clôture,
-#    une seule push, un seul événement de fin.
+# 8. Gel à H : trois exécutions simultanées du moteur sur un Swend maintenu
+#    (demande de Kevin retirée avant H-3 : Eliot peut finalement venir) → un
+#    seul gel, un seul événement de fin, aucune push.
 ok=0; detail=""
 for i in $(seq 1 10); do
   read p k <<< "$(P <<SQL | tail -1
 select g_swend(now() + interval '4 hours') as p \gset
 select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
 select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select en_tant_que('$E', format('select je_peux_finalement_venir(%L)', :'p')) \gset
 select g_dater(:'p', now() - interval '1 second');
 select :'p' || ' ' || :'k';
 SQL
@@ -243,9 +245,44 @@ SQL
   for j in 1 2 3; do P -c "select figer_swends_passes()" >/dev/null 2>&1 & done; wait
   push=$(P -c "select count(*) from notifications_log where id > $n0 and profile_id = '$K'")
   codes=$(P -c "select g_codes('$k')")
-  if [ "$push" = 1 ] && [ "$codes" = "demande_envoyee,demande_cloturee,swend_commence" ]; then ok=$((ok+1)); else detail="essai $i : push=$push événements=$codes"; fi
+  fige=$(P -c "select count(*) from swends_figes where pacte_id = '$p'")
+  if [ "$push" = 0 ] && [ "$fige" = 1 ] && [ "$codes" = "demande_envoyee,retour_titulaire,swend_commence" ]; then ok=$((ok+1)); else detail="essai $i : push=$push figé=$fige événements=$codes"; fi
 done
 resultat "gel à H : 3 exécutions simultanées du moteur, jamais de doublon" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 8 bis. Échéance H-3, jobs en échec entre H-3 et H, reprise après l'heure
+#    d'ouverture du chat après le Swend : gel (deux fois), échéance, chat
+#    après le Swend et rappels au même moment → une seule annulation
+#    (echeance_h3), jamais figé, seul le chat d'annulation, une push par
+#    personne, jamais « Alors, ce Swend ? » ni « La demande n'est plus
+#    d'actualité ». Instants explicites (janvier 2038) : chaque essai a son
+#    propre Swend, que les essais précédents n'atteignent pas.
+P -c "select figer_swends_passes('2037-12-31 00:00+00'), appliquer_echeances_h3('2037-12-31 00:00+00')" >/dev/null 2>&1
+ok=0; detail=""
+for i in $(seq 1 10); do
+  d=$(printf '2038-01-%02d 19:00+00' "$i")
+  read p k <<< "$(P <<SQL | tail -1
+select g_swend('$d') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+  t=$(P -c "select ouverture_chat_apres_swend('$d') + interval '1 minute'")
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  P -c "select figer_swends_passes('$t')" >/dev/null 2>&1 & P -c "select appliquer_echeances_h3('$t')" >/dev/null 2>&1 &
+  P -c "select ouvrir_chats_apres_swend('$t')" >/dev/null 2>&1 & P -c "select envoyer_rappels_dus('$t')" >/dev/null 2>&1 &
+  P -c "select figer_swends_passes('$t')" >/dev/null 2>&1 & wait
+  P -c "select ouvrir_chats_apres_swend('$t')" >/dev/null 2>&1
+  push=$(P -c "select string_agg(n::text, ',' order by p) from (select profile_id p, count(*) n from notifications_log where id > $n0 and profile_id in ('$E', '$D', '$K')
+    and (data->>'pacte_id' = '$p' or data->>'remplacant_id' = '$k') group by 1) x")
+  interdites=$(P -c "select count(*) from notifications_log where id > $n0 and (data->>'pacte_id' = '$p' or data->>'remplacant_id' = '$k')
+    and (titre like 'Alors, ce Swend%' or titre like '%plus d’actualité%')")
+  etat=$(P -c "select statut || '|' || annule_motif || '|' || (select count(*) from swends_figes where pacte_id = '$p') || '|'
+    || (select string_agg(nature, ',') from chats_apres_swend where pacte_id = '$p') from pactes where id = '$p'")
+  if [ "$etat" = "annule|echeance_h3|0|annulation" ] && [ "$push" = "1,1,1" ] && [ "$interdites" = 0 ]; then ok=$((ok+1)); else detail="essai $i : état=$etat push=$push interdites=$interdites"; fi
+done
+resultat "échéance H-3 : jobs en échec jusqu'après H, reprise simultanée (gel, échéance, chat après le Swend, rappels) → une annulation, chat d'annulation seul, aucun doublon" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
 
 # 9. Chat après le Swend (D-023b) : trois exécutions simultanées du moteur à
 #    l'heure d'ouverture → un seul chat, trois participants, trois push.

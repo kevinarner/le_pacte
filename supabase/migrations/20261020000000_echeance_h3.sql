@@ -21,7 +21,13 @@
 --     rappels (job `swend-rappels`, toutes les 5 minutes, fréquence
 --     inchangée) — avant tout rappel du Jour J, si bien qu'un Swend annulé à
 --     H-3 ne reçoit aucun rappel. Les deux appels ne peuvent pas annuler
---     deux fois (verrou du Swend, état relu) ;
+--     deux fois (verrou du Swend, état relu). Si aucun traitement n'a réussi
+--     entre H-3 et H (jobs en échec), le premier qui réussit ensuite annule
+--     le Swend de la même façon, quel que soit le retard : l'échéance
+--     s'applique aussi après H, et le gel à H (figer_swends_passes(), job
+--     `swend-gel-a-h`) l'applique avant de figer quoi que ce soit, si bien
+--     qu'un tel Swend n'est jamais figé et n'a jamais de chat après le Swend
+--     (le moteur du chat ne traite que les Swends figés) ;
 --  4. un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`
 --     (inchangée : motif `titulaire`) ; l'app ne propose plus de recherche.
 -- Un Swend dont les participants attendus restent disponibles est maintenu.
@@ -601,8 +607,10 @@ $$;
 -- Délai de traitement : au mieux la minute qui suit H-3 ; si un job échoue,
 -- l'annulation attend l'exécution suivante réussie (aucune garantie de délai
 -- sans job) ; les actions, elles, sont refusées dès H-3 quoi qu'il arrive.
--- Pour chaque Swend scellé dont H-3 est atteint (et H pas encore), dont au
--- moins un côté est en imprévu sans remplaçant sélectionné : annulation
+-- Pour chaque Swend confirmé dont H-3 est atteint — y compris après H : si
+-- aucun traitement n'a réussi entre H-3 et H, le premier qui réussit annule —,
+-- non figé par le gel, dont au moins un côté est en imprévu sans remplaçant
+-- sélectionné : annulation
 -- (motif `echeance_h3`, sans auteur), mêmes verrous que les actions (le
 -- Swend, puis ses fiches) ; l'état est relu sous verrou, si bien qu'une
 -- acceptation validée juste avant maintient le Swend. Notifications :
@@ -614,6 +622,12 @@ $$;
 --    répondre. ») ; refus, désistements, personnes seulement prévues : rien.
 -- Idempotente (un Swend annulé n'est plus `confirme`). Renvoie le nombre de
 -- Swends annulés.
+-- Après H, rien ne peut avoir changé depuis H-3 (toute recherche, réponse ou
+-- retour est refusé dès H-3 ; un désistement ou un nouvel imprévu annule
+-- aussitôt) : un côté encore en imprévu sans remplaçant l'était à H-3. Un
+-- Swend maintenu valablement n'a aucun côté dans ce cas et n'est jamais
+-- touché. Un Swend déjà figé (gel antérieur à cette règle) est laissé tel
+-- quel : le paquet vérifie qu'aucun Swend passé n'est dans ce cas.
 create or replace function public.appliquer_echeances_h3(p_maintenant timestamptz default now())
 returns integer
 language plpgsql
@@ -631,16 +645,17 @@ begin
     select pa.id from pactes pa
     where pa.statut = 'confirme'
       and pa.date_retenue is not null
-      and pa.date_retenue > p_maintenant
       and echeance_h3_atteinte(pa.date_retenue, p_maintenant)
       and exists (select 1 from imprevus_declares d where d.pacte_id = pa.id)
+      and not exists (select 1 from swends_figes f where f.pacte_id = pa.id)
     order by pa.id
   loop
     select pa.id, pa.statut, pa.date_retenue, pa.initiateur_id, pa.destinataire_id
       into p
     from pactes pa where pa.id = v_id for update;
     perform 1 from remplacants where pacte_id = v_id for update;
-    continue when p.statut <> 'confirme';
+    continue when p.statut <> 'confirme'
+      or exists (select 1 from swends_figes f where f.pacte_id = v_id);
 
     select coalesce(array_agg(d.cote order by d.cote), '{}') into v_cotes
     from imprevus_declares d
@@ -739,3 +754,94 @@ begin
 end;
 $$;
 revoke execute on function public.envoyer_rappels_dus(timestamptz) from public, anon, authenticated;
+
+-- 6. Gel à H : l'échéance d'abord -------------------------------------------------------
+-- Le gel à H (job `swend-gel-a-h`, toutes les 5 minutes, inchangé) applique
+-- l'échéance H-3 avant de figer : si les jobs ont échoué entre H-3 et H, la
+-- reprise annule le Swend (règles habituelles de l'annulation : demandes
+-- closes avec « Tu n’as plus besoin de répondre. », chat d'annulation,
+-- conversations conservées) au lieu de le figer (« La demande n’est plus
+-- d’actualité », événement de fin, puis chat après le Swend). Le reste est
+-- inchangé (gel_a_h.sql).
+create or replace function public.figer_swends_passes(p_maintenant timestamptz default now())
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  c_fenetre_push constant interval := interval '12 hours';
+  p record;
+  v_statut text;
+  v_date timestamptz;
+  v_initiateur_nom text;
+  v_destinataire_nom text;
+  v_cloturees uuid[];
+  v_fiche record;
+  n integer := 0;
+begin
+  -- D-027 (20/10) : l'échéance H-3 d'abord. Un Swend dont une recherche
+  -- n'était pas résolue à H-3 est annulé, jamais figé (rattrapage si aucun
+  -- traitement n'a réussi entre H-3 et H). La boucle ci-dessous relit l'état
+  -- sous verrou : un Swend annulé n'est plus `confirme`.
+  perform appliquer_echeances_h3(p_maintenant);
+
+  for p in
+    select pa.id from pactes pa
+    where pa.statut = 'confirme'
+      and pa.scelle_le is not null
+      and pa.date_retenue is not null
+      and pa.date_retenue <= p_maintenant
+      and not exists (select 1 from swends_figes f where f.pacte_id = pa.id)
+    order by pa.date_retenue, pa.id
+  loop
+    select statut, date_retenue, initiateur_nom, destinataire_nom
+      into v_statut, v_date, v_initiateur_nom, v_destinataire_nom
+    from pactes where id = p.id for update;
+    perform 1 from remplacants where pacte_id = p.id for update;
+    continue when v_statut is distinct from 'confirme' or v_date > p_maintenant;
+
+    insert into swends_figes (pacte_id, date_retenue) values (p.id, v_date)
+    on conflict (pacte_id) do nothing;
+    continue when not found;
+
+    perform set_config('swend.gel_en_cours', 'on', true);
+
+    with c as (
+      update remplacants set demande_statut = 'cloturee'
+      where pacte_id = p.id and demande_statut = 'envoyee'
+      returning id
+    )
+    select coalesce(array_agg(id), '{}') into v_cloturees from c;
+
+    if p_maintenant < v_date + c_fenetre_push then
+      for v_fiche in
+        select distinct on (r.profil_id) r.id, r.cote, r.profil_id
+        from remplacants r
+        where r.id = any (v_cloturees) and r.profil_id is not null
+        order by r.profil_id, r.id
+      loop
+        -- Au clic : la fiche du Swend si la personne y a encore accès (jamais
+        -- après H pour une personne seulement sollicitée : l'app reste alors
+        -- sur l'accueil).
+        perform notifier(v_fiche.profil_id, 'La demande n’est plus d’actualité',
+          'L’heure du Swend est passée.',
+          jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+      end loop;
+    end if;
+
+    insert into evenements_fil (remplacant_id, code)
+    select r.id, 'swend_commence'
+    from remplacants r
+    where r.pacte_id = p.id and r.retire_le is null
+      and (exists (select 1 from messages m where m.remplacant_id = r.id)
+           or exists (select 1 from evenements_fil e where e.remplacant_id = r.id))
+    order by r.id;
+
+    perform set_config('swend.gel_en_cours', 'off', true);
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.figer_swends_passes(timestamptz) from public, anon, authenticated;

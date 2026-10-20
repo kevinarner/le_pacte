@@ -9,7 +9,7 @@ etape() { echo "== $1"; qa_psql $B -v ON_ERROR_STOP=1 -q -f "$2" 2>&1 | grep -v 
 $S/base_avant_d03.sh $B >/dev/null || exit 1
 qa_psql $B -v ON_ERROR_STOP=1 -q -f $S/donnees_d03.sql >/dev/null || exit 1
 qa_psql $B -tA -c "select 'avant : ' || string_agg(statut || '/' || (select coalesce(string_agg(coalesce(demande_statut,'null') || case when selectionne then '+sel' else '' end, ','), '-') from remplacants r where r.pacte_id = p.id), ' ' order by id) from pactes p"
-qa_psql $B -tA -c "select 'empreintes de production reproduites : ' || count(*) || '/7' from (values ('ajouter_et_demander_remplacement','d1e31b1225cbc29dbde728653e46d426'),('annuler_demande_remplacement','0b313996d6679b5eb80a21347ef49978'),('envoyer_demandes_remplacement','2b2bb34414a655a6ffc3dd07ce3ca726'),('envoyer_rappels_dus','fa9ffe2576c7950f8555660332b95ced'),('je_peux_finalement_venir','9631961e9c168952cbc9e0c25584463f'),('repondre_demande_remplacement','902fd1203365bfbe2e234d5152610b44'),('se_desister_du_remplacement','ce38814eb3f7e8b883fcfe0cced2dd78')) a(n,m) join pg_proc p on p.proname=a.n where md5(regexp_replace(p.prosrc,'\s+',' ','g'))=a.m"
+qa_psql $B -tA -c "select 'empreintes de production reproduites : ' || count(*) || '/8' from (values ('ajouter_et_demander_remplacement','d1e31b1225cbc29dbde728653e46d426'),('annuler_demande_remplacement','0b313996d6679b5eb80a21347ef49978'),('envoyer_demandes_remplacement','2b2bb34414a655a6ffc3dd07ce3ca726'),('envoyer_rappels_dus','fa9ffe2576c7950f8555660332b95ced'),('figer_swends_passes','2803314c7ef40523b367df0dab59a605'),('je_peux_finalement_venir','9631961e9c168952cbc9e0c25584463f'),('repondre_demande_remplacement','902fd1203365bfbe2e234d5152610b44'),('se_desister_du_remplacement','ce38814eb3f7e8b883fcfe0cced2dd78')) a(n,m) join pg_proc p on p.proname=a.n where md5(regexp_replace(p.prosrc,'\s+',' ','g'))=a.m"
 # Préconditions : job inactif, puis Swend en imprévu à moins de 3 heures.
 jobs "avant"
 qa_psql $B -q -c "insert into cron.job (jobname, schedule, command) values ('swend-echeance-h3', '* * * * *', 'select 1')"
@@ -20,6 +20,8 @@ etape "sauvegarde, job swend-rappels inactif (refus attendu)" $D/sauvegarde.sql
 qa_psql $B -q -c "update cron.job set active = true where jobname = 'swend-rappels'"
 qa_psql $B -q -c "select qa.deplacer_swend('00000000-0000-4000-a300-000000000001', now() + interval '2 hours')"
 etape "sauvegarde, Swend en imprévu dont l'heure est dans moins de 3 h 10 (refus attendu)" $D/sauvegarde.sql
+qa_psql $B -q -c "select qa.deplacer_swend('00000000-0000-4000-a300-000000000001', now() - interval '1 hour')"
+etape "sauvegarde, Swend passé resté en imprévu non résolu (ancienne règle, refus attendu)" $D/sauvegarde.sql
 qa_psql $B -q -c "select qa.deplacer_swend('00000000-0000-4000-a300-000000000001', now() + interval '2 days')"
 etape "appliquer sans sauvegarde (refus attendu)" $D/appliquer.sql
 etape sauvegarde $D/sauvegarde.sql
@@ -35,7 +37,7 @@ etape "appliquer de nouveau (refus attendu)" $D/appliquer.sql
 etape "sauvegarde de nouveau (refus attendu)" $D/sauvegarde.sql
 etape "rollback immédiat" $D/rollback.sql
 jobs "après rollback"
-qa_psql $B -tA -c "select 'après rollback : md5 et droits ' || (select count(*) from sauvegarde.d027_03_fonctions_20261020 s join pg_proc p on p.proname = s.nom where s.md5_corps = md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) and coalesce((select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a), '') = coalesce(s.droits, '')) || '/7 identiques ; fonctions de l''échéance : ' || (select count(*) from pg_proc where proname in ('echeance_h3_atteinte','appliquer_echeances_h3'))"
+qa_psql $B -tA -c "select 'après rollback : md5 et droits ' || (select count(*) from sauvegarde.d027_03_fonctions_20261020 s join pg_proc p on p.proname = s.nom where s.md5_corps = md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) and coalesce((select string_agg(a::text, ' ' order by a::text) from unnest(p.proacl) a), '') = coalesce(s.droits, '')) || '/8 identiques ; fonctions de l''échéance : ' || (select count(*) from pg_proc where proname in ('echeance_h3_atteinte','appliquer_echeances_h3'))"
 etape "verifier après rollback (refus attendu)" $D/verifier.sql
 etape "rollback de nouveau (refus attendu)" $D/rollback.sql
 etape "réapplication" $D/appliquer.sql
@@ -61,6 +63,20 @@ select se_desister_du_remplacement('00000000-0000-4000-a300-0000000000a2'); comm
 SQL
 qa_psql $B -tA -c "select 'désistement après H-3 : Swend B ' || statut || '|' || coalesce(annule_motif, '-') || ' ; Swend C ' || (select statut from pactes where id = '00000000-0000-4000-a300-000000000003') from pactes where id = '00000000-0000-4000-a300-000000000002'"
 qa_psql $B -tA -c "select 'push : ' || string_agg(titre || ' / ' || corps, ' ## ' order by id) from notifications_log where titre like 'Le Swend est annulé%'"
+# Rattrapage : Swend D, Eliot cherche (Kevin sollicité), puis aucun traitement
+# entre H-3 et H (le Swend est déplacé d'un coup après H) ; reprise par la
+# commande enregistrée du job du gel (swend-gel-a-h).
+qa_psql $B -q -c "insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone) values ('00000000-0000-4000-a300-000000000004', 'confirme', 'diner', now() + interval '1 day', to_jsonb(array[now() + interval '1 day']), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', qa.id('david'), 'David Schlang', '+33 6 02 03 04 05')" -c "insert into remplacants (id, pacte_id, cote, prenom, nom, telephone, email, profil_id) values ('00000000-0000-4000-a300-0000000000a4', '00000000-0000-4000-a300-000000000004', 'initiateur', 'Kevin', 'Arner', '0600001234', '', qa.id('kevin'))"
+qa_psql $B -tA <<'SQL' >/dev/null
+begin; select set_config('request.jwt.claim.sub', '00000000-0000-4000-8000-0000000000e1', true); set local role authenticated;
+select count(*) from envoyer_demandes_remplacement(array['00000000-0000-4000-a300-0000000000a4'::uuid]); commit;
+SQL
+qa_psql $B -q -c "select qa.deplacer_swend('00000000-0000-4000-a300-000000000004', now() - interval '30 minutes')"
+qa_psql $B -tA -c "select 'interruption, H + 30 min : Swend D ' || statut || ' ; demande de Kevin ' || (select demande_statut from remplacants where id = '00000000-0000-4000-a300-0000000000a4') from pactes where id = '00000000-0000-4000-a300-000000000004'"
+qa_psql $B -tA -c "select max(id) from notifications_log" > /tmp/claude-0/-home-user-le-pacte/05ea20a0-4299-572a-9d63-2d5619bb913e/scratchpad/n0_rep
+qa_psql $B -tA -c "do \$\$ declare c text; begin select command into c from cron.job where jobname = 'swend-gel-a-h'; execute c; end \$\$"
+qa_psql $B -tA -c "select 'reprise par le job du gel (commande enregistrée) : Swend D ' || statut || '|' || coalesce(annule_motif, '-') || ' ; figé ' || (select count(*) from swends_figes where pacte_id = p.id) || ' ; chats ' || coalesce((select string_agg(nature, ',') from chats_apres_swend where pacte_id = p.id), 'aucun') || ' ; demande de Kevin ' || (select demande_statut from remplacants where id = '00000000-0000-4000-a300-0000000000a4') from pactes p where id = '00000000-0000-4000-a300-000000000004'"
+qa_psql $B -tA -c "select 'push du Swend D : ' || count(*) || ' — ' || coalesce(string_agg(titre || ' / ' || corps, ' ## ' order by id), '') from notifications_log where id > $(cat /tmp/claude-0/-home-user-le-pacte/05ea20a0-4299-572a-9d63-2d5619bb913e/scratchpad/n0_rep) and (data->>'pacte_id' = '00000000-0000-4000-a300-000000000004' or data->>'remplacant_id' = '00000000-0000-4000-a300-0000000000a4')"
 etape "rollback après usage" $D/rollback.sql
 jobs "après rollback (usage)"
 qa_psql $B -tA -c "select 'après rollback (usage) : annulations echeance_h3 conservées = ' || count(*) from pactes where annule_motif = 'echeance_h3'"

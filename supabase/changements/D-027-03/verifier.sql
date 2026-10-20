@@ -8,18 +8,21 @@ begin
   if (select count(*) from (values
     ('ajouter_et_demander_remplacement', '41d62d5c89670158a44a3eb57fb146d4'),
     ('annuler_demande_remplacement', 'd4f041ba4caafe35ad85b31b1742f8df'),
-    ('appliquer_echeances_h3', '82b7fc5ec4048a57e8bff07cc8667bbc'),
+    ('appliquer_echeances_h3', '4c4e93a84e4b29187324c980896274d6'),
     ('echeance_h3_atteinte', '57ea12a3892a202ebec0b942113e0471'),
     ('envoyer_demandes_remplacement', '7bb8a3ad2d46036b260192354b3d6012'),
     ('envoyer_rappels_dus', 'e1ba350897cefd6b75f460fb87821481'),
+    ('figer_swends_passes', '0e7b3cbd9e73679d5750f0eb8f2d21eb'),
     ('je_peux_finalement_venir', 'c1ae4f8bd5140f7eed108040376fc754'),
     ('repondre_demande_remplacement', '8f6e448b412d297ec245d74d53468ee7'),
     ('se_desister_du_remplacement', '5f64a11b94a473d7796f6240d14d89ca')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 10
      or (select prosrc not ilike '%appliquer_echeances_h3(p_maintenant)%' from pg_proc
-         where oid = 'public.envoyer_rappels_dus(timestamptz)'::regprocedure) then
+         where oid = 'public.envoyer_rappels_dus(timestamptz)'::regprocedure)
+     or (select prosrc not ilike '%appliquer_echeances_h3(p_maintenant)%' from pg_proc
+         where oid = 'public.figer_swends_passes(timestamptz)'::regprocedure) then
     raise exception 'D-027-03 vérification : fonctions D-027-03 non en place';
   end if;
   if has_function_privilege('authenticated', 'public.appliquer_echeances_h3(timestamptz)', 'execute') then

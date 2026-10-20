@@ -101,15 +101,16 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   `20261020000000_echeance_h3.sql` : **pas encore exécutée en production**
   (D-027 révisé le 20/10 : H-3 limite ferme ; refus `echeance_h3`,
   heure lue après les verrous, désistement tardif = annulation,
-  `appliquer_echeances_h3()` en tête de `envoyer_rappels_dus()` ; aucune
-  donnée existante modifiée). Le job `swend-echeance-h3` (chaque minute)
+  `appliquer_echeances_h3()` en tête de `envoyer_rappels_dus()` et de
+  `figer_swends_passes()`, rattrapage après H ; aucune donnée existante
+  modifiée). Le job `swend-echeance-h3` (chaque minute)
   n'est pas dans la migration : `supabase/planification/echeance_h3_pg_cron.sql`,
   créé par le paquet dans la même transaction. À exécuter par le change packet
   `supabase/changements/D-027-03/` (niveau 2, préparé, sans validation),
   **après** D-027-02, dans la même fenêtre que l'app correspondante. Elle
-  redéfinit 6 fonctions de `imprevu_etats_et_actions.sql` et
-  `envoyer_rappels_dus()` de `rappels_jour_j.sql` : ne plus ré-exécuter ces
-  migrations seules après elle (la rejouer ensuite ; c'est ce que font le
+  redéfinit 6 fonctions de `imprevu_etats_et_actions.sql`,
+  `envoyer_rappels_dus()` de `rappels_jour_j.sql` et `figer_swends_passes()`
+  de `gel_a_h.sql` : ne plus ré-exécuter ces migrations seules après elle (la rejouer ensuite ; c'est ce que font le
   banc et la suite QA `99f`).
 - La planification de l'échéance H-3 (pg_cron, D-027 révisé le 20/10) n'est
   pas une migration : `supabase/planification/echeance_h3_pg_cron.sql`

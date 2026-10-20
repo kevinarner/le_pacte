@@ -8,11 +8,12 @@
 --
 -- Effet : chaque minute, appliquer_echeances_h3() annule les Swends dont une
 -- recherche n'est toujours pas résolue à H-3 (au mieux la minute qui suit
--- H-3). Le moteur des rappels (job swend-rappels, toutes les 5 minutes,
--- fréquence inchangée) l'appelle aussi en premier, avant tout rappel du
--- Jour J. Jamais deux annulations ni deux push (verrou du Swend, état
--- relu). Si les jobs échouent, aucun délai n'est garanti : l'annulation
--- attend la prochaine exécution réussie ; les actions (demander, répondre…)
+-- H-3). Le moteur des rappels (job swend-rappels) et le gel à H (job
+-- swend-gel-a-h), toutes les 5 minutes, fréquences inchangées, l'appellent
+-- aussi en premier. Jamais deux annulations ni deux push (verrou du Swend,
+-- état relu). Si les jobs échouent, aucun délai n'est garanti : l'annulation
+-- attend la prochaine exécution réussie, même après H (rattrapage : le
+-- Swend est annulé, jamais figé) ; les actions (demander, répondre…)
 -- restent refusées dès H-3 par la base, indépendamment des jobs.
 select cron.schedule('swend-echeance-h3', '* * * * *', 'select public.appliquer_echeances_h3()');
 

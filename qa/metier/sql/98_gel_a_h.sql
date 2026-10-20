@@ -145,46 +145,93 @@ select verifier('B', 'plus de modification ni suppression d''un message après H
   and (select string_agg(contenu, '') from messages where remplacant_id = :'c2') = 'Je peux venir si besoin');
 
 -- ===================================================================
--- C. Moteur à H : clôture, push validée, événement de fin, idempotence
+-- C. Moteur à H sur ce Swend : Eliot cherchait encore (Kevin en attente),
+--    donc sa recherche n'était pas résolue à H-3. Si aucun traitement n'a
+--    réussi entre H-3 et H (jobs en échec), le gel applique d'abord
+--    l'échéance (D-027, 20/10) : le Swend est annulé, jamais figé.
 -- ===================================================================
 select g_n0() as n0 \gset
 select verifier('C', 'moteur avant l''heure : Swend non traité', g_fige(:'p2') = 'non');
 select figer_swends_passes() as nb \gset
-select verifier('C', 'le moteur traite le Swend passé (et lui seul)', :nb = 1 and g_fige(:'p2') = 'traite', :'nb');
-select verifier('C', 'demande en attente clôturée', statut_fiche(:'k2') = 'cloturee');
-select verifier('C', 'Kevin : une seule push, texte validé',
-  g_push(:n0, :'K') = 'La demande n’est plus d’actualité|L’heure du Swend est passée.', g_push(:n0, :'K'));
-select verifier('C', 'push de Kevin : fiche du Swend (il n''y a plus accès : l''app reste sur l''accueil)',
-  (select data = jsonb_build_object('type', 'pacte', 'pacte_id', :'p2')
-   from notifications_log where id > :n0 and profile_id = :'K'));
-select verifier('C', 'aucune autre push (titulaires, remplaçant accepté, « quelqu''un a pu prendre la place »)',
-  g_nb_push(:n0) = 1 and not exists (select 1 from notifications_log where id > :n0 and corps like '%a pu prendre la place%'));
-select verifier('C', 'événements : clôture puis fin (demande en attente)',
-  g_codes(:'k2') = 'demande_envoyee,demande_cloturee,swend_commence', g_codes(:'k2'));
-select verifier('C', 'événement de fin dans une conversation avec seulement un message', g_codes(:'c2') = 'swend_commence', g_codes(:'c2'));
-select verifier('C', 'événement de fin après l''acceptation (remplaçant sélectionné, inchangé)',
-  g_codes(:'t2') = 'demande_envoyee,demande_acceptee,swend_commence' and statut_fiche(:'t2') = 'acceptee+sel', g_codes(:'t2'));
-select verifier('C', 'événement de fin après une indisponibilité', g_codes(:'kd2') = 'indisponibilite_signalee,swend_commence', g_codes(:'kd2'));
-select verifier('C', 'conversation vierge : aucun événement créé', g_codes(:'v2') = '', g_codes(:'v2'));
-select verifier('C', 'l''événement de fin est le dernier de la conversation',
-  (select code from evenements_fil where remplacant_id = :'k2' order by created_at desc, id desc limit 1) = 'swend_commence');
-select verifier('C', 'Eliot lit l''événement de fin ; Kevin (sollicité, sans place) n''a plus accès',
-  compter_en_tant_que(:'E', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'k2', 'swend_commence')) = 1
-  and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2')) = 0);
-select verifier('C', 'Thomas (remplaçant sélectionné) lit l''événement de fin de sa conversation',
-  compter_en_tant_que(:'T', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'t2', 'swend_commence')) = 1);
-select verifier('C', 'David ne lit aucun événement côté Eliot',
-  compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2')) = 0);
-select verifier('C', 'répondre après la clôture : toujours swend_passe', g_rpc(:'K', 'repondre_demande_remplacement', :'k2', 'true') like '%swend_passe%');
+select verifier('C', 'le gel applique l''échéance d''abord : Swend annulé (echeance_h3), pas figé',
+  g_fige(:'p2') = 'non' and (select statut || '|' || annule_motif from pactes where id = :'p2') = 'annule|echeance_h3',
+  (select statut || '|' || coalesce(annule_motif, '-') from pactes where id = :'p2') || ' ' || g_fige(:'p2'));
+select verifier('C', 'demande en attente close ; place de Thomas, indisponibilité de Kevin côté David inchangées',
+  statut_fiche(:'k2') = 'cloturee' and statut_fiche(:'t2') = 'acceptee+sel'
+  and (select indisponible_spontanement from remplacants where id = :'kd2'));
+select verifier('C', 'push de l''annulation, une par personne (Kevin une seule fois, sur ses deux fiches)',
+  g_push(:n0, :'E') = 'Le Swend est annulé|Personne n’a pu prendre ta place à temps.'
+  and g_push(:n0, :'D') = 'Le Swend est annulé|Eliot ne pourra finalement pas être là.'
+  and g_push(:n0, :'T') = 'Le Swend est annulé|Tu n’auras finalement pas besoin de prendre la place de David.'
+  and g_push(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.' and g_nb_push(:n0) = 4,
+  g_push(:n0, :'K'));
+select verifier('C', 'jamais « La demande n’est plus d’actualité » ni « quelqu''un a pu prendre la place »',
+  not exists (select 1 from notifications_log where id > :n0 and (titre like '%plus d’actualité%' or corps like '%a pu prendre la place%')));
+select verifier('C', 'aucun événement de fin du Swend dans les conversations',
+  g_codes(:'k2') = 'demande_envoyee,demande_cloturee' and g_codes(:'c2') = ''
+  and g_codes(:'t2') = 'demande_envoyee,demande_acceptee' and g_codes(:'kd2') = 'indisponibilite_signalee' and g_codes(:'v2') = '',
+  g_codes(:'k2') || ' / ' || g_codes(:'t2'));
+select verifier('C', 'chat d''annulation entre titulaires (jamais de chat après le Swend)',
+  (select string_agg(nature, ',') from chats_apres_swend where pacte_id = :'p2') = 'annulation');
 select count(*) as nev from evenements_fil \gset
 select g_n0() as n1 \gset
 select figer_swends_passes() as nb2 \gset
-select verifier('C', 'moteur appelé une deuxième fois : rien (aucun doublon)',
-  :nb2 = 0 and (select count(*) from evenements_fil) = :nev and g_nb_push(:n1) = 0);
-select verifier('C', 'le statut reste confirme (aucun indicateur modifié)', (select statut from pactes where id = :'p2') = 'confirme');
+select appliquer_echeances_h3() \gset
+select verifier('C', 'moteurs rappelés : rien (aucun doublon)',
+  :nb2 = 0 and (select count(*) from evenements_fil) = :nev and g_nb_push(:n1) = 0 and g_fige(:'p2') = 'non');
 
 -- ===================================================================
--- D. Même personne sollicitée des deux côtés : une seule push
+-- C2. Moteur à H, Swend maintenu : clôture déjà faite, événement de fin,
+--     idempotence. Côté Eliot, la recherche est close avant H-3 (« Je peux
+--     finalement venir » : demande de Kevin retirée) ; côté David, Thomas a
+--     pris la place.
+-- ===================================================================
+select g_swend(now() + interval '4 hours') as p2m \gset
+select ajouter_fiche(:'E', :'p2m', 'initiateur', 'Kevin', '0600000003') as k2m \gset
+select ajouter_fiche(:'E', :'p2m', 'initiateur', 'Camille', '0600000004') as c2m \gset
+select ajouter_fiche(:'E', :'p2m', 'initiateur', 'Tom', '0700000010') as v2m \gset
+select ajouter_fiche(:'D', :'p2m', 'destinataire', 'Thomas', '0600000005') as t2m \gset
+select ajouter_fiche(:'D', :'p2m', 'destinataire', 'Kevin', '0600000003') as kd2m \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'k2m') \gset
+select g_rpc(:'E', 'je_peux_finalement_venir', :'p2m') \gset
+select g_rpc(:'D', 'envoyer_demande_remplacement', :'t2m') \gset
+select g_rpc(:'T', 'repondre_demande_remplacement', :'t2m', 'true') \gset
+select g_rpc(:'K', 'signaler_indisponibilite', :'kd2m') \gset
+select g_ecrire(:'C', :'c2m', 'Je peux venir si besoin') \gset
+select verifier('C2', 'préparation : demande de Kevin retirée (Eliot vient), Thomas a pris la place côté David',
+  statut_fiche(:'k2m') = 'null' and statut_fiche(:'t2m') = 'acceptee+sel');
+select g_dater(:'p2m', now() - interval '1 second');
+select g_n0() as n0 \gset
+select figer_swends_passes() as nb \gset
+select verifier('C2', 'le moteur fige le Swend passé (et lui seul), statut confirme',
+  :nb = 1 and g_fige(:'p2m') = 'traite' and (select statut from pactes where id = :'p2m') = 'confirme', :'nb');
+select verifier('C2', 'aucune push (plus aucune demande en attente à H)', g_nb_push(:n0) = 0);
+select verifier('C2', 'événements : retour du titulaire puis fin', g_codes(:'k2m') = 'demande_envoyee,retour_titulaire,swend_commence', g_codes(:'k2m'));
+select verifier('C2', 'événement de fin dans une conversation avec seulement un message', g_codes(:'c2m') = 'swend_commence', g_codes(:'c2m'));
+select verifier('C2', 'événement de fin après l''acceptation (remplaçant sélectionné, inchangé)',
+  g_codes(:'t2m') = 'demande_envoyee,demande_acceptee,swend_commence' and statut_fiche(:'t2m') = 'acceptee+sel', g_codes(:'t2m'));
+select verifier('C2', 'événement de fin après une indisponibilité', g_codes(:'kd2m') = 'indisponibilite_signalee,swend_commence', g_codes(:'kd2m'));
+select verifier('C2', 'conversation vierge : aucun événement créé', g_codes(:'v2m') = '', g_codes(:'v2m'));
+select verifier('C2', 'l''événement de fin est le dernier de la conversation',
+  (select code from evenements_fil where remplacant_id = :'k2m' order by created_at desc, id desc limit 1) = 'swend_commence');
+select verifier('C2', 'Eliot lit l''événement de fin ; Kevin (sollicité, sans place) n''a plus accès',
+  compter_en_tant_que(:'E', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'k2m', 'swend_commence')) = 1
+  and compter_en_tant_que(:'K', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2m')) = 0);
+select verifier('C2', 'Thomas (remplaçant sélectionné) lit l''événement de fin de sa conversation',
+  compter_en_tant_que(:'T', format('select count(*)::int from evenements_fil where remplacant_id = %L and code = %L', :'t2m', 'swend_commence')) = 1);
+select verifier('C2', 'David ne lit aucun événement côté Eliot',
+  compter_en_tant_que(:'D', format('select count(*)::int from evenements_fil where remplacant_id = %L', :'k2m')) = 0);
+select verifier('C2', 'répondre après H : toujours swend_passe', g_rpc(:'K', 'repondre_demande_remplacement', :'k2m', 'true') like '%swend_passe%');
+select count(*) as nev from evenements_fil \gset
+select g_n0() as n1 \gset
+select figer_swends_passes() as nb2 \gset
+select verifier('C2', 'moteur appelé une deuxième fois : rien (aucun doublon)',
+  :nb2 = 0 and (select count(*) from evenements_fil) = :nev and g_nb_push(:n1) = 0);
+select verifier('C2', 'le statut reste confirme (aucun indicateur modifié)', (select statut from pactes where id = :'p2m') = 'confirme');
+
+-- ===================================================================
+-- D. Même personne sollicitée des deux côtés, aucun traitement entre H-3
+--    et H : le gel annule (échéance), Kevin prévenu une seule fois
 -- ===================================================================
 select g_swend(now() + interval '4 hours') as p3 \gset
 select ajouter_fiche(:'E', :'p3', 'initiateur', 'Kevin', '0600000003') as ke3 \gset
@@ -194,23 +241,39 @@ select g_rpc(:'D', 'envoyer_demande_remplacement', :'kd3') \gset
 select g_dater(:'p3', now() - interval '1 second');
 select g_n0() as n0 \gset
 select figer_swends_passes() \gset
-select verifier('D', 'les deux demandes sont clôturées', statut_fiche(:'ke3') = 'cloturee' and statut_fiche(:'kd3') = 'cloturee');
-select verifier('D', 'Kevin : une seule push', g_push(:n0, :'K') = 'La demande n’est plus d’actualité|L’heure du Swend est passée.'
-  and g_nb_push(:n0) = 1, g_push(:n0, :'K'));
-select verifier('D', 'événement de fin dans les deux conversations',
-  g_codes(:'ke3') like '%,swend_commence' and g_codes(:'kd3') like '%,swend_commence');
+select verifier('D', 'Swend annulé (echeance_h3), les deux demandes closes',
+  (select statut || '|' || annule_motif from pactes where id = :'p3') = 'annule|echeance_h3'
+  and statut_fiche(:'ke3') = 'cloturee' and statut_fiche(:'kd3') = 'cloturee');
+select verifier('D', 'Kevin : une seule push ; Eliot et David : « Personne n’a pu prendre ta place à temps. »',
+  g_push(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.'
+  and g_push(:n0, :'E') = 'Le Swend est annulé|Personne n’a pu prendre ta place à temps.'
+  and g_push(:n0, :'D') = 'Le Swend est annulé|Personne n’a pu prendre ta place à temps.' and g_nb_push(:n0) = 3, g_push(:n0, :'K'));
+select verifier('D', 'aucun événement de fin', g_codes(:'ke3') not like '%swend_commence%' and g_codes(:'kd3') not like '%swend_commence%');
 
 -- ===================================================================
--- E. Moteur en retard de plus de 12 heures : état corrigé, sans push
+-- E. Moteur en retard de plus de 12 heures
 -- ===================================================================
+-- Recherche non résolue : le Swend est annulé quand même, et l'annulation
+-- est annoncée (push d'annulation, sans fenêtre de 12 heures).
 select g_swend(now() + interval '4 hours') as p4 \gset
 select ajouter_fiche(:'E', :'p4', 'initiateur', 'Kevin', '0600000003') as k4 \gset
 select g_rpc(:'E', 'envoyer_demande_remplacement', :'k4') \gset
 select g_dater(:'p4', now() - interval '13 hours');
 select g_n0() as n0 \gset
 select figer_swends_passes() \gset
-select verifier('E', 'demande clôturée, événements présents, aucune push tardive',
-  statut_fiche(:'k4') = 'cloturee' and g_codes(:'k4') like '%,swend_commence' and g_nb_push(:n0) = 0);
+select verifier('E', 'recherche non résolue, 13 h de retard : annulé, demande close, push d''annulation, aucun événement de fin',
+  (select statut || '|' || annule_motif from pactes where id = :'p4') = 'annule|echeance_h3'
+  and statut_fiche(:'k4') = 'cloturee' and g_codes(:'k4') not like '%swend_commence%'
+  and g_push(:n0, :'K') = 'Le Swend est annulé|Tu n’as plus besoin de répondre.', g_push(:n0, :'K'));
+-- Swend maintenu : état corrigé (événement de fin), aucune push tardive.
+select g_swend(now() + interval '4 hours') as p4m \gset
+select ajouter_fiche(:'E', :'p4m', 'initiateur', 'Camille', '0600000004') as c4m \gset
+select g_ecrire(:'C', :'c4m', 'Bon Swend') \gset
+select g_dater(:'p4m', now() - interval '13 hours');
+select g_n0() as n0 \gset
+select figer_swends_passes() \gset
+select verifier('E', 'Swend maintenu, 13 h de retard : figé, événement de fin, aucune push',
+  g_fige(:'p4m') = 'traite' and g_codes(:'c4m') = 'swend_commence' and g_nb_push(:n0) = 0);
 
 -- ===================================================================
 -- F. Changement d'heure (Europe/Paris) : H est un instant absolu
@@ -450,8 +513,13 @@ select verifier('M', 'avant H : Yann (désisté) → Swend, fiche', g_acces(:'Y'
 select verifier('M', 'avant H : Zoé (extérieure) → rien', g_acces(:'Z', :'p13', :'k13') = '0/0/0/0');
 select verifier('M', 'avant H : David ne voit rien du côté d''Eliot', g_acces(:'D', :'p13', :'c13') = '1/0/0/0', g_acces(:'D', :'p13', :'c13'));
 
+-- Avant H-3, David peut finalement venir : sa recherche est close (la
+-- demande de Xavier, en attente, est retirée), le Swend est maintenu (sinon, non résolue à H-3,
+-- elle l'annulerait, D-027 du 20/10).
+select g_rpc(:'D', 'je_peux_finalement_venir', :'p13') \gset
 select g_dater(:'p13', now() - interval '1 second');
 select figer_swends_passes() \gset
+select verifier('M', 'à H : Swend maintenu et figé', g_fige(:'p13') = 'traite' and (select statut from pactes where id = :'p13') = 'confirme');
 -- Après H : titulaires et remplaçant sélectionné seulement.
 select verifier('M', 'après H : Eliot garde le Swend et toutes les conversations de son côté',
   g_acces(:'E', :'p13', :'k13') = '1/1/0/3' and g_acces(:'E', :'p13', :'c13') = '1/1/1/1' and g_acces(:'E', :'p13', :'t13') = '1/1/0/3',
@@ -462,8 +530,8 @@ select verifier('M', 'après H : David garde le Swend et ses conversations (Walt
 select verifier('M', 'après H : Kevin (sélectionné) garde Swend, fiche et conversation', g_acces(:'K', :'p13', :'k13') = '1/1/0/3', g_acces(:'K', :'p13', :'k13'));
 select verifier('M', 'après H : Camille (prévue) n''a plus accès', g_acces(:'C', :'p13', :'c13') = '0/0/0/0', g_acces(:'C', :'p13', :'c13'));
 select verifier('M', 'après H : Thomas (demande close) n''a plus accès', g_acces(:'T', :'p13', :'t13') = '0/0/0/0', g_acces(:'T', :'p13', :'t13'));
-select verifier('M', 'après H : Xavier (sollicité, demande close à H) n''a plus accès',
-  g_acces(:'X', :'p13', :'x13') = '0/0/0/0' and statut_fiche(:'x13') = 'cloturee', g_acces(:'X', :'p13', :'x13'));
+select verifier('M', 'après H : Xavier (sollicité, demande retirée quand David est revenu) n''a plus accès',
+  g_acces(:'X', :'p13', :'x13') = '0/0/0/0' and statut_fiche(:'x13') = 'null', g_acces(:'X', :'p13', :'x13'));
 select verifier('M', 'après H : Walter (a refusé) n''a plus accès', g_acces(:'W', :'p13', :'w13') = '0/0/0/0', g_acces(:'W', :'p13', :'w13'));
 select verifier('M', 'après H : Yann (désisté) n''a plus accès', g_acces(:'Y', :'p13', :'y13') = '0/0/0/0', g_acces(:'Y', :'p13', :'y13'));
 select verifier('M', 'après H : Zoé (extérieure) → rien', g_acces(:'Z', :'p13', :'k13') = '0/0/0/0');

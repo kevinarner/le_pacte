@@ -32,7 +32,16 @@ du Swend, un imprévu doit être résolu.
    rappel du Jour J. Le titulaire qui cherchait reçoit « Le Swend est
    annulé / Personne n’a pu prendre ta place à temps. ». Jamais deux
    annulations ni deux push (verrou du Swend, état relu).
-4. Un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`,
+4. **Rattrapage** : si aucun traitement n'a réussi entre H-3 et H (jobs en
+   échec), le premier qui réussit ensuite annule le Swend de la même façon,
+   quel que soit le retard. Le gel à H (`figer_swends_passes()`, job
+   `swend-gel-a-h` existant, fréquence inchangée) applique désormais
+   l'échéance **avant** de figer : un tel Swend n'est jamais figé (pas de
+   « La demande n’est plus d’actualité », pas d'événement de fin) et n'a
+   jamais de chat après le Swend ; il a le chat d'annulation et les
+   conversations conservées de toute annulation. Un Swend maintenu
+   valablement (aucun côté en imprévu sans remplaçant) est figé comme avant.
+5. Un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`,
    inchangée (motif `titulaire`).
 
 Annulation, notifications d'annulation (« X ne pourra finalement pas être
@@ -62,7 +71,9 @@ Objets de production :
   `ajouter_et_demander_remplacement(uuid, text, text, text, text)`,
   `annuler_demande_remplacement(uuid)`, `je_peux_finalement_venir(uuid)`,
   `repondre_demande_remplacement(uuid, boolean)`,
-  `se_desister_du_remplacement(uuid)`, `envoyer_rappels_dus(timestamptz)` ;
+  `se_desister_du_remplacement(uuid)`, `envoyer_rappels_dus(timestamptz)`,
+  `figer_swends_passes(timestamptz)` (une ligne de plus : l'échéance
+  d'abord) ;
 - planification créée : job pg_cron `swend-echeance-h3`, `* * * * *`,
   `select public.appliquer_echeances_h3()` (`cron.schedule`, même rôle et
   même base que `swend-rappels`, vérifié) ; jobs existants inchangés ;
@@ -74,8 +85,8 @@ Function modifiés : le motif `echeance_h3` est déjà admis par la contrainte
 `pactes_annule_motif_valeurs` (D-027-02).
 
 Niveau 2 : la règle annule automatiquement des Swends réels et change le
-comportement d'actions réelles (demander, répondre, se désister) et des
-notifications. Sauvegarde ciblée, rollback, tests et préconditions
+comportement d'actions réelles (demander, répondre, se désister), du gel à H
+et des notifications. Sauvegarde ciblée, rollback, tests et préconditions
 obligatoires.
 
 ## Préconditions
@@ -84,31 +95,34 @@ obligatoires.
 refuse sinon.
 
 **État relu en lecture seule le 20/10/2026** (endpoint `…/read-only`) :
-D-027-02 appliqué, motif `echeance_h3` admis ; les 7 fonctions remplacées
+D-027-02 appliqué, motif `echeance_h3` admis ; les 8 fonctions remplacées
 identiques aux migrations du dépôt (empreintes ci-dessous, identiques au
 banc) ; aucune fonction de l'échéance ; pg_cron 1.6.4, `cron.schedule(text,
 text, text)` et `cron.unschedule(bigint)` présents ; jobs `swend-chat-apres`
 (`* * * * *`), `swend-gel-a-h` et `swend-rappels` (`*/5 * * * *`), actifs,
-rôle `postgres`, base `postgres` ; aucun job `swend-echeance-h3` ; 0 côté
-en imprévu.
+rôle `postgres`, base `postgres` ; aucun job `swend-echeance-h3` ;
+0 imprévu déclaré, donc aucun Swend passé ou proche resté en imprévu non
+résolu.
 
 Empreintes attendues (corps normalisé) : `ajouter_et_demander_remplacement`
 `d1e31b12…`, `annuler_demande_remplacement` `0b313996…`,
 `envoyer_demandes_remplacement` `2b2bb344…`, `envoyer_rappels_dus`
-`fa9ffe25…`, `je_peux_finalement_venir` `9631961e…`,
-`repondre_demande_remplacement` `902fd120…`, `se_desister_du_remplacement`
-`ce38814e…` (valeurs complètes dans `appliquer.sql`).
+`fa9ffe25…`, `figer_swends_passes` `2803314c…`, `je_peux_finalement_venir`
+`9631961e…`, `repondre_demande_remplacement` `902fd120…`,
+`se_desister_du_remplacement` `ce38814e…` (valeurs complètes dans
+`appliquer.sql`).
 
 `sauvegarde.sql` et `appliquer.sql` revérifient tout avant d'écrire et
 annulent tout sinon : D-027-02 appliqué, D-027-03 pas encore appliqué,
-7 empreintes identiques, job `swend-rappels` inchangé, **aucun job
-`swend-echeance-h3`** et `cron.schedule` disponible, **aucun Swend en
-imprévu dont l'heure tombe dans les 3 h 10 qui viennent** (sinon le premier
-passage du job l'annulerait aussitôt : arbitrage nécessaire), sauvegarde
-faite (pour appliquer). Après la création du job, `appliquer.sql` vérifie
-qu'il est actif, chaque minute, avec la commande attendue, sous le même rôle
-et sur la même base que `swend-rappels`, et que `swend-rappels` est
-inchangé.
+8 empreintes identiques, job `swend-rappels` inchangé, **aucun job
+`swend-echeance-h3`** et `cron.schedule` disponible, **aucun Swend confirmé
+non figé, déjà passé ou dont l'heure tombe dans les 3 h 10 qui viennent,
+avec un côté en imprévu sans remplaçant** (le premier passage d'un job
+l'annulerait aussitôt, y compris un Swend passé maintenu sous l'ancienne
+règle : arbitrage nécessaire), sauvegarde faite (pour appliquer). Après la
+création du job, `appliquer.sql` vérifie qu'il est actif, chaque minute,
+avec la commande attendue, sous le même rôle et sur la même base que
+`swend-rappels`, et que `swend-rappels` est inchangé.
 
 À relire juste avant le Go (lecture seule) :
 
@@ -116,45 +130,61 @@ inchangé.
 select (select json_object_agg(p.proname, md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')))
           from pg_proc p where p.pronamespace = 'public'::regnamespace
            and p.proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement',
-             'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir',
-             'repondre_demande_remplacement', 'se_desister_du_remplacement')) as md5_fonctions,
+             'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'figer_swends_passes',
+             'je_peux_finalement_venir', 'repondre_demande_remplacement',
+             'se_desister_du_remplacement')) as md5_fonctions,
        to_regclass('public.fils_imprevu_fermes') is not null as d027_02,
        to_regprocedure('public.appliquer_echeances_h3(timestamptz)') is null as pas_encore_applique,
        (select count(*) from cron.job where jobname = 'swend-rappels' and active) as job_rappels,  -- 1
        (select count(*) from cron.job where jobname = 'swend-echeance-h3') as job_echeance,        -- 0
-       (select count(*) from public.pactes p where p.statut = 'confirme' and p.date_retenue > now()
+       (select count(*) from public.pactes p where p.statut = 'confirme'
           and p.date_retenue <= now() + interval '3 hours 10 minutes'
-          and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id)) as imprevus_sous_3h; -- 0
+          and not exists (select 1 from public.swends_figes f where f.pacte_id = p.id)
+          and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id
+                        and not exists (select 1 from public.remplacants r
+                                        where r.pacte_id = p.id and r.cote = d.cote and r.selectionne))
+       ) as imprevus_non_resolus_passes_ou_proches;                                                -- 0
 ```
 
 **Tests** (banc QA, 20/10/2026) : suite
-`qa/metier/sql/99h_echeance_h3.sql` (51 vérifications : juste avant H-3,
-à H-3 exactement, après H-3, désistement à H-3 et après, deux côtés en
-recherche, autre côté remplacé, rappels, après H, idempotence,
-confidentialité, chats, conversations, D-024, suivi de réservation) ;
-suites `98` et `99` réalignées (recherche jusqu'à H abandonnée) ;
-concurrence (`qa/metier/concurrence.sh`, connexions séparées) :
-acceptation tenue ouverte juste avant H-3 pendant l'échéance (Swend
-maintenu, course 6) ; **acceptation demandée avant H-3 mais en attente du
-verrou du Swend jusqu'après H-3 → refusée `echeance_h3`, puis Swend annulé**
-(course 6 ter ; la même course échoue si l'heure est lue au début de la
-transaction : preuve `qa/preuves/2026-10-20_D-027-03_mutation_6ter.txt`) ;
-10 courses acceptation / échéance de part et d'autre de H-3 (5 acceptées,
-5 annulées, toujours cohérentes, course 7) ; 3 échéances simultanées
-(course 7 bis) ; job de la minute et moteur des rappels au même moment
-(une seule annulation, une push par personne, aucun rappel, course 7 ter) ;
-métier complet, Dart et E2E : voir `qa/preuves/README.md` (D-027-03).
+`qa/metier/sql/99h_echeance_h3.sql` (juste avant H-3, à H-3 exactement,
+après H-3, désistement à H-3 et après, deux côtés en recherche, autre côté
+remplacé, rappels, idempotence, confidentialité, chats, conversations,
+D-024, suivi de réservation ; **jobs en échec entre H-3 et H puis reprise
+après H** par le gel, par le job de l'échéance, par les rappels, par le
+chat après le Swend en premier, 3 jours plus tard ; Swends maintenus
+valablement figés comme avant, avec leur chat après le Swend ; Swend déjà
+figé jamais repris) ; suite `98` réalignée (un Swend dont une demande
+attend encore à H est annulé, jamais figé ; les mécanismes du gel sont
+vérifiés sur des Swends maintenus) ; suite `99` réalignée ; concurrence
+(`qa/metier/concurrence.sh`, connexions séparées) : acceptation tenue
+ouverte juste avant H-3 pendant l'échéance (Swend maintenu, course 6) ;
+**acceptation demandée avant H-3 mais en attente du verrou du Swend
+jusqu'après H-3 → refusée `echeance_h3`, puis Swend annulé** (course 6 ter ;
+la même course échoue si l'heure est lue au début de la transaction :
+preuve `qa/preuves/2026-10-20_D-027-03_mutation_6ter.txt`) ; 10 courses
+acceptation / échéance de part et d'autre de H-3 (course 7) ; 3 échéances
+simultanées (course 7 bis) ; job de la minute et moteur des rappels au même
+moment (course 7 ter) ; gel d'un Swend maintenu, 3 exécutions simultanées
+(course 8) ; **jobs en échec jusqu'après H, reprise simultanée** (gel deux
+fois, échéance, chat après le Swend, rappels : une annulation, jamais figé,
+chat d'annulation seul, une push par personne, course 8 bis). La suite
+`99h` avec l'ancien code échoue sur la reprise (Swend figé, « La demande
+n’est plus d’actualité », « Alors, ce Swend ? ») : preuve
+`qa/preuves/2026-10-20_D-027-03_rattrapage_ancien_code.txt`. Résultats
+chiffrés (métier, Dart, E2E) : `qa/preuves/README.md` (D-027-03).
 
 **Répétition** sur une base locale reproduisant la production attendue
 (toutes les migrations sauf celle-ci, données fictives ; pg_cron n'existe
 pas sur le banc : table `cron.job` simulée avec les 3 jobs de production,
 rôle et base, et fonctions `cron.schedule(text, text, text)` /
 `cron.unschedule(bigint)` aux signatures de pg_cron 1.6 ; journal et
-scripts dans `qa/preuves/2026-10-20_D-027-03_repetition*`) — 9 refus
+scripts dans `qa/preuves/2026-10-20_D-027-03_repetition*`) — 10 refus
 attendus, tous obtenus :
 - job `swend-echeance-h3` déjà présent : `sauvegarde.sql` refusé ; job
   `swend-rappels` inactif : refusé ; Swend en imprévu dont l'heure tombe
-  dans les 3 h 10 : refusé ; `appliquer.sql` sans sauvegarde refusé ;
+  dans les 3 h 10 : refusé ; **Swend passé resté en imprévu non résolu
+  (ancienne règle) : refusé** ; `appliquer.sql` sans sauvegarde refusé ;
   `swend-rappels` sous un autre rôle : `appliquer.sql` refusé par
   l'assertion finale et **tout annulé** (0 fonction de l'échéance, 0 job) ;
 - `sauvegarde.sql`, `appliquer.sql`, `verifier.sql` OK (jobs ensuite :
@@ -162,48 +192,51 @@ attendus, tous obtenus :
   `swend-rappels` toutes les 5 minutes ; 0 annulation `echeance_h3`,
   3 Swends = 3 sauvegardés, 0 changé) ; seconde exécution de
   `appliquer.sql` et de `sauvegarde.sql` refusée (« déjà appliqué ») ;
-- `rollback.sql` immédiat OK (7/7 fonctions à l'empreinte et aux droits de
+- `rollback.sql` immédiat OK (8/8 fonctions à l'empreinte et aux droits de
   la sauvegarde, 2 fonctions de l'échéance supprimées, job
   `swend-echeance-h3` retiré, les 3 autres inchangés), `verifier.sql`
   refuse ensuite, second rollback refusé, réapplication OK ;
 - usage réel simulé : acceptation à H-3 passé refusée (`echeance_h3`) ;
   **commande du job telle qu'enregistrée dans `cron.job` exécutée** : Swend
   en recherche annulé (`echeance_h3`), demande close ; moteur des rappels
-  ensuite : 0 rappel ; une seule push par personne (« On a besoin de toi »
-  initiale, puis « Personne n’a pu prendre ta place à temps. », « Eliot ne
-  pourra finalement pas être là. », « Tu n’as plus besoin de répondre. ») ;
-  désistement après H-3 : Swend annulé ; Swend normal maintenu ;
-  `rollback.sql` après usage OK (les 2 annulations restent, job retiré),
-  ancien code de nouveau actif (demande à H-1 acceptée) ;
-- toutes les suites SQL sur une base où l'échéance vient du paquet :
-  1116/0 (`qa/preuves/2026-10-20_D-027-03_suites_base_paquet.txt`).
+  ensuite : 0 rappel ; une seule push par personne ; désistement après
+  H-3 : Swend annulé ; Swend normal maintenu ; **rattrapage** : Swend en
+  recherche déplacé d'un coup à H + 30 min (aucun traitement entre H-3 et
+  H), puis **commande enregistrée du job du gel** : annulé (`echeance_h3`),
+  jamais figé, chat d'annulation, demande close, 3 push (« Personne n’a pu
+  prendre ta place à temps. », « Eliot ne pourra finalement pas être
+  là. », « Tu n’as plus besoin de répondre. ») ; `rollback.sql` après
+  usage OK (les 3 annulations restent, job retiré), ancien code de nouveau
+  actif (demande à H-1 acceptée) ;
+- toutes les suites SQL sur une base où l'échéance vient du paquet
+  (`qa/preuves/2026-10-20_D-027-03_suites_base_paquet.txt`).
 
 ## Impact attendu
 
 - Immédiat : aucune donnée modifiée (la précondition exclut tout Swend en
-  imprévu proche de H-3). Dès l'exécution : actions de recherche et de
-  réponse refusées à partir de 3 heures avant un Swend ; désistement
-  tardif = annulation.
+  imprévu non résolu passé ou proche de H-3). Dès l'exécution : actions de
+  recherche et de réponse refusées à partir de 3 heures avant un Swend ;
+  désistement tardif = annulation.
 - **Blocage strict et délai de traitement sont distincts.** Le blocage des
   actions vaut dès H-3 pile, par la base, quel que soit l'état des jobs.
   L'annulation d'une recherche non résolue, elle, attend le passage d'un
   job : normalement dans la minute qui suit H-3 (`swend-echeance-h3`) ; si
-  seul ce job est en défaut, au passage suivant de `swend-rappels` (au plus
-  5 minutes). **Aucun délai n'est garanti si les jobs échouent** ou si
-  pg_cron s'arrête : l'annulation attend la prochaine exécution réussie ;
-  entre-temps le Swend reste « confirmé », sans recherche possible, sans
-  annulation ni push ; après H, l'échéance ne s'applique plus (gel à H,
-  D-023a ; arbitrage manuel).
-- Charge : une requête de plus par minute (Swends `confirme` à venir, dont
+  seul ce job est en défaut, au passage suivant de `swend-rappels` ou de
+  `swend-gel-a-h` (au plus 5 minutes). **Aucun délai n'est garanti si les
+  jobs échouent** ou si pg_cron s'arrête : entre-temps le Swend reste
+  « confirmé », sans recherche possible, sans annulation ni push ; **le
+  premier traitement réussi l'annule ensuite, même après H** (gel compris),
+  avec les push habituelles de l'annulation, sans fenêtre de 12 heures.
+- Charge : une requête de plus par minute (Swends `confirme` non figés dont
   H-3 est atteint, avec un imprévu déclaré) ; aucun rappel supplémentaire.
-- Durée : une transaction courte (9 fonctions, 1 job).
+- Durée : une transaction courte (10 fonctions, 1 job).
 
 ## Vérifications après exécution
 
 `verifier.sql` (lecture seule) ne lève aucune erreur (fonctions et
-empreintes, appel en tête du moteur des rappels, rien d'exposé à l'app,
-`swend-rappels` inchangé, `swend-echeance-h3` actif chaque minute avec la
-commande attendue, même rôle et même base) et affiche :
+empreintes, appel en tête du moteur des rappels et du gel, rien d'exposé à
+l'app, `swend-rappels` inchangé, `swend-echeance-h3` actif chaque minute
+avec la commande attendue, même rôle et même base) et affiche :
 `annulations_echeance_h3 = 0`, `swends = swends_sauvegardes`
 (hors Swends créés entre-temps), `swends_changes = 0`.
 
@@ -220,23 +253,24 @@ select j.jobname, count(*) as executions, count(*) filter (where d.status = 'suc
 ```
 
 Attendu : `swend-echeance-h3` environ une exécution par minute, toutes
-`succeeded`, durée courte ; `swend-rappels`, `swend-gel-a-h` et
-`swend-chat-apres` toujours `succeeded`. Une exécution `failed` →
-`return_message`, puis rollback si nécessaire. Le délai réel d'une
-annulation à H-3 ne sera observé qu'au premier cas réel (test humain).
-`cron.unschedule` n'est exercé en production que par un rollback.
+`succeeded`, durée courte ; `swend-rappels`, `swend-gel-a-h` (qui appelle
+maintenant l'échéance) et `swend-chat-apres` toujours `succeeded`. Une
+exécution `failed` → `return_message`, puis rollback si nécessaire. Le
+délai réel d'une annulation à H-3 ne sera observé qu'au premier cas réel
+(test humain). `cron.unschedule` n'est exercé en production que par un
+rollback.
 
 ## Rollback
 
 Quand : régression constatée sur les demandes, les réponses, le
-désistement, les rappels ou une annulation à tort. Exécuter
+désistement, les rappels, le gel à H ou une annulation à tort. Exécuter
 `scripts/prod_ecrire.sh D-027-03 <empreinte> --rollback`.
 
-Effet : les 7 fonctions retrouvent leur définition de production d'origine
-(contrôlée contre la sauvegarde : empreinte et droits) ; le job
-`swend-echeance-h3` est retiré (`cron.unschedule`), avant les 2 fonctions
-de l'échéance, qui sont supprimées ; `swend-rappels` reste actif (vérifié).
-Refusé si D-027-03 n'est pas appliqué.
+Effet : les 8 fonctions (dont le gel à H) retrouvent leur définition de
+production d'origine (contrôlée contre la sauvegarde : empreinte et
+droits) ; le job `swend-echeance-h3` est retiré (`cron.unschedule`), avant
+les 2 fonctions de l'échéance, qui sont supprimées ; `swend-rappels` reste
+actif (vérifié). Refusé si D-027-03 n'est pas appliqué.
 
 Ne rétablit pas : les Swends déjà annulés par l'échéance ou par un
 désistement tardif restent annulés (annulations réelles, chacun a été
@@ -250,7 +284,7 @@ sur les données.
 `sauvegarde.sql` (étape `sauvegarde`, avant toute modification), dans le
 schéma interne `sauvegarde` (aucun accès pour l'app, vérifié) :
 - `d027_03_fonctions_20261020` : définition exacte (`pg_get_functiondef`),
-  droits et empreinte des 7 fonctions remplacées ;
+  droits et empreinte des 8 fonctions remplacées ;
 - `d027_03_pactes_20261020` : statut, date retenue, auteur, date et motif
   d'annulation de tous les Swends (identifiants et dates seulement).
 
@@ -269,7 +303,9 @@ seulement pour un Swend qui se trouve entre H-3 et H pendant cette fenêtre :
 - **base d'abord** (app du lot 3 publiée) : à partir de H-3, les
   actions de recherche échouent avec un message générique (« Impossible
   pour le moment. Réessaie. ») et la confirmation du désistement annonce une
-  recherche alors que la base annule le Swend.
+  recherche alors que la base annule le Swend ; une personne de confiance
+  non sélectionnée ne retrouve pas, dans son historique, un Swend annulé
+  dont l'heure est passée (corrigé dans l'app de ce paquet).
 
 Procédure recommandée : fenêtre choisie quand **aucun Swend scellé n'a son
 heure dans les 3 heures qui suivent** (relu en lecture seule juste avant) ;

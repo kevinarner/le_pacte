@@ -37,3 +37,10 @@ uniquement ; aucune donnée ni aucun identifiant de production.
   verrou jusqu'après H-3) échoue si l'heure est lue au début de la
   transaction (`now()`) au lieu d'après les verrous (`clock_timestamp()`) ;
   fonction d'origine restaurée et vérifiée par empreinte.
+- `2026-10-20_D-027-03_rattrapage_ancien_code.txt` : jobs en échec entre
+  H-3 et H, puis reprise après H (section H de `99h_echeance_h3.sql`) ;
+  avec le code d'avant la correction, 9 échecs (Swend figé et maintenu,
+  « La demande n’est plus d’actualité », « Alors, ce Swend ? ») ; après la
+  correction (l'échéance s'applique aussi après H, le gel l'applique
+  d'abord), 66/0. La répétition du paquet rejoue ce cas avec la commande
+  enregistrée du job du gel.

@@ -2,7 +2,8 @@
 -- résoudre un imprévu. Juste avant H-3, à H-3 exactement, après H-3 ;
 -- recherche non résolue (un côté, deux côtés, autre côté remplacé),
 -- désistement tardif, nouvel imprévu tardif, Swend maintenu, idempotence,
--- rappels, confidentialité, chats et conversations (lot 2 inchangé).
+-- rappels, confidentialité, chats et conversations (lot 2 inchangé) ; jobs en
+-- échec entre H-3 et H puis reprise après H (gel, chat après le Swend).
 -- Utilise les outils de 10_imprevu.sql (verifier, en_tant_que,
 -- compter_en_tant_que, statut_fiche, ajouter_fiche), 98_gel_a_h.sql (g_swend,
 -- g_dater, g_rpc, g_ecrire, g_codes, g_push, g_n0) et
@@ -264,19 +265,144 @@ select verifier('G', 'Swend maintenu : rappels du Jour J habituels (2)',
   and (select count(*) from notifications_log where id > :n0 and data->>'type' = 'rappel' and data->>'pacte_id' = :'pg2') = 2);
 
 -- ===================================================================
--- H. Après H : l'échéance ne touche plus le Swend (gel à H, D-023a)
+-- H. Jobs en échec entre H-3 et H, reprise après H : le premier traitement
+--    réussi annule (rattrapage), quel que soit le job qui reprend ; jamais
+--    de gel ni de chat après le Swend, aucune push en double ; les Swends
+--    maintenus valablement sont figés comme avant.
+--    Instants explicites (décembre 2037) : aucun moteur n'est appelé entre
+--    les actions (avant H-3) et la reprise, qui simule l'interruption.
 -- ===================================================================
-select g_swend(now() + interval '1 day') as ph \gset
-select ajouter_fiche(:'E', :'ph', 'initiateur', 'Kevin', '0600000003') as kh \gset
-select g_rpc(:'E', 'envoyer_demande_remplacement', :'kh') \gset
-select g_dater(:'ph', now() - interval '1 minute');
-select verifier('H', 'Swend passé (H atteint) : l''échéance ne l''annule pas', appliquer_echeances_h3() >= 0
-  and (select statut from pactes where id = :'ph') = 'confirme');
--- Le gel à H (D-023a) le traite ensuite comme avant (filet de sécurité) ;
--- rien ne reste en suspens pour les suites suivantes.
-select figer_swends_passes() \gset
-select verifier('H', 'gel à H : demande en attente close (filet si l''échéance n''a pas tourné)',
-  statut_fiche(:'kh') = 'cloturee' and g_fige(:'ph') = 'traite');
+-- Push liées à un Swend (titulaires et personnes de confiance) depuis n0,
+-- marquées E (Eliot), D (David), K (Kevin), C (Camille).
+create or replace function h3_push_swend(p_n0 bigint, p uuid) returns text language sql as $$
+  select coalesce(string_agg(case n.profile_id when '00000000-0000-0000-0000-00000000000e' then 'E'
+      when '00000000-0000-0000-0000-00000000000d' then 'D' when '00000000-0000-0000-0000-00000000000a' then 'K'
+      when '00000000-0000-0000-0000-00000000000c' then 'C' else '?' end || ':' || n.titre || '|' || n.corps, ' ## ' order by n.id), '')
+  from notifications_log n
+  where n.id > p_n0 and (n.data->>'pacte_id' = p::text
+     or n.data->>'remplacant_id' in (select id::text from remplacants where pacte_id = p))
+$$;
+-- Swend à p_date : Eliot cherche (Kevin en attente, Camille a refusé), avant
+-- H-3 ; ensuite plus aucun traitement jusqu'à la reprise.
+create or replace function h3_interrompu(p_date timestamptz) returns uuid language plpgsql as $$
+declare v uuid; k uuid; c uuid;
+begin
+  v := g_swend(p_date);
+  k := ajouter_fiche('00000000-0000-0000-0000-00000000000e', v, 'initiateur', 'Kevin', '0600000003');
+  c := ajouter_fiche('00000000-0000-0000-0000-00000000000e', v, 'initiateur', 'Camille', '0600000004');
+  perform g_rpc('00000000-0000-0000-0000-00000000000e', 'envoyer_demande_remplacement', k);
+  perform g_rpc('00000000-0000-0000-0000-00000000000e', 'envoyer_demande_remplacement', c);
+  perform g_rpc('00000000-0000-0000-0000-00000000000c', 'repondre_demande_remplacement', c, 'false');
+  return v;
+end $$;
+create or replace function h3_fiche(p uuid, p_prenom text) returns uuid language sql as $$
+  select id from remplacants where pacte_id = p and prenom = p_prenom
+$$;
+-- Les trois push d'une annulation à l'échéance quand Eliot cherchait.
+\set PUSH_ANNULATION 'E:Le Swend est annulé|Personne n’a pu prendre ta place à temps. ## D:Le Swend est annulé|Eliot ne pourra finalement pas être là. ## K:Le Swend est annulé|Tu n’as plus besoin de répondre.'
+
+-- H1. Reprise par le gel à H (job swend-gel-a-h), 10 minutes après H.
+select h3_interrompu('2037-12-01 19:00+00') as ph1 \gset
+select h3_fiche(:'ph1', 'Kevin') as kh1 \gset
+select h3_fiche(:'ph1', 'Camille') as ch1 \gset
+select verifier('H', 'interruption : à H + 10 min, aucun traitement, le Swend est encore confirmé (Kevin en attente)',
+  (select statut from pactes where id = :'ph1') = 'confirme' and statut_fiche(:'kh1') = 'envoyee');
+select g_n0() as n0 \gset
+select figer_swends_passes('2037-12-01 19:10+00') \gset
+select verifier('H', 'reprise par le gel : Swend annulé (echeance_h3), pas figé',
+  ac_annulation(:'ph1') = 'annule|echeance_h3|null|date' and g_fige(:'ph1') = 'non', ac_annulation(:'ph1') || ' ' || g_fige(:'ph1'));
+select verifier('H', 'reprise par le gel : demande de Kevin close, refus de Camille inchangé',
+  statut_fiche(:'kh1') = 'cloturee' and statut_fiche(:'ch1') = 'refusee');
+select verifier('H', 'reprise par le gel : push de l''annulation, une par personne, jamais « La demande n’est plus d’actualité »',
+  h3_push_swend(:n0, :'ph1') = :'PUSH_ANNULATION', h3_push_swend(:n0, :'ph1'));
+select verifier('H', 'reprise par le gel : chat d''annulation, aucun événement de fin du Swend',
+  ac_chat(:'ph1') = 'annulation' and g_codes(:'kh1') not like '%swend_commence%' and g_codes(:'ch1') not like '%swend_commence%',
+  ac_chat(:'ph1') || ' ' || g_codes(:'kh1'));
+select verifier('H', 'reprise par le gel : conversation avec Kevin conservée et écrivable (D-027, P1)',
+  g_ecrire(:'E', :'kh1', 'Dommage') = 'OK' and g_ecrire(:'K', :'kh1', 'Désolé') = 'OK');
+select g_n0() as n1 \gset
+select ouvrir_chats_apres_swend(ouverture_chat_apres_swend('2037-12-01 19:00+00') + interval '1 minute') \gset
+select appliquer_echeances_h3('2037-12-01 22:05+00') \gset
+select figer_swends_passes('2037-12-01 22:05+00') \gset
+select envoyer_rappels_dus('2037-12-01 22:05+00') \gset
+select verifier('H', 'traitements suivants (chat après le Swend, échéance, gel, rappels) : rien de plus, aucun doublon',
+  h3_push_swend(:n1, :'ph1') = '' and ac_chat(:'ph1') = 'annulation' and g_fige(:'ph1') = 'non'
+  and ac_annulation(:'ph1') = 'annule|echeance_h3|null|date'
+  and (select count(*) from chats_apres_swend where pacte_id = :'ph1') = 1, h3_push_swend(:n1, :'ph1'));
+
+-- H2. Reprise par le job de l'échéance, 2 heures après H.
+select h3_interrompu('2037-12-02 19:00+00') as ph2 \gset
+select g_n0() as n0 \gset
+select verifier('H', 'reprise par le job de l''échéance (H + 2 h) : Swend annulé',
+  appliquer_echeances_h3('2037-12-02 21:00+00') >= 1 and ac_annulation(:'ph2') = 'annule|echeance_h3|null|date');
+select figer_swends_passes('2037-12-02 21:01+00') \gset
+select ouvrir_chats_apres_swend(ouverture_chat_apres_swend('2037-12-02 19:00+00') + interval '1 minute') \gset
+select verifier('H', 'puis gel et chat après le Swend : jamais figé, seul le chat d''annulation, push une fois chacun',
+  g_fige(:'ph2') = 'non' and ac_chat(:'ph2') = 'annulation' and h3_push_swend(:n0, :'ph2') = :'PUSH_ANNULATION',
+  h3_push_swend(:n0, :'ph2'));
+
+-- H3. Reprise par le moteur des rappels, 30 minutes après H.
+select h3_interrompu('2037-12-03 19:00+00') as ph3 \gset
+select g_n0() as n0 \gset
+select envoyer_rappels_dus('2037-12-03 19:30+00') \gset
+select verifier('H', 'reprise par le moteur des rappels : Swend annulé, aucun rappel, push une fois chacun',
+  ac_annulation(:'ph3') = 'annule|echeance_h3|null|date' and h3_push_swend(:n0, :'ph3') = :'PUSH_ANNULATION',
+  h3_push_swend(:n0, :'ph3'));
+
+-- H4. Le job du chat après le Swend passe le premier, après l'heure
+-- d'ouverture du chat : il ne fait rien (Swend non figé) ; le gel annule.
+select h3_interrompu('2037-12-04 19:00+00') as ph4 \gset
+select g_n0() as n0 \gset
+select ouvrir_chats_apres_swend(ouverture_chat_apres_swend('2037-12-04 19:00+00') + interval '5 minutes') \gset
+select verifier('H', 'chat après le Swend en premier (H + 3 h 05) : aucun chat ouvert, Swend toujours confirmé',
+  ac_chat(:'ph4') = 'aucun' and (select statut from pactes where id = :'ph4') = 'confirme' and h3_push_swend(:n0, :'ph4') = '');
+select figer_swends_passes('2037-12-04 22:06+00') \gset
+select ouvrir_chats_apres_swend('2037-12-04 22:07+00') \gset
+select verifier('H', 'puis gel : annulé, chat d''annulation seulement, jamais « Alors, ce Swend ? »',
+  ac_annulation(:'ph4') = 'annule|echeance_h3|null|date' and ac_chat(:'ph4') = 'annulation'
+  and h3_push_swend(:n0, :'ph4') = :'PUSH_ANNULATION', h3_push_swend(:n0, :'ph4'));
+
+-- H5. Swends maintenus valablement, même interruption puis reprise : rien
+-- ne change pour eux (gel, événement de fin, chat après le Swend).
+select g_swend('2037-12-06 19:00+00') as pm1 \gset
+select ajouter_fiche(:'E', :'pm1', 'initiateur', 'Kevin', '0600000003') as km1 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'km1') \gset
+select g_rpc(:'K', 'repondre_demande_remplacement', :'km1', 'true') \gset
+select g_swend('2037-12-06 19:00+00') as pm2 \gset
+select ajouter_fiche(:'E', :'pm2', 'initiateur', 'Kevin', '0600000003') as km2 \gset
+select g_ecrire(:'E', :'km2', 'Au cas où') \gset
+select g_swend('2037-12-06 19:00+00') as pm3 \gset
+select ajouter_fiche(:'E', :'pm3', 'initiateur', 'Kevin', '0600000003') as km3 \gset
+select g_rpc(:'E', 'envoyer_demande_remplacement', :'km3') \gset
+select g_rpc(:'E', 'je_peux_finalement_venir', :'pm3') \gset
+select g_n0() as n0 \gset
+select figer_swends_passes('2037-12-06 19:10+00') \gset
+select verifier('H', 'maintenus (Kevin a accepté ; aucune demande ; « Je peux finalement venir ») : figés, confirmés',
+  g_fige(:'pm1') = 'traite' and g_fige(:'pm2') = 'traite' and g_fige(:'pm3') = 'traite'
+  and (select count(*) from pactes where id in (:'pm1', :'pm2', :'pm3') and statut = 'confirme' and annule_motif is null) = 3);
+select verifier('H', 'maintenus : événement de fin comme avant, aucune push d''annulation',
+  g_codes(:'km1') like '%swend_commence' and g_codes(:'km2') like '%swend_commence'
+  and h3_push_swend(:n0, :'pm1') || h3_push_swend(:n0, :'pm2') || h3_push_swend(:n0, :'pm3') not like '%annulé%');
+select ouvrir_chats_apres_swend(ouverture_chat_apres_swend('2037-12-06 19:00+00') + interval '1 minute') \gset
+select verifier('H', 'maintenus : chat après le Swend ouvert (« Alors, ce Swend ? »), Kevin participant là où il remplace',
+  ac_chat(:'pm1') = 'apres_swend' and ac_chat(:'pm2') = 'apres_swend' and ac_chat(:'pm3') = 'apres_swend'
+  and h3_push_swend(:n0, :'pm1') like '%K:Alors, ce Swend ?%', h3_push_swend(:n0, :'pm1'));
+
+-- H6. Garde-fou : Swend déjà figé par un gel antérieur à la règle (cas exclu
+-- par la précondition du paquet) : l'échéance ne revient pas dessus.
+select h3_interrompu('2037-12-07 19:00+00') as ph6 \gset
+insert into swends_figes (pacte_id, date_retenue, rattrapage) values (:'ph6', '2037-12-07 19:00+00', true);
+select appliquer_echeances_h3('2037-12-07 19:10+00') \gset
+select verifier('H', 'Swend déjà figé avant la règle : laissé tel quel (ni annulation ni push)',
+  (select statut from pactes where id = :'ph6') = 'confirme');
+
+-- H7. Interruption longue : reprise 3 jours après H par le gel.
+select h3_interrompu('2037-12-10 19:00+00') as ph7 \gset
+select g_n0() as n0 \gset
+select figer_swends_passes('2037-12-13 19:00+00') \gset
+select verifier('H', 'reprise 3 jours après H : annulé quand même, chat d''annulation, push une fois chacun',
+  ac_annulation(:'ph7') = 'annule|echeance_h3|null|date' and g_fige(:'ph7') = 'non' and ac_chat(:'ph7') = 'annulation'
+  and h3_push_swend(:n0, :'ph7') = :'PUSH_ANNULATION', h3_push_swend(:n0, :'ph7'));
 
 select scenario, verif, case when ok then 'OK' else 'ÉCHEC' end as resultat, detail from test_resultats order by id;
 select count(*) filter (where ok) as reussis, count(*) filter (where ok is not true) as echecs from test_resultats;

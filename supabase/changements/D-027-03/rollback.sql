@@ -1,4 +1,4 @@
--- D-027-03 — rollback. Une transaction. Les 7 fonctions retrouvent leur
+-- D-027-03 — rollback. Une transaction. Les 8 fonctions retrouvent leur
 -- définition de production d'origine (contrôlée contre la sauvegarde :
 -- empreinte et droits), le job swend-echeance-h3 et les 2 fonctions de
 -- l'échéance sont supprimés. Ne
@@ -17,7 +17,8 @@ begin
 end $$;
 
 -- 1. Définitions de production d'origine (relues le 20/10/2026, identiques aux
---    migrations imprevu_etats_et_actions.sql et rappels_jour_j.sql).
+--    migrations imprevu_etats_et_actions.sql, rappels_jour_j.sql et
+--    gel_a_h.sql).
 create or replace function public.ajouter_et_demander_remplacement(
   p_pacte_id uuid,
   p_cote text,
@@ -291,6 +292,82 @@ begin
         end if;
       end loop;
     end loop;
+  end loop;
+  return n;
+end;
+$$;
+
+create or replace function public.figer_swends_passes(p_maintenant timestamptz default now())
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  c_fenetre_push constant interval := interval '12 hours';
+  p record;
+  v_statut text;
+  v_date timestamptz;
+  v_initiateur_nom text;
+  v_destinataire_nom text;
+  v_cloturees uuid[];
+  v_fiche record;
+  n integer := 0;
+begin
+  for p in
+    select pa.id from pactes pa
+    where pa.statut = 'confirme'
+      and pa.scelle_le is not null
+      and pa.date_retenue is not null
+      and pa.date_retenue <= p_maintenant
+      and not exists (select 1 from swends_figes f where f.pacte_id = pa.id)
+    order by pa.date_retenue, pa.id
+  loop
+    select statut, date_retenue, initiateur_nom, destinataire_nom
+      into v_statut, v_date, v_initiateur_nom, v_destinataire_nom
+    from pactes where id = p.id for update;
+    perform 1 from remplacants where pacte_id = p.id for update;
+    continue when v_statut is distinct from 'confirme' or v_date > p_maintenant;
+
+    insert into swends_figes (pacte_id, date_retenue) values (p.id, v_date)
+    on conflict (pacte_id) do nothing;
+    continue when not found;
+
+    perform set_config('swend.gel_en_cours', 'on', true);
+
+    with c as (
+      update remplacants set demande_statut = 'cloturee'
+      where pacte_id = p.id and demande_statut = 'envoyee'
+      returning id
+    )
+    select coalesce(array_agg(id), '{}') into v_cloturees from c;
+
+    if p_maintenant < v_date + c_fenetre_push then
+      for v_fiche in
+        select distinct on (r.profil_id) r.id, r.cote, r.profil_id
+        from remplacants r
+        where r.id = any (v_cloturees) and r.profil_id is not null
+        order by r.profil_id, r.id
+      loop
+        -- Au clic : la fiche du Swend si la personne y a encore accès (jamais
+        -- après H pour une personne seulement sollicitée : l'app reste alors
+        -- sur l'accueil).
+        perform notifier(v_fiche.profil_id, 'La demande n’est plus d’actualité',
+          'L’heure du Swend est passée.',
+          jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+      end loop;
+    end if;
+
+    insert into evenements_fil (remplacant_id, code)
+    select r.id, 'swend_commence'
+    from remplacants r
+    where r.pacte_id = p.id and r.retire_le is null
+      and (exists (select 1 from messages m where m.remplacant_id = r.id)
+           or exists (select 1 from evenements_fil e where e.remplacant_id = r.id))
+    order by r.id;
+
+    perform set_config('swend.gel_en_cours', 'off', true);
+    n := n + 1;
   end loop;
   return n;
 end;
@@ -596,7 +673,7 @@ $$;
 
 
 -- 2. Job de l'échéance retiré, puis fonctions de l'échéance (envoyer_rappels_dus
---    d'origine ne les appelle plus).
+--    et figer_swends_passes d'origine ne les appellent plus).
 select cron.unschedule(jobid) from cron.job where jobname = 'swend-echeance-h3';
 drop function if exists public.appliquer_echeances_h3(timestamptz);
 drop function if exists public.echeance_h3_atteinte(timestamptz, timestamptz);

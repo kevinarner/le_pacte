@@ -21,21 +21,22 @@ begin
              and proname in ('echeance_h3_atteinte', 'appliquer_echeances_h3')) then
     raise exception 'D-027-03 : déjà appliqué (en tout ou partie)';
   end if;
-  -- Les 7 fonctions remplacées sont exactement celles relues en production
+  -- Les 8 fonctions remplacées sont exactement celles relues en production
   -- le 20/10/2026 (corps normalisé), une seule par nom.
   if (select count(*) from (values
     ('ajouter_et_demander_remplacement', 'd1e31b1225cbc29dbde728653e46d426'),
     ('annuler_demande_remplacement', '0b313996d6679b5eb80a21347ef49978'),
     ('envoyer_demandes_remplacement', '2b2bb34414a655a6ffc3dd07ce3ca726'),
     ('envoyer_rappels_dus', 'fa9ffe2576c7950f8555660332b95ced'),
+    ('figer_swends_passes', '2803314c7ef40523b367df0dab59a605'),
     ('je_peux_finalement_venir', '9631961e9c168952cbc9e0c25584463f'),
     ('repondre_demande_remplacement', '902fd1203365bfbe2e234d5152610b44'),
     ('se_desister_du_remplacement', 'ce38814eb3f7e8b883fcfe0cced2dd78')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 7
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 8
      or (select count(*) from pg_proc where pronamespace = 'public'::regnamespace
-         and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 7 then
+         and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'figer_swends_passes', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 8 then
     raise exception 'D-027-03 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
   -- Le moteur des rappels (qui appliquera aussi l'échéance) : job actif,
@@ -48,13 +49,18 @@ begin
      or to_regprocedure('cron.schedule(text, text, text)') is null then
     raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
-  -- Aucun Swend en imprévu dont l'heure tombe dans les 3 h 10 qui viennent :
-  -- sinon le premier passage du job l'annulerait aussitôt (arbitrage nécessaire).
+  -- Aucun Swend confirmé non figé, déjà passé ou dont l'heure tombe dans
+  -- les 3 h 10 qui viennent, avec un côté en imprévu sans remplaçant : le
+  -- premier passage d'un job l'annulerait aussitôt, y compris un Swend passé
+  -- maintenu sous l'ancienne règle (rattrapage). Arbitrage nécessaire.
   if exists (select 1 from public.pactes p
-             where p.statut = 'confirme' and p.date_retenue > now()
+             where p.statut = 'confirme'
                and p.date_retenue <= now() + interval '3 hours 10 minutes'
-               and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id)) then
-    raise exception 'D-027-03 : un Swend en imprévu a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
+               and not exists (select 1 from public.swends_figes f where f.pacte_id = p.id)
+               and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id
+                             and not exists (select 1 from public.remplacants r
+                                             where r.pacte_id = p.id and r.cote = d.cote and r.selectionne))) then
+    raise exception 'D-027-03 : un Swend en imprévu non résolu est passé ou a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
   end if;
   -- Sauvegarde faite (étape « sauvegarde » de ce paquet).
   if to_regclass('sauvegarde.d027_03_fonctions_20261020') is null
@@ -90,7 +96,13 @@ end $$;
 --     rappels (job `swend-rappels`, toutes les 5 minutes, fréquence
 --     inchangée) — avant tout rappel du Jour J, si bien qu'un Swend annulé à
 --     H-3 ne reçoit aucun rappel. Les deux appels ne peuvent pas annuler
---     deux fois (verrou du Swend, état relu) ;
+--     deux fois (verrou du Swend, état relu). Si aucun traitement n'a réussi
+--     entre H-3 et H (jobs en échec), le premier qui réussit ensuite annule
+--     le Swend de la même façon, quel que soit le retard : l'échéance
+--     s'applique aussi après H, et le gel à H (figer_swends_passes(), job
+--     `swend-gel-a-h`) l'applique avant de figer quoi que ce soit, si bien
+--     qu'un tel Swend n'est jamais figé et n'a jamais de chat après le Swend
+--     (le moteur du chat ne traite que les Swends figés) ;
 --  4. un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`
 --     (inchangée : motif `titulaire`) ; l'app ne propose plus de recherche.
 -- Un Swend dont les participants attendus restent disponibles est maintenu.
@@ -670,8 +682,10 @@ $$;
 -- Délai de traitement : au mieux la minute qui suit H-3 ; si un job échoue,
 -- l'annulation attend l'exécution suivante réussie (aucune garantie de délai
 -- sans job) ; les actions, elles, sont refusées dès H-3 quoi qu'il arrive.
--- Pour chaque Swend scellé dont H-3 est atteint (et H pas encore), dont au
--- moins un côté est en imprévu sans remplaçant sélectionné : annulation
+-- Pour chaque Swend confirmé dont H-3 est atteint — y compris après H : si
+-- aucun traitement n'a réussi entre H-3 et H, le premier qui réussit annule —,
+-- non figé par le gel, dont au moins un côté est en imprévu sans remplaçant
+-- sélectionné : annulation
 -- (motif `echeance_h3`, sans auteur), mêmes verrous que les actions (le
 -- Swend, puis ses fiches) ; l'état est relu sous verrou, si bien qu'une
 -- acceptation validée juste avant maintient le Swend. Notifications :
@@ -683,6 +697,12 @@ $$;
 --    répondre. ») ; refus, désistements, personnes seulement prévues : rien.
 -- Idempotente (un Swend annulé n'est plus `confirme`). Renvoie le nombre de
 -- Swends annulés.
+-- Après H, rien ne peut avoir changé depuis H-3 (toute recherche, réponse ou
+-- retour est refusé dès H-3 ; un désistement ou un nouvel imprévu annule
+-- aussitôt) : un côté encore en imprévu sans remplaçant l'était à H-3. Un
+-- Swend maintenu valablement n'a aucun côté dans ce cas et n'est jamais
+-- touché. Un Swend déjà figé (gel antérieur à cette règle) est laissé tel
+-- quel : le paquet vérifie qu'aucun Swend passé n'est dans ce cas.
 create or replace function public.appliquer_echeances_h3(p_maintenant timestamptz default now())
 returns integer
 language plpgsql
@@ -700,16 +720,17 @@ begin
     select pa.id from pactes pa
     where pa.statut = 'confirme'
       and pa.date_retenue is not null
-      and pa.date_retenue > p_maintenant
       and echeance_h3_atteinte(pa.date_retenue, p_maintenant)
       and exists (select 1 from imprevus_declares d where d.pacte_id = pa.id)
+      and not exists (select 1 from swends_figes f where f.pacte_id = pa.id)
     order by pa.id
   loop
     select pa.id, pa.statut, pa.date_retenue, pa.initiateur_id, pa.destinataire_id
       into p
     from pactes pa where pa.id = v_id for update;
     perform 1 from remplacants where pacte_id = v_id for update;
-    continue when p.statut <> 'confirme';
+    continue when p.statut <> 'confirme'
+      or exists (select 1 from swends_figes f where f.pacte_id = v_id);
 
     select coalesce(array_agg(d.cote order by d.cote), '{}') into v_cotes
     from imprevus_declares d
@@ -809,6 +830,97 @@ end;
 $$;
 revoke execute on function public.envoyer_rappels_dus(timestamptz) from public, anon, authenticated;
 
+-- 6. Gel à H : l'échéance d'abord -------------------------------------------------------
+-- Le gel à H (job `swend-gel-a-h`, toutes les 5 minutes, inchangé) applique
+-- l'échéance H-3 avant de figer : si les jobs ont échoué entre H-3 et H, la
+-- reprise annule le Swend (règles habituelles de l'annulation : demandes
+-- closes avec « Tu n’as plus besoin de répondre. », chat d'annulation,
+-- conversations conservées) au lieu de le figer (« La demande n’est plus
+-- d’actualité », événement de fin, puis chat après le Swend). Le reste est
+-- inchangé (gel_a_h.sql).
+create or replace function public.figer_swends_passes(p_maintenant timestamptz default now())
+returns integer
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  c_fenetre_push constant interval := interval '12 hours';
+  p record;
+  v_statut text;
+  v_date timestamptz;
+  v_initiateur_nom text;
+  v_destinataire_nom text;
+  v_cloturees uuid[];
+  v_fiche record;
+  n integer := 0;
+begin
+  -- D-027 (20/10) : l'échéance H-3 d'abord. Un Swend dont une recherche
+  -- n'était pas résolue à H-3 est annulé, jamais figé (rattrapage si aucun
+  -- traitement n'a réussi entre H-3 et H). La boucle ci-dessous relit l'état
+  -- sous verrou : un Swend annulé n'est plus `confirme`.
+  perform appliquer_echeances_h3(p_maintenant);
+
+  for p in
+    select pa.id from pactes pa
+    where pa.statut = 'confirme'
+      and pa.scelle_le is not null
+      and pa.date_retenue is not null
+      and pa.date_retenue <= p_maintenant
+      and not exists (select 1 from swends_figes f where f.pacte_id = pa.id)
+    order by pa.date_retenue, pa.id
+  loop
+    select statut, date_retenue, initiateur_nom, destinataire_nom
+      into v_statut, v_date, v_initiateur_nom, v_destinataire_nom
+    from pactes where id = p.id for update;
+    perform 1 from remplacants where pacte_id = p.id for update;
+    continue when v_statut is distinct from 'confirme' or v_date > p_maintenant;
+
+    insert into swends_figes (pacte_id, date_retenue) values (p.id, v_date)
+    on conflict (pacte_id) do nothing;
+    continue when not found;
+
+    perform set_config('swend.gel_en_cours', 'on', true);
+
+    with c as (
+      update remplacants set demande_statut = 'cloturee'
+      where pacte_id = p.id and demande_statut = 'envoyee'
+      returning id
+    )
+    select coalesce(array_agg(id), '{}') into v_cloturees from c;
+
+    if p_maintenant < v_date + c_fenetre_push then
+      for v_fiche in
+        select distinct on (r.profil_id) r.id, r.cote, r.profil_id
+        from remplacants r
+        where r.id = any (v_cloturees) and r.profil_id is not null
+        order by r.profil_id, r.id
+      loop
+        -- Au clic : la fiche du Swend si la personne y a encore accès (jamais
+        -- après H pour une personne seulement sollicitée : l'app reste alors
+        -- sur l'accueil).
+        perform notifier(v_fiche.profil_id, 'La demande n’est plus d’actualité',
+          'L’heure du Swend est passée.',
+          jsonb_build_object('type', 'pacte', 'pacte_id', p.id));
+      end loop;
+    end if;
+
+    insert into evenements_fil (remplacant_id, code)
+    select r.id, 'swend_commence'
+    from remplacants r
+    where r.pacte_id = p.id and r.retire_le is null
+      and (exists (select 1 from messages m where m.remplacant_id = r.id)
+           or exists (select 1 from evenements_fil e where e.remplacant_id = r.id))
+    order by r.id;
+
+    perform set_config('swend.gel_en_cours', 'off', true);
+    n := n + 1;
+  end loop;
+  return n;
+end;
+$$;
+revoke execute on function public.figer_swends_passes(timestamptz) from public, anon, authenticated;
+
 -- ================================================================================
 -- Planification : l'échéance chaque minute (job swend-echeance-h3). Fréquence
 -- des rappels inchangée. Copie de supabase/planification/echeance_h3_pg_cron.sql.
@@ -828,20 +940,21 @@ begin
      or has_function_privilege('authenticated', 'public.echeance_h3_atteinte(timestamptz, timestamptz)', 'execute') then
     raise exception 'D-027-03 : fonctions de l''échéance absentes ou exposées';
   end if;
-  -- Les 9 fonctions sont exactement celles testées (corps normalisé).
+  -- Les 10 fonctions sont exactement celles testées (corps normalisé).
   if (select count(*) from (values
     ('ajouter_et_demander_remplacement', '41d62d5c89670158a44a3eb57fb146d4'),
     ('annuler_demande_remplacement', 'd4f041ba4caafe35ad85b31b1742f8df'),
-    ('appliquer_echeances_h3', '82b7fc5ec4048a57e8bff07cc8667bbc'),
+    ('appliquer_echeances_h3', '4c4e93a84e4b29187324c980896274d6'),
     ('echeance_h3_atteinte', '57ea12a3892a202ebec0b942113e0471'),
     ('envoyer_demandes_remplacement', '7bb8a3ad2d46036b260192354b3d6012'),
     ('envoyer_rappels_dus', 'e1ba350897cefd6b75f460fb87821481'),
+    ('figer_swends_passes', '0e7b3cbd9e73679d5750f0eb8f2d21eb'),
     ('je_peux_finalement_venir', 'c1ae4f8bd5140f7eed108040376fc754'),
     ('repondre_demande_remplacement', '8f6e448b412d297ec245d74d53468ee7'),
     ('se_desister_du_remplacement', '5f64a11b94a473d7796f6240d14d89ca')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
-      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9 then
+      where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 10 then
     raise exception 'D-027-03 : une fonction n''est pas celle testée';
   end if;
   -- Droits des fonctions remplacées inchangés.
