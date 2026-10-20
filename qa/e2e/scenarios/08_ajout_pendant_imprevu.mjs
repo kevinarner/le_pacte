@@ -53,7 +53,7 @@ export default {
 
     await ex.etape('Ajout de Paul (sans compte) : demande + proposition de message', async () => {
       await ajouterDepuisImprevu(ex, eliot, { prenom: 'Paul', nom: 'Durand', tel: '06 12 34 56 78' }, { valider: false });
-      await ex.verifierTexte(eliot, "Paul n'a pas encore Swend", 'formulaire : "Paul n\'a pas encore Swend"');
+      await ex.verifierTexte(eliot, 'Paul n’a pas encore de compte Swend.', 'formulaire : « Paul n’a pas encore de compte Swend. »');
       await validerAjout(eliot, 'Paul');
       // Sans compte : le choix Messages / WhatsApp s'ouvre aussitôt.
       await ex.verifierTexte(eliot, 'Envoyer la demande', 'choix Messages / WhatsApp ouvert');

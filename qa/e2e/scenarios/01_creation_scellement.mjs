@@ -16,7 +16,9 @@ export default {
 
     await ex.etape('Eliot crée un Swend avec David (numéro saisi dans un autre format)', async () => {
       await A.creerSwend(eliot, { prenom: 'David', nom: 'Schlang', tel: '06 02 03 04 05',
-        personnes: [{ prenom: 'Kevin', nom: 'Arner', tel: COMPTES.kevin.tel }, C.tom] });
+        personnes: [{ prenom: 'Kevin', nom: 'Arner', tel: COMPTES.kevin.tel }, C.tom],
+        ouEtQuand: () => ex.verifierTexte(eliot, /D’autres restaurants te seront bientôt proposés\.\s*Tu peux nous en suggérer\s*ici\s*\./,
+          'création : « D’autres restaurants te seront bientôt proposés. Tu peux nous en suggérer ici. »') });
       await ex.verifier('Swend rattaché au compte de David malgré le format du numéro',
         () => sql(`select count(*) from pactes where destinataire_id = '${COMPTES.david.id}' and statut = 'enAttenteChoixDateDestinataire'`) === '1',
         { obtenu: () => sql(`select statut || ' / ' || coalesce(destinataire_id::text, 'non rattaché') from pactes`) });
@@ -35,7 +37,7 @@ export default {
 
     await ex.etape('David répond : date choisie, personnes de confiance, Swend scellé', async () => {
       await A.ouvrirMesSwends(david);
-      await ex.verifierTexte(david, /Swend avec Eliot Martin\s+À vous de répondre/, 'David : "À vous de répondre"');
+      await ex.verifierTexte(david, /Swend avec Eliot Martin\s+À toi de répondre/, 'David : « À toi de répondre »');
       await A.accepterSwend(david, { avec: /Swend avec Eliot/, personnes: [C.leo, C.nina] });
       await ex.verifier('statut "confirme" et date retenue en base',
         () => sql('select statut || (date_retenue is not null) from pactes') === 'confirmetrue');

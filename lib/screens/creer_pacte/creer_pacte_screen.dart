@@ -425,8 +425,8 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
           children: [
             const TextSpan(
               text:
-                  "D'autres restaurants vous seront bientôt proposés, "
-                  'vous pouvez nous en suggérer : ',
+                  'D’autres restaurants te seront bientôt proposés. '
+                  'Tu peux nous en suggérer ',
             ),
             TextSpan(
               text: 'ici',
@@ -437,6 +437,7 @@ class _CreerPacteScreenState extends State<CreerPacteScreen> {
               ),
               recognizer: TapGestureRecognizer()..onTap = _suggererUnRestaurant,
             ),
+            const TextSpan(text: '.'),
           ],
         ),
       ),

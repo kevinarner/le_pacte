@@ -33,10 +33,10 @@ bool respecteDateMinimale(DateTime instant, DateTime? dateMinimale) =>
 /// date retenue absente des dates proposées (`date_non_proposee`, D-025b) :
 /// n'arrive qu'avec une version périmée de l'app (R2).
 const messageDateRefusee =
-    'Cette date n’a pas pu être enregistrée. Rechargez l’app puis réessayez.';
+    'Cette date n’a pas pu être enregistrée. Recharge l’app puis réessaie.';
 
 /// Message affiché quand une date est trop proche (refus de la base, ou
 /// contrôle avant l'envoi).
 String messageDateTropProche(DateTime dateMinimale) =>
-    'Choisissez une date au moins 15 jours à l’avance. '
+    'Choisis une date au moins 15 jours à l’avance. '
     'Première date possible : ${dateMinimale.day} ${moisAnnee[dateMinimale.month - 1]}.';

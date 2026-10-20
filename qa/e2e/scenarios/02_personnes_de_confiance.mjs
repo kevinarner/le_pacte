@@ -30,7 +30,7 @@ export default {
       await A.ouvrirModifierMaListe(eliot);
       await ex.verifierTexte(eliot, 'Kevin est déjà sur Swend', 'Kevin : "est déjà sur Swend"');
       await ex.verifierTexte(eliot, 'Sylvain est déjà sur Swend', 'Sylvain : "est déjà sur Swend"');
-      await ex.verifierTexte(eliot, "Tom n'a pas encore Swend", 'Tom : "n\'a pas encore Swend"');
+      await ex.verifierTexte(eliot, 'Tom n’a pas encore de compte Swend.', 'Tom : « n’a pas encore de compte Swend. »');
       await ex.verifier('"Envoyer l\'invitation" seulement pour Tom', async () => (await eliot.nombreDeBoutons("Envoyer l'invitation")) === 1);
       await ex.verifier('aucun "Discuter" sur les cartes', async () => (await eliot.nombreDeBoutons('Discuter')) === 0);
       await ex.verifier('"Retirer" sur chaque carte', async () => (await eliot.nombreDeBoutons('Retirer')) === 3);

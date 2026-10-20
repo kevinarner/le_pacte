@@ -46,7 +46,7 @@ void main() {
   test('message de refus', () {
     expect(
       messageDateTropProche(DateTime(2026, 10, 16)),
-      'Choisissez une date au moins 15 jours à l’avance. '
+      'Choisis une date au moins 15 jours à l’avance. '
       'Première date possible : 16 octobre.',
     );
   });

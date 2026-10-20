@@ -98,7 +98,7 @@ StatutAffichage statutAffichagePourMoi(
     case StatutPacte.enAttenteReponse:
       if (pacteEstMonTour(statut, jeSuisInitiateur)) {
         return const StatutAffichage(
-          'À vous de répondre',
+          'À toi de répondre',
           StatutTag(fond: AppColors.accent, texte: Colors.white),
         );
       }

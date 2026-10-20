@@ -97,11 +97,11 @@ notifications).
 
 1. **« Avec qui ? »** : prénom, nom, numéro de mobile de David (ou choix dans
    les contacts). On voit tout de suite « David est déjà sur Swend », ou
-   « David n'a pas encore Swend » avec un bouton « Envoyer l'invitation ».
+   « David n’a pas encore de compte Swend. » avec un bouton « Envoyer l'invitation ».
 2. **« Quand et où ? »** : déjeuner ou dîner, une ou plusieurs dates proposées,
    au restaurant. Délai minimum (D-025, en production depuis le 01/10) : rien
    avant le jour de création (Paris) + 15 jours — le calendrier commence à la
-   première date possible ; refus : « Choisissez une date au moins 15 jours à
+   première date possible ; refus : « Choisis une date au moins 15 jours à
    l’avance. Première date possible : 16 octobre. ». Comptes fondateurs
    exemptés pour les Swends qu'ils créent.
 3. **« En cas d'imprévu »** : au moins 2 personnes de confiance (5 au plus en
@@ -137,7 +137,7 @@ d'envoyer (« Envoyer l'invitation »).
   **Scellé**.
 - Il peut aussi **refuser** (« Refuser le Swend »). Le Swend est alors annulé.
 
-Statuts affichés dans « Mes Swends » : « À vous de répondre », « En attente de
+Statuts affichés dans « Mes Swends » : « À toi de répondre », « En attente de
 David », « Date à confirmer », « Scellé », « Annulé ». La liste est séparée en
 **« À venir »** et **« Passés et annulés »** (D-022) : une carte annulée est
 grisée, sans compte à rebours, avec un badge « Annulé » bien lisible.
@@ -162,7 +162,7 @@ Il y a trois intentions bien séparées : **préparer**, **discuter**,
 ### 5.4 « Modifier ma liste » (préparation)
 
 - Voir chaque personne avec son statut Swend (« est déjà sur Swend » /
-  « n'a pas encore Swend » + « Envoyer l'invitation »).
+  « n’a pas encore de compte Swend. » + « Envoyer l'invitation »).
 - Voir son état : « En attente », « Indisponible » (refus, désistement,
   demande close, ou indisponibilité signalée par la personne elle-même),
   « Prend ta place ✓ ».

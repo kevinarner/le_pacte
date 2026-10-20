@@ -19,7 +19,7 @@ const instant = (n, h = '20:00') =>
   sql(`select to_json((((now() at time zone 'Europe/Paris')::date + ${n}) + time '${h}') at time zone 'Europe/Paris') #>> '{}'`);
 const message = (jour) => {
   const [, m, d] = jour.split('-').map(Number);
-  return `Choisissez une date au moins 15 jours à l’avance. Première date possible : ${d} ${MOIS[m - 1]}.`;
+  return `Choisis une date au moins 15 jours à l’avance. Première date possible : ${d} ${MOIS[m - 1]}.`;
 };
 const restaurant = () => sql(`select id from restaurants limit 1`);
 const creer = (nom, dates, dest, extra = {}) => insererComme(nom, 'pactes', {

@@ -58,7 +58,7 @@ export default {
       await eliot.taper('Nom', 'Petit', 1);
       await eliot.taper('Numéro de mobile', '07.11.22.33.44', 1);
       await A.statutAffiche(eliot, 'Tom');
-      await ex.verifierTexte(eliot, "Tom n'a pas encore Swend", 'Tom : "n\'a pas encore Swend"');
+      await ex.verifierTexte(eliot, 'Tom n’a pas encore de compte Swend.', 'Tom : « n’a pas encore de compte Swend. »');
       await eliot.cliquer('Ajouter une personne');
       await eliot.taper('Prénom', 'Sylvain', 2);
       await eliot.taper('Nom', 'Landiech', 2);

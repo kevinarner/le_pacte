@@ -26,7 +26,7 @@ export default {
 
     await ex.etape('3-4. David reçoit, choisit la date et accepte : Swend scellé', async () => {
       await A.ouvrirMesSwends(david);
-      await ex.verifierTexte(david, /Swend avec Eliot Martin\s+À vous de répondre/, 'David : "À vous de répondre"');
+      await ex.verifierTexte(david, /Swend avec Eliot Martin\s+À toi de répondre/, 'David : « À toi de répondre »');
       await A.accepterSwend(david, { avec: /Swend avec Eliot/, personnes: [C.leo, C.nina] });
       await ex.verifier('scellement (statut confirmé en base)', () => sql('select statut from pactes') === 'confirme');
       await A.ouvrirSwend(eliot, /Swend avec David/);

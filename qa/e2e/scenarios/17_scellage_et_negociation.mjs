@@ -8,7 +8,7 @@ const notifs = (nom) => sql(`select count(*) from notifications_log where profil
 const cartes = async (a) => (await a.texte()).split('\n').filter((l) => l.includes('compte sur toi pour un Swend')).length;
 const avecKevin = [{ prenom: 'Kevin', nom: 'Arner', tel: COMPTES.kevin.tel }, C.tom];
 const sylvain = { prenom: 'Sylvain', nom: 'Landiech', tel: COMPTES.sylvain.tel };
-const aSonTour = (nom) => new RegExp(`Swend avec ${nom}[\\s\\S]*À vous de répondre`);
+const aSonTour = (nom) => new RegExp(`Swend avec ${nom}[\\s\\S]*À toi de répondre`);
 const dernierSwendSylvain = () => sql(`select statut || '|' || nombre_echanges_date from pactes where destinataire_id = '${COMPTES.sylvain.id}' order by created_at desc limit 1`);
 
 export default {

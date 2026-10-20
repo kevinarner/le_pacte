@@ -33,13 +33,15 @@ export async function ouvrirModifierMaListe(a, motif = /Swend avec/) {
 
 // --- Création et scellement -------------------------------------------------
 // personnes : [{ prenom, nom, tel }] (au moins 2 : minimum de l'étape 3).
-export async function creerSwend(a, { prenom, nom, tel, personnes }) {
+// ouEtQuand : vérifications facultatives sur l'étape « Où et quand ».
+export async function creerSwend(a, { prenom, nom, tel, personnes, ouEtQuand }) {
   await a.accueil({ rafraichir: false });
   await a.cliquer('Créer un Swend');
   await a.taper('Prénom', prenom);
   await a.taper('Nom', nom);
   await a.taper('Numéro de mobile', tel);
   await a.cliquer('Suivant');
+  if (ouEtQuand) await ouEtQuand();
   await a.cliquer('Ajouter une date');
   await a.cliquer('OK');
   await a.cliquer('Suivant');
@@ -58,10 +60,10 @@ export async function remplirPersonnes(a, personnes, depart = 0) {
     await statutAffiche(a, personnes[i].prenom);
   }
 }
-// La ligne "[Prénom] est déjà sur Swend / n'a pas encore Swend" apparaît
+// La ligne "[Prénom] est déjà sur Swend / n’a pas encore de compte Swend." apparaît
 // après la saisie du numéro et décale la mise en page : on l'attend.
 export async function statutAffiche(a, prenom) {
-  await a.attendre(() => a.voit(new RegExp(`${prenom} (est déjà sur Swend|n'a pas encore Swend)`)), 'la ligne de statut Swend', 5000)
+  await a.attendre(() => a.voit(new RegExp(`${prenom} (est déjà sur Swend|n’a pas encore de compte Swend\\.)`)), 'la ligne de statut Swend', 5000)
     .catch(() => {});
   await a.attendreCalme();
 }

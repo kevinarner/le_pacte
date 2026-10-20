@@ -11,7 +11,7 @@ import '../utils/telephone.dart';
 ///  * numéro vide, invalide, ou refusé par le formulaire ([masquer]) :
 ///    rien ;
 ///  * a déjà un compte : "[Prénom] est déjà sur Swend", pas d'invitation ;
-///  * n'a pas de compte : "[Prénom] n'a pas encore Swend" et
+///  * n'a pas de compte : "[Prénom] n’a pas encore de compte Swend." et
 ///    "Envoyer l'invitation" (si [onInviter] est fourni).
 ///
 /// La réponse vient de `destinataire_a_un_compte()` (oui / non, plafonnée
@@ -124,7 +124,7 @@ class _StatutSwendState extends State<StatutSwend> {
 }
 
 /// La phrase de statut elle-même, identique partout : "[Prénom] est déjà
-/// sur Swend" / "[Prénom] n'a pas encore Swend" ("Cette personne" tant
+/// sur Swend" / "[Prénom] n’a pas encore de compte Swend." ("Cette personne" tant
 /// que le prénom est vide). Utilisée par [StatutSwend] pendant la saisie,
 /// et directement par les fiches déjà enregistrées (où la base a déjà
 /// fait le rapprochement : `profil_id`).
@@ -144,7 +144,7 @@ class LigneStatutSwend extends StatelessWidget {
     final qui = p.isEmpty ? 'Cette personne' : p;
     if (!aUnCompte) {
       return Text(
-        "$qui n'a pas encore Swend",
+        '$qui n’a pas encore de compte Swend.',
         style: const TextStyle(fontSize: 12, color: Colors.black54),
       );
     }
