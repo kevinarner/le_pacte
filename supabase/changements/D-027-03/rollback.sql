@@ -1,6 +1,7 @@
 -- D-027-03 — rollback. Une transaction. Les 7 fonctions retrouvent leur
 -- définition de production d'origine (contrôlée contre la sauvegarde :
--- empreinte et droits), les 2 fonctions de l'échéance sont supprimées. Ne
+-- empreinte et droits), le job swend-echeance-h3 et les 2 fonctions de
+-- l'échéance sont supprimés. Ne
 -- rétablit pas les Swends déjà annulés par l'échéance (annulations réelles,
 -- prévenues) : ils restent annulés, motif echeance_h3, et sont listés.
 begin;
@@ -594,7 +595,9 @@ end;
 $$;
 
 
--- 2. Fonctions de l'échéance (envoyer_rappels_dus d'origine ne les appelle plus).
+-- 2. Job de l'échéance retiré, puis fonctions de l'échéance (envoyer_rappels_dus
+--    d'origine ne les appelle plus).
+select cron.unschedule(jobid) from cron.job where jobname = 'swend-echeance-h3';
 drop function if exists public.appliquer_echeances_h3(timestamptz);
 drop function if exists public.echeance_h3_atteinte(timestamptz, timestamptz);
 
@@ -609,8 +612,12 @@ begin
     raise exception 'D-027-03 rollback : une fonction ne correspond pas à la sauvegarde';
   end if;
   if exists (select 1 from pg_proc where pronamespace = 'public'::regnamespace
-             and proname in ('echeance_h3_atteinte', 'appliquer_echeances_h3')) then
-    raise exception 'D-027-03 rollback : fonctions de l''échéance encore présentes';
+             and proname in ('echeance_h3_atteinte', 'appliquer_echeances_h3'))
+     or exists (select 1 from cron.job where jobname = 'swend-echeance-h3') then
+    raise exception 'D-027-03 rollback : fonctions ou job de l''échéance encore présents';
+  end if;
+  if (select count(*) from cron.job where jobname = 'swend-rappels' and active) <> 1 then
+    raise exception 'D-027-03 rollback : job swend-rappels inactif';
   end if;
 end $$;
 

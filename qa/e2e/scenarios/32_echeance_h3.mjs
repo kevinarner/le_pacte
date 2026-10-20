@@ -48,7 +48,7 @@ export default {
       await ex.verifierTexte(eliot, 'Personne n’a pu prendre ta place à temps.', 'fiche : « Personne n’a pu prendre ta place à temps. »');
       await eliot.cliquer('Un imprévu ?');
       await eliot.attendreTexte('Personne n’a pu prendre ta place à temps.');
-      await ex.verifierTexte(eliot, 'À moins de 3 heures du Swend, on ne peut plus chercher personne : le Swend va être annulé.', 'Un imprévu ? : texte de fin de recherche');
+      await ex.verifierTexte(eliot, 'À partir de 3 heures avant le Swend, on ne peut plus chercher personne : le Swend va être annulé.', 'Un imprévu ? : texte de fin de recherche');
       await ex.verifier('aucune case, ni « Solliciter », ni « Je peux finalement venir », ni « Ajouter une personne »', async () =>
         (await eliot.page.getByRole('checkbox').count()) === 0
         && (await eliot.nombreDeBoutons('Solliciter quelqu’un d’autre')) === 0
@@ -56,7 +56,7 @@ export default {
         && (await eliot.nombreDeBoutons('Ajouter une personne')) === 0);
       if (h3) {
         await A.repondre(kevin, true);
-        await ex.verifierTexte(kevin, 'Il est trop tard : à moins de 3 heures du Swend, on ne peut plus chercher ni accepter de remplaçant.', 'Kevin : acceptation refusée, message clair');
+        await ex.verifierTexte(kevin, 'Il est trop tard : à partir de 3 heures avant le Swend, on ne peut plus chercher ni accepter de remplaçant.', 'Kevin : acceptation refusée, message clair');
         await ex.verifier('demande de Kevin toujours en attente (rien n’a bougé)', () => demande(FICHES.kevin) === 'envoyee|f', { obtenu: () => demande(FICHES.kevin) });
       }
     });
@@ -85,7 +85,7 @@ export default {
       const d2 = await ex.redemarrer('david');
       await A.ouvrirImprevu(d2, /Swend avec Eliot/);
       await ex.verifierTexte(d2, 'Tu ne peux plus être là ?', '« Tu ne peux plus être là ? »');
-      await ex.verifierTexte(d2, 'À moins de 3 heures du Swend, il n’est plus possible de chercher quelqu’un pour prendre ta place. Si tu ne peux pas venir, le Swend sera annulé.', 'texte de H-3');
+      await ex.verifierTexte(d2, 'À partir de 3 heures avant le Swend, il n’est plus possible de chercher quelqu’un pour prendre ta place. Si tu ne peux pas venir, le Swend sera annulé.', 'texte de H-3');
       await ex.verifier('aucune personne à cocher, pas d’ajout', async () =>
         (await d2.page.getByRole('checkbox').count()) === 0 && (await d2.nombreDeBoutons('Ajouter une personne')) === 0);
       await d2.cliquer('Annuler le Swend');
@@ -109,7 +109,7 @@ export default {
       apresH3();
       await A.ouvrirSwend(k3, /Swend d'Eliot avec David/);
       await k3.cliquer('Je ne peux finalement plus venir');
-      await ex.verifierTexte(k3, 'À moins de 3 heures du Swend, personne d’autre ne pourra prendre la place d’Eliot : le Swend sera annulé.', 'confirmation : annulation annoncée');
+      await ex.verifierTexte(k3, 'À partir de 3 heures avant le Swend, personne d’autre ne pourra prendre la place d’Eliot : le Swend sera annulé.', 'confirmation : annulation annoncée');
       await k3.cliquer('Je ne peux plus venir');
       await k3.attendreCalme();
       if (h3) {

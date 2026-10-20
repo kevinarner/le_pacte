@@ -37,10 +37,15 @@ begin
          and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 7 then
     raise exception 'D-027-03 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
-  -- L'échéance passe par le moteur des rappels : job actif, toutes les 5 minutes.
+  -- Le moteur des rappels (qui appliquera aussi l'échéance) : job actif,
+  -- toutes les 5 minutes, inchangé. Le job de l'échéance n'existe pas encore.
   if (select count(*) from cron.job where jobname = 'swend-rappels' and active
       and schedule = '*/5 * * * *' and command = 'select public.envoyer_rappels_dus()') <> 1 then
     raise exception 'D-027-03 : job swend-rappels différent de celui relu (paquet à refaire)';
+  end if;
+  if exists (select 1 from cron.job where jobname = 'swend-echeance-h3')
+     or to_regprocedure('cron.schedule(text, text, text)') is null then
+    raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
   -- Aucun Swend en imprévu à moins de 3 heures de son heure : sinon le
   -- premier passage du moteur l'annulerait aussitôt (arbitrage nécessaire).

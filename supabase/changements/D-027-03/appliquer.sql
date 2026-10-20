@@ -1,9 +1,9 @@
 -- D-027-03 — échéance H-3 ferme (D-027, décision d'Eliot du 20/10/2026).
 -- Une seule transaction : préconditions, migration
 -- supabase/migrations/20261020000000_echeance_h3.sql (copie exacte),
--- assertions. Toute assertion fausse annule tout. Aucune donnée existante
--- modifiée ; aucune planification modifiée (l'échéance passe par le job
--- swend-rappels existant).
+-- planification du job swend-echeance-h3 (chaque minute), assertions. Toute
+-- assertion fausse annule tout. Aucune donnée existante modifiée ; job
+-- swend-rappels inchangé (toutes les 5 minutes).
 begin;
 
 -- 0. Préconditions --------------------------------------------------------------
@@ -38,10 +38,15 @@ begin
          and proname in ('ajouter_et_demander_remplacement', 'annuler_demande_remplacement', 'envoyer_demandes_remplacement', 'envoyer_rappels_dus', 'je_peux_finalement_venir', 'repondre_demande_remplacement', 'se_desister_du_remplacement')) <> 7 then
     raise exception 'D-027-03 : les fonctions à remplacer diffèrent de celles relues (paquet à refaire)';
   end if;
-  -- L'échéance passe par le moteur des rappels : job actif, toutes les 5 minutes.
+  -- Le moteur des rappels (qui appliquera aussi l'échéance) : job actif,
+  -- toutes les 5 minutes, inchangé. Le job de l'échéance n'existe pas encore.
   if (select count(*) from cron.job where jobname = 'swend-rappels' and active
       and schedule = '*/5 * * * *' and command = 'select public.envoyer_rappels_dus()') <> 1 then
     raise exception 'D-027-03 : job swend-rappels différent de celui relu (paquet à refaire)';
+  end if;
+  if exists (select 1 from cron.job where jobname = 'swend-echeance-h3')
+     or to_regprocedure('cron.schedule(text, text, text)') is null then
+    raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
   -- Aucun Swend en imprévu à moins de 3 heures de son heure : sinon le
   -- premier passage du moteur l'annulerait aussitôt (arbitrage nécessaire).
@@ -71,16 +76,21 @@ end $$;
 --  1. dès H-3 inclus, la base refuse toute recherche et toute réponse
 --     (`echeance_h3`) : envoyer une demande, ajouter une personne et lui
 --     demander, annuler une demande (ancienne app), « Je peux finalement
---     venir », accepter ou refuser une demande ;
+--     venir », accepter ou refuser une demande. Blocage strict : l'heure est
+--     lue (clock_timestamp) une fois les verrous obtenus, au moment où
+--     l'action serait validée, indépendamment de tout job ;
 --  2. dès H-3 inclus, le désistement du remplaçant sélectionné annule le
 --     Swend immédiatement (motif `echeance_h3`), sans réactiver aucune
 --     demande ;
 --  3. à H-3, toute recherche non résolue (côté en imprévu sans remplaçant
 --     sélectionné) annule le Swend (motif `echeance_h3`) :
---     appliquer_echeances_h3(), appelée en tête du moteur des rappels
---     (job `swend-rappels`, toutes les 5 minutes) — avant tout rappel du
---     Jour J, si bien qu'un Swend annulé à H-3 ne reçoit aucun rappel
---     (ni « Ton Swend est en péril », ni « Est-ce que tu vas vraiment… ») ;
+--     appliquer_echeances_h3(), exécutée chaque minute par le job
+--     `swend-echeance-h3` (créé par le paquet D-027-03, pas par cette
+--     migration : pg_cron n'existe pas sur le banc) et en tête du moteur des
+--     rappels (job `swend-rappels`, toutes les 5 minutes, fréquence
+--     inchangée) — avant tout rappel du Jour J, si bien qu'un Swend annulé à
+--     H-3 ne reçoit aucun rappel. Les deux appels ne peuvent pas annuler
+--     deux fois (verrou du Swend, état relu) ;
 --  4. un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`
 --     (inchangée : motif `titulaire`) ; l'app ne propose plus de recherche.
 -- Un Swend dont les participants attendus restent disponibles est maintenu.
@@ -151,12 +161,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = v_pacte for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (select 1 from remplacants r where r.id = any (v_ids) and r.retire_le is not null) then
     raise exception 'demande_non_active';
@@ -237,12 +249,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = p_pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (
     select 1 from remplacants
@@ -293,12 +307,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = v_fiche.pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
   select * into v_fiche from remplacants where id = p_remplacant_id;
 
   if v_fiche.selectionne or v_fiche.demande_statut = 'acceptee' then
@@ -357,12 +373,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = p_pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (select 1 from remplacants
              where pacte_id = p_pacte_id and cote = v_cote and selectionne = true) then
@@ -424,8 +442,10 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
     raise exception 'echeance_h3';
   end if;
 
@@ -565,7 +585,7 @@ begin
   -- aucune demande. Le titulaire de son côté est prévenu ; l'autre titulaire
   -- reçoit la push d'annulation habituelle (« X ne pourra finalement pas
   -- être là. »), sans rien apprendre du remplacement.
-  if echeance_h3_atteinte(v_date) then
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
     update remplacants
       set selectionne = false, demande_statut = 'desistee'
       where id = p_remplacant_id;
@@ -646,6 +666,10 @@ end;
 $$;
 
 -- 4. Recherche non résolue à H-3 : annulation -------------------------------------------
+-- Appelée chaque minute (job swend-echeance-h3) et par le moteur des rappels.
+-- Délai de traitement : au mieux la minute qui suit H-3 ; si un job échoue,
+-- l'annulation attend l'exécution suivante réussie (aucune garantie de délai
+-- sans job) ; les actions, elles, sont refusées dès H-3 quoi qu'il arrive.
 -- Pour chaque Swend scellé dont H-3 est atteint (et H pas encore), dont au
 -- moins un côté est en imprévu sans remplaçant sélectionné : annulation
 -- (motif `echeance_h3`, sans auteur), mêmes verrous que les actions (le
@@ -786,6 +810,12 @@ $$;
 revoke execute on function public.envoyer_rappels_dus(timestamptz) from public, anon, authenticated;
 
 -- ================================================================================
+-- Planification : l'échéance chaque minute (job swend-echeance-h3). Fréquence
+-- des rappels inchangée. Copie de supabase/planification/echeance_h3_pg_cron.sql.
+-- ================================================================================
+select cron.schedule('swend-echeance-h3', '* * * * *', 'select public.appliquer_echeances_h3()');
+
+-- ================================================================================
 -- Assertions
 -- ================================================================================
 do $$
@@ -800,15 +830,15 @@ begin
   end if;
   -- Les 9 fonctions sont exactement celles testées (corps normalisé).
   if (select count(*) from (values
-    ('ajouter_et_demander_remplacement', '5a74cec2dd236aaec6c98e72db09f9be'),
-    ('annuler_demande_remplacement', 'ddc56b751d63c6a1e17e3b5c4bce0a5e'),
+    ('ajouter_et_demander_remplacement', '41d62d5c89670158a44a3eb57fb146d4'),
+    ('annuler_demande_remplacement', 'd4f041ba4caafe35ad85b31b1742f8df'),
     ('appliquer_echeances_h3', '82b7fc5ec4048a57e8bff07cc8667bbc'),
     ('echeance_h3_atteinte', '57ea12a3892a202ebec0b942113e0471'),
-    ('envoyer_demandes_remplacement', '483d6444dc64d73eedcb4d9d2a45790d'),
+    ('envoyer_demandes_remplacement', '7bb8a3ad2d46036b260192354b3d6012'),
     ('envoyer_rappels_dus', 'e1ba350897cefd6b75f460fb87821481'),
-    ('je_peux_finalement_venir', '51c0aadc4d298e132c9f2f2265391926'),
-    ('repondre_demande_remplacement', '4f30c69c6b555a1c8a446376bab8d5ef'),
-    ('se_desister_du_remplacement', '7289b15205ffce8a8c83052ef70cf851')
+    ('je_peux_finalement_venir', 'c1ae4f8bd5140f7eed108040376fc754'),
+    ('repondre_demande_remplacement', '8f6e448b412d297ec245d74d53468ee7'),
+    ('se_desister_du_remplacement', '5f64a11b94a473d7796f6240d14d89ca')
   ) a(nom, md5)
       join pg_proc p on p.proname = a.nom and p.pronamespace = 'public'::regnamespace
       where md5(regexp_replace(p.prosrc, '\s+', ' ', 'g')) = a.md5) <> 9 then
@@ -826,10 +856,15 @@ begin
                 or p.annule_motif is distinct from s.annule_motif or p.date_retenue is distinct from s.date_retenue) then
     raise exception 'D-027-03 : une donnée existante a changé';
   end if;
-  -- Job inchangé.
+  -- Jobs : swend-rappels inchangé (toutes les 5 minutes) ; swend-echeance-h3
+  -- créé, actif, chaque minute.
   if (select count(*) from cron.job where jobname = 'swend-rappels' and active
-      and command = 'select public.envoyer_rappels_dus()') <> 1 then
+      and schedule = '*/5 * * * *' and command = 'select public.envoyer_rappels_dus()') <> 1 then
     raise exception 'D-027-03 : job swend-rappels modifié';
+  end if;
+  if (select count(*) from cron.job where jobname = 'swend-echeance-h3' and active
+      and schedule = '* * * * *' and command = 'select public.appliquer_echeances_h3()') <> 1 then
+    raise exception 'D-027-03 : job swend-echeance-h3 absent ou différent';
   end if;
 end $$;
 

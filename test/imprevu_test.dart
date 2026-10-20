@@ -268,12 +268,13 @@ void main() {
       ));
     });
     test('échéance H-3 : textes (proposés le 20/10) et refus de la base', () {
-      // Mardi 17/11/2026 20:00 Paris (UTC+1) : H-3 = 17:00 Paris = 16:00 UTC.
-      final h3 = DateTime.utc(2026, 11, 17, 16);
-      expect(formaterJourEtHeure(h3), 'mardi 17 novembre à 17h00');
+      // Swend mardi 17/11/2026 à 19h00 Paris (UTC+1) : H-3 = 16h00 Paris
+      // = 15h00 UTC.
+      final h3 = DateTime.utc(2026, 11, 17, 15);
+      expect(formaterJourEtHeure(h3), 'mardi 17 novembre à 16h00');
       expect(
         TextesImprevu.echeance(formaterJourEtHeure(h3)),
-        'Si personne n’a accepté avant mardi 17 novembre à 17h00, le Swend sera annulé.',
+        'Si personne n’a accepté avant mardi 17 novembre à 16h00, le Swend sera annulé.',
       );
       expect(
         TextesImprevu.titreTropTardRecherche,
@@ -281,7 +282,7 @@ void main() {
       );
       expect(
         TextesImprevu.erreur('echeance_h3'),
-        contains('à moins de 3 heures du Swend'),
+        contains('à partir de 3 heures avant le Swend'),
       );
     });
     test('personne sans compte (textes validés le 20/10)', () {

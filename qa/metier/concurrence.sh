@@ -123,6 +123,34 @@ push=$(P -c "select count(*) from notifications_log where id > $n0 and titre lik
 resultat "échéance H-3 : acceptation commencée avant H-3, échéance en attente du verrou → Swend maintenu, aucune push d'annulation" \
   "$([ "$etat" = "acceptee+sel|confirme|aucun" ] && [ "$push" = 0 ] && echo 1)" "état=$etat push=$push"
 
+# 6 ter. Échéance H-3 : une acceptation demandée avant H-3 mais qui attend le
+#    verrou du Swend (tenu par une autre transaction) jusqu'après H-3. L'heure
+#    est contrôlée une fois le verrou obtenu, au moment où l'acceptation
+#    serait validée : refusée (echeance_h3), demande toujours en attente,
+#    puis l'échéance annule le Swend. (Avec un contrôle sur l'heure de début
+#    de la requête, elle aurait été acceptée après l'échéance.)
+read p k <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '3 hours 1 second') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select :'p' || ' ' || :'k';
+SQL
+)"
+n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+( P -c "begin; select 1 from pactes where id = '$p' for update; select pg_sleep(2); commit;" >/dev/null 2>&1 ) &
+sleep 0.3
+f1=$(mktemp)
+debut=$(P -c "select (clock_timestamp() < date_retenue - interval '3 hours')::text from pactes where id = '$p'")
+accepter $K "$k" > "$f1"; wait
+err=$(grep -oE "echeance_h3" "$f1" | head -1); rm -f "$f1"
+etat_avant=$(P -c "select statut_fiche('$k') || '|' || statut from pactes where id = '$p'")
+P -c "select appliquer_echeances_h3()" >/dev/null 2>&1
+etat=$(P -c "select statut_fiche('$k') || '|' || statut || '|' || coalesce(annule_motif, 'aucun') from pactes where id = '$p'")
+push=$(P -c "select count(*) from notifications_log where id > $n0 and profile_id = '$K' and titre = 'Le Swend est annulé'")
+resultat "échéance H-3 : acceptation demandée avant H-3 mais en attente du verrou jusqu'après H-3 → refusée (echeance_h3), puis Swend annulé" \
+  "$([ "$debut" = true ] && [ "$err" = echeance_h3 ] && [ "$etat_avant" = "envoyee|confirme" ] && [ "$etat" = "cloturee|annule|echeance_h3" ] && [ "$push" = 1 ] && echo 1)" \
+  "requête avant H-3=$debut erreur=$err avant échéance=$etat_avant après=$etat push=$push"
+
 # 7. Courses réelles à H-3 : acceptation et échéance lancées ensemble au
 #    voisinage immédiat de H-3 (puis une seconde échéance). Deux issues seulement :
 #    acceptée avant H-3 (place prise, Swend maintenu, aucune push
@@ -173,6 +201,29 @@ SQL
   if [ "$etat" = "annule|echeance_h3|1" ] && [ "$push" = "1,1,1" ]; then ok=$((ok+1)); else detail="essai $i : état=$etat push=$push"; fi
 done
 resultat "échéance H-3 : 3 exécutions simultanées, une seule annulation, une push par personne" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
+
+# 7 ter. Échéance H-3 : le job de l'échéance (chaque minute) et le moteur des
+#    rappels (toutes les 5 minutes, qui l'appelle d'abord) au même moment,
+#    juste après H-3 → une seule annulation, une push par personne, aucun
+#    rappel du Jour J.
+ok=0; detail=""
+for i in $(seq 1 10); do
+  read p k <<< "$(P <<SQL | tail -1
+select g_swend(now() + interval '4 hours') as p \gset
+select ajouter_fiche('$E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
+select en_tant_que('$E', format('select envoyer_demande_remplacement(%L)', :'k')) \gset
+select g_dater(:'p', now() + interval '2 hours 59 minutes 30 seconds');
+select :'p' || ' ' || :'k';
+SQL
+)"
+  n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
+  P -c "select appliquer_echeances_h3()" >/dev/null 2>&1 & P -c "select envoyer_rappels_dus()" >/dev/null 2>&1 & P -c "select appliquer_echeances_h3()" >/dev/null 2>&1 & wait
+  push=$(P -c "select string_agg(n::text, ',' order by p) from (select profile_id p, count(*) n from notifications_log where id > $n0 and profile_id in ('$E', '$D', '$K') group by 1) x")
+  rappels=$(P -c "select count(*) from notifications_log where id > $n0 and data->>'type' = 'rappel' and data->>'pacte_id' = '$p'")
+  etat=$(P -c "select statut || '|' || annule_motif || '|' || (select count(*) from chats_apres_swend where pacte_id = '$p') from pactes where id = '$p'")
+  if [ "$etat" = "annule|echeance_h3|1" ] && [ "$push" = "1,1,1" ] && [ "$rappels" = 0 ]; then ok=$((ok+1)); else detail="essai $i : état=$etat push=$push rappels=$rappels"; fi
+done
+resultat "échéance H-3 : job de l'échéance et moteur des rappels simultanés, une seule annulation, aucun doublon ni rappel" "$([ "$ok" = 10 ] && echo 1)" "$ok/10 — $detail"
 
 # 8. Gel à H : trois exécutions simultanées du moteur → une seule clôture,
 #    une seule push, un seul événement de fin.

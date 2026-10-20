@@ -281,11 +281,11 @@ abstract final class TextesImprevu {
   static const titreTropTardRecherche =
       'Personne n’a pu prendre ta place à temps.';
   static const corpsTropTardRecherche =
-      'À moins de 3 heures du Swend, on ne peut plus chercher personne : le Swend va être annulé.';
+      'À partir de 3 heures avant le Swend, on ne peut plus chercher personne : le Swend va être annulé.';
 
   /// Dès H-3, sans imprévu en cours : plus de recherche, l'annulation.
   static const corpsTropTard =
-      'À moins de 3 heures du Swend, il n’est plus possible de chercher quelqu’un pour prendre ta place. Si tu ne peux pas venir, le Swend sera annulé.';
+      'À partir de 3 heures avant le Swend, il n’est plus possible de chercher quelqu’un pour prendre ta place. Si tu ne peux pas venir, le Swend sera annulé.';
 
   static const heurePassee = 'L’heure du Swend est passée.';
   static const heurePasseeCorps =

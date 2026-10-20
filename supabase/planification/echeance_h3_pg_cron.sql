@@ -1,0 +1,26 @@
+-- Planification de l'échéance H-3 ferme (D-027 révisé le 20/10/2026).
+-- N'est PAS exécuté à la main : la même instruction fait partie du paquet
+-- supabase/changements/D-027-03/ (étape appliquer, après la migration
+-- 20261020000000_echeance_h3.sql, dans la même transaction), et le rollback
+-- du paquet retire le job. Ce fichier n'est pas une migration : le banc QA
+-- ne l'applique pas (pg_cron absent ; les tests appellent
+-- appliquer_echeances_h3() directement).
+--
+-- Effet : chaque minute, appliquer_echeances_h3() annule les Swends dont une
+-- recherche n'est toujours pas résolue à H-3 (au mieux la minute qui suit
+-- H-3). Le moteur des rappels (job swend-rappels, toutes les 5 minutes,
+-- fréquence inchangée) l'appelle aussi en premier, avant tout rappel du
+-- Jour J. Jamais deux annulations ni deux push (verrou du Swend, état
+-- relu). Si les jobs échouent, aucun délai n'est garanti : l'annulation
+-- attend la prochaine exécution réussie ; les actions (demander, répondre…)
+-- restent refusées dès H-3 par la base, indépendamment des jobs.
+select cron.schedule('swend-echeance-h3', '* * * * *', 'select public.appliquer_echeances_h3()');
+
+-- Vérification : une ligne, active, chaque minute.
+--   select jobname, schedule, command, active from cron.job where jobname = 'swend-echeance-h3';
+-- Exécutions (status = succeeded) :
+--   select status, start_time, return_message from cron.job_run_details
+--   where jobid = (select jobid from cron.job where jobname = 'swend-echeance-h3')
+--   order by start_time desc limit 10;
+-- Arrêt (le moteur des rappels continue d'appliquer l'échéance toutes les 5 minutes) :
+--   select cron.unschedule('swend-echeance-h3');

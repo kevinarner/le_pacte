@@ -7,16 +7,21 @@
 --  1. dès H-3 inclus, la base refuse toute recherche et toute réponse
 --     (`echeance_h3`) : envoyer une demande, ajouter une personne et lui
 --     demander, annuler une demande (ancienne app), « Je peux finalement
---     venir », accepter ou refuser une demande ;
+--     venir », accepter ou refuser une demande. Blocage strict : l'heure est
+--     lue (clock_timestamp) une fois les verrous obtenus, au moment où
+--     l'action serait validée, indépendamment de tout job ;
 --  2. dès H-3 inclus, le désistement du remplaçant sélectionné annule le
 --     Swend immédiatement (motif `echeance_h3`), sans réactiver aucune
 --     demande ;
 --  3. à H-3, toute recherche non résolue (côté en imprévu sans remplaçant
 --     sélectionné) annule le Swend (motif `echeance_h3`) :
---     appliquer_echeances_h3(), appelée en tête du moteur des rappels
---     (job `swend-rappels`, toutes les 5 minutes) — avant tout rappel du
---     Jour J, si bien qu'un Swend annulé à H-3 ne reçoit aucun rappel
---     (ni « Ton Swend est en péril », ni « Est-ce que tu vas vraiment… ») ;
+--     appliquer_echeances_h3(), exécutée chaque minute par le job
+--     `swend-echeance-h3` (créé par le paquet D-027-03, pas par cette
+--     migration : pg_cron n'existe pas sur le banc) et en tête du moteur des
+--     rappels (job `swend-rappels`, toutes les 5 minutes, fréquence
+--     inchangée) — avant tout rappel du Jour J, si bien qu'un Swend annulé à
+--     H-3 ne reçoit aucun rappel. Les deux appels ne peuvent pas annuler
+--     deux fois (verrou du Swend, état relu) ;
 --  4. un nouvel imprévu d'un titulaire dès H-3 passe par `annuler_swend()`
 --     (inchangée : motif `titulaire`) ; l'app ne propose plus de recherche.
 -- Un Swend dont les participants attendus restent disponibles est maintenu.
@@ -87,12 +92,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = v_pacte for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (select 1 from remplacants r where r.id = any (v_ids) and r.retire_le is not null) then
     raise exception 'demande_non_active';
@@ -173,12 +180,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = p_pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (
     select 1 from remplacants
@@ -229,12 +238,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = v_fiche.pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
   select * into v_fiche from remplacants where id = p_remplacant_id;
 
   if v_fiche.selectionne or v_fiche.demande_statut = 'acceptee' then
@@ -293,12 +304,14 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
-    raise exception 'echeance_h3';
-  end if;
 
   perform 1 from remplacants where pacte_id = p_pacte_id for update;
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
+    raise exception 'echeance_h3';
+  end if;
 
   if exists (select 1 from remplacants
              where pacte_id = p_pacte_id and cote = v_cote and selectionne = true) then
@@ -360,8 +373,10 @@ begin
   if v_date is not null and v_date <= now() then
     raise exception 'swend_passe';
   end if;
-  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse.
-  if echeance_h3_atteinte(v_date) then
+  -- D-027 (20/10) : dès H-3, plus aucune recherche ni réponse. Heure lue
+  -- une fois les verrous obtenus (clock_timestamp) : une requête partie
+  -- avant H-3 mais validée après n'aboutit pas.
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
     raise exception 'echeance_h3';
   end if;
 
@@ -501,7 +516,7 @@ begin
   -- aucune demande. Le titulaire de son côté est prévenu ; l'autre titulaire
   -- reçoit la push d'annulation habituelle (« X ne pourra finalement pas
   -- être là. »), sans rien apprendre du remplacement.
-  if echeance_h3_atteinte(v_date) then
+  if echeance_h3_atteinte(v_date, clock_timestamp()) then
     update remplacants
       set selectionne = false, demande_statut = 'desistee'
       where id = p_remplacant_id;
@@ -582,6 +597,10 @@ end;
 $$;
 
 -- 4. Recherche non résolue à H-3 : annulation -------------------------------------------
+-- Appelée chaque minute (job swend-echeance-h3) et par le moteur des rappels.
+-- Délai de traitement : au mieux la minute qui suit H-3 ; si un job échoue,
+-- l'annulation attend l'exécution suivante réussie (aucune garantie de délai
+-- sans job) ; les actions, elles, sont refusées dès H-3 quoi qu'il arrive.
 -- Pour chaque Swend scellé dont H-3 est atteint (et H pas encore), dont au
 -- moins un côté est en imprévu sans remplaçant sélectionné : annulation
 -- (motif `echeance_h3`, sans auteur), mêmes verrous que les actions (le

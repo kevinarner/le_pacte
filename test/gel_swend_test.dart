@@ -7,6 +7,7 @@ import 'package:le_pacte/models/pacte.dart';
 import 'package:le_pacte/models/remplacant.dart';
 import 'package:le_pacte/models/statut_pacte.dart';
 import 'package:le_pacte/models/type_repas.dart';
+import 'package:le_pacte/utils/date_fr.dart';
 
 /// Gel à H (D-023a) : ce que l'app masque à l'heure du Swend. La base reste
 /// seule juge (tests SQL `98_gel_a_h.sql`).
@@ -143,8 +144,14 @@ void main() {
       expect(imprevuOuvert(p, entre), isTrue);
       expect(echeanceH3Atteinte(p, entre), isTrue);
     });
+    test('Swend du 17 novembre à 19h00 (Paris) : H-3 = 16h00', () {
+      // 19h00 à Paris en novembre (UTC+1) = 18h00 UTC.
+      final s = swend(StatutPacte.confirme, DateTime.utc(2026, 11, 17, 18));
+      expect(echeanceH3(s), DateTime.utc(2026, 11, 17, 15));
+      expect(formaterJourEtHeure(echeanceH3(s)!), 'mardi 17 novembre à 16h00');
+    });
     test('message propre si la base refuse dès H-3', () {
-      expect(messageEcheanceH3, contains('à moins de 3 heures du Swend'));
+      expect(messageEcheanceH3, contains('à partir de 3 heures avant le Swend'));
     });
   });
 }

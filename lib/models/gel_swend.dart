@@ -33,7 +33,7 @@ bool echeanceH3Atteinte(Pacte pacte, DateTime maintenant) {
 
 /// Refus de la base dès H-3 (`echeance_h3`).
 const messageEcheanceH3 =
-    'Il est trop tard : à moins de 3 heures du Swend, on ne peut plus chercher ni accepter de remplaçant.';
+    'Il est trop tard : à partir de 3 heures avant le Swend, on ne peut plus chercher ni accepter de remplaçant.';
 
 /// Une conversation titulaire ↔ personne de confiance ne s'écrit plus dès
 /// que le Swend est passé ou annulé (elle reste lisible). Garanti par la

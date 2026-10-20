@@ -388,7 +388,7 @@ class _BlocTiersState extends State<BlocTiers> {
         title: const Text('Tu ne peux finalement plus venir ?'),
         content: Text(
           tardif
-              ? 'À moins de 3 heures du Swend, personne d’autre ne pourra prendre la place '
+              ? 'À partir de 3 heures avant le Swend, personne d’autre ne pourra prendre la place '
                     '${deNom(_titulaire).replaceAll("'", '’')} : le Swend sera annulé.'
               : "Tu ne prendras plus la place ${deNom(_titulaire)}, qui devra chercher quelqu'un d'autre. "
                     'Pense à lui écrire un mot.',
