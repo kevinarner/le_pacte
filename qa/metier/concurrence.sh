@@ -206,6 +206,7 @@ resultat "échéance H-3 : 3 exécutions simultanées, une seule annulation, une
 #    rappels (toutes les 5 minutes, qui l'appelle d'abord) au même moment,
 #    juste après H-3 → une seule annulation, une push par personne, aucun
 #    rappel du Jour J.
+P -c "select envoyer_rappels_dus()" >/dev/null 2>&1  # rappels dus d'autres Swends du banc : envoyés avant
 ok=0; detail=""
 for i in $(seq 1 10); do
   read p k <<< "$(P <<SQL | tail -1
@@ -218,7 +219,8 @@ SQL
 )"
   n0=$(P -c "select coalesce(max(id), 0) from notifications_log")
   P -c "select appliquer_echeances_h3()" >/dev/null 2>&1 & P -c "select envoyer_rappels_dus()" >/dev/null 2>&1 & P -c "select appliquer_echeances_h3()" >/dev/null 2>&1 & wait
-  push=$(P -c "select string_agg(n::text, ',' order by p) from (select profile_id p, count(*) n from notifications_log where id > $n0 and profile_id in ('$E', '$D', '$K') group by 1) x")
+  push=$(P -c "select string_agg(n::text, ',' order by p) from (select profile_id p, count(*) n from notifications_log where id > $n0 and profile_id in ('$E', '$D', '$K')
+    and (data->>'pacte_id' = '$p' or data->>'remplacant_id' = '$k') group by 1) x")
   rappels=$(P -c "select count(*) from notifications_log where id > $n0 and data->>'type' = 'rappel' and data->>'pacte_id' = '$p'")
   etat=$(P -c "select statut || '|' || annule_motif || '|' || (select count(*) from chats_apres_swend where pacte_id = '$p') from pactes where id = '$p'")
   if [ "$etat" = "annule|echeance_h3|1" ] && [ "$push" = "1,1,1" ] && [ "$rappels" = 0 ]; then ok=$((ok+1)); else detail="essai $i : état=$etat push=$push rappels=$rappels"; fi
