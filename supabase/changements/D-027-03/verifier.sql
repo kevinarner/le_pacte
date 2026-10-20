@@ -27,7 +27,10 @@ begin
   end if;
   if (select count(*) from cron.job where jobname = 'swend-rappels' and active and schedule = '*/5 * * * *') <> 1
      or (select count(*) from cron.job where jobname = 'swend-echeance-h3' and active and schedule = '* * * * *'
-         and command = 'select public.appliquer_echeances_h3()') <> 1 then
+         and command = 'select public.appliquer_echeances_h3()') <> 1
+     or exists (select 1 from cron.job e, cron.job r
+                where e.jobname = 'swend-echeance-h3' and r.jobname = 'swend-rappels'
+                  and (e.username is distinct from r.username or e.database is distinct from r.database)) then
     raise exception 'D-027-03 vérification : jobs différents de ceux attendus';
   end if;
 end $$;

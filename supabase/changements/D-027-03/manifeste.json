@@ -2,13 +2,13 @@
   "id": "D-027-03",
   "niveau": 2,
   "projet": "ssciqjpaibdorvnkkhsk",
-  "objectif": "D-027 échéance H-3 ferme (décision d Eliot du 20/10) : dès H-3, plus aucune recherche ni réponse (echeance_h3) ; désistement du remplaçant sélectionné dès H-3 = annulation immédiate sans réactivation ; recherche non résolue à H-3 = annulation (appliquer_echeances_h3, en tête du moteur des rappels, job swend-rappels existant) ; annulation, notifications, chat d annulation et conversations du lot 2 inchangés ; aucune donnée existante modifiée, aucune notification au restaurant.",
+  "objectif": "D-027 échéance H-3 ferme (décision d Eliot du 20/10) : dès H-3, plus aucune recherche ni réponse (echeance_h3, heure lue après les verrous) ; désistement du remplaçant sélectionné dès H-3 = annulation immédiate sans réactivation ; recherche non résolue à H-3 = annulation (appliquer_echeances_h3 : nouveau job swend-echeance-h3 chaque minute, et en tête du moteur des rappels, fréquence inchangée) ; annulation, notifications, chat d annulation et conversations du lot 2 inchangés ; aucune donnée existante modifiée, aucune notification au restaurant.",
   "sauvegardes": [
     {
       "nom": "sauvegarde",
       "type": "sql_ecriture",
       "fichier": "sauvegarde.sql",
-      "sha256": "c10983fedf2edd1200af87e6a40947bad87fb8462db7b5d574504f3f2760f691"
+      "sha256": "c07ac641df4dc3c27f861f713d11a1e0847ed8bce986eafcc2163254dc2768b6"
     }
   ],
   "etapes": [
@@ -16,13 +16,13 @@
       "nom": "appliquer",
       "type": "sql_ecriture",
       "fichier": "appliquer.sql",
-      "sha256": "1db9dfdeba35a21e269ab010940ee72c448a2f8933ff21f7d533ff90f9d3bba2"
+      "sha256": "038d1518d1b7f8189bc9bd52a28accab7341217aeb9d45b84806a3a31a74ba61"
     },
     {
       "nom": "verifier",
       "type": "sql_lecture",
       "fichier": "verifier.sql",
-      "sha256": "d1ea3688cc2f43d0919211e7dc82f1f61507cab0a7e2114b1dc9f5acf93bc7a3"
+      "sha256": "6d99f04fdffa002a38c98f1b73b0917a422496bbbf73fb9fd029e821a8c00ebc"
     }
   ],
   "rollback": [
@@ -30,7 +30,7 @@
       "nom": "rollback",
       "type": "sql_ecriture",
       "fichier": "rollback.sql",
-      "sha256": "c55ff1a4641396f2d6730cc558007650dc3b9683178d8a0bcad6ee10cd0290cb"
+      "sha256": "6874497fce77f9d4c8ab39d6d97687de51bf84eae3cc46929e59008ded8b324e"
     }
   ]
 }

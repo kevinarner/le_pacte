@@ -47,13 +47,13 @@ begin
      or to_regprocedure('cron.schedule(text, text, text)') is null then
     raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
-  -- Aucun Swend en imprévu à moins de 3 heures de son heure : sinon le
-  -- premier passage du moteur l'annulerait aussitôt (arbitrage nécessaire).
+  -- Aucun Swend en imprévu dont l'heure tombe dans les 3 h 10 qui viennent :
+  -- sinon le premier passage du job l'annulerait aussitôt (arbitrage nécessaire).
   if exists (select 1 from public.pactes p
              where p.statut = 'confirme' and p.date_retenue > now()
                and p.date_retenue <= now() + interval '3 hours 10 minutes'
                and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id)) then
-    raise exception 'D-027-03 : un Swend en imprévu est déjà à moins de 3 heures (arbitrage nécessaire)';
+    raise exception 'D-027-03 : un Swend en imprévu a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
   end if;
   if to_regclass('sauvegarde.d027_03_fonctions_20261020') is not null
      or to_regclass('sauvegarde.d027_03_pactes_20261020') is not null then

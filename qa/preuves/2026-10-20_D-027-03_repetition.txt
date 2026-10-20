@@ -1,38 +1,74 @@
-# D-027-03 — répétition du paquet sur une base reproduisant la production attendue (lot 2 appliqué, sans l'échéance H-3 ; table cron.job simulée avec les 3 jobs de production, pg_cron absent du banc ; données fictives)
-# Scripts : …_base_avant_d03.sh.txt, …_donnees.sql.txt, …_repetition.sh.txt ; artefacts du paquet du commit indiqué dans DECISIONS.md
 avant : confirme/envoyee confirme/acceptee+sel confirme/-
 empreintes de production reproduites : 7/7
+avant : jobs swend-chat-apres [* * * * *], swend-gel-a-h [*/5 * * * *], swend-rappels [*/5 * * * *]
+== sauvegarde, job swend-echeance-h3 déjà présent (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:62: ERROR:  D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible
 == sauvegarde, job swend-rappels inactif (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : job swend-rappels différent de celui relu (paquet à refaire)
-== sauvegarde, Swend en imprévu à moins de 3 h (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : un Swend en imprévu est déjà à moins de 3 heures (arbitrage nécessaire)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:62: ERROR:  D-027-03 : job swend-rappels différent de celui relu (paquet à refaire)
+ deplacer_swend 
+----------------
+ 
+(1 row)
+
+== sauvegarde, Swend en imprévu dont l'heure est dans moins de 3 h 10 (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:62: ERROR:  D-027-03 : un Swend en imprévu a son heure dans moins de 3 h 10 (arbitrage nécessaire)
+ deplacer_swend 
+----------------
+ 
+(1 row)
+
 == appliquer sans sauvegarde (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:59: ERROR:  D-027-03 : sauvegarde absente
+psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:64: ERROR:  D-027-03 : sauvegarde absente
 == sauvegarde
+== appliquer, swend-rappels sous un autre rôle (refus attendu, tout annulé)
+        5
+psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:875: ERROR:  D-027-03 : job swend-echeance-h3 sous un autre rôle ou une autre base que swend-rappels
+après ce refus : fonctions de l'échéance 0, job swend-echeance-h3 0
 == appliquer
+        6
+après appliquer : jobs swend-chat-apres [* * * * *], swend-echeance-h3 [* * * * *], swend-gel-a-h [*/5 * * * *], swend-rappels [*/5 * * * *]
 == verifier
                        0 |      3 |                  3 |              0
 == appliquer de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:59: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:64: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
 == sauvegarde de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:62: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
 == rollback immédiat
                                   0
+après rollback : jobs swend-chat-apres [* * * * *], swend-gel-a-h [*/5 * * * *], swend-rappels [*/5 * * * *]
 après rollback : md5 et droits 7/7 identiques ; fonctions de l'échéance : 0
 == verifier après rollback (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/verifier.sql:31: ERROR:  D-027-03 vérification : objets absents
+psql:/home/user/le_pacte/supabase/changements/D-027-03/verifier.sql:36: ERROR:  D-027-03 vérification : objets absents
 == rollback de nouveau (refus attendu)
-psql:/home/user/le_pacte/supabase/changements/D-027-03/rollback.sql:16: ERROR:  D-027-03 rollback : D-027-03 n'est pas appliqué
+psql:/home/user/le_pacte/supabase/changements/D-027-03/rollback.sql:17: ERROR:  D-027-03 rollback : D-027-03 n'est pas appliqué
 == réapplication
+        7
 == verifier
                        0 |      3 |                  3 |              0
 == usage réel simulé
+ deplacer_swend 
+----------------
+ 
+(1 row)
+
+00000000-0000-4000-8000-0000000000a1
 NOTICE:  acceptation refusée : echeance_h3
-moteur des rappels (job) : 0 rappel(s) envoyé(s)
+job swend-echeance-h3 (commande enregistrée) exécuté : Swend A annule|echeance_h3
+moteur des rappels ensuite : 0 rappel(s) envoyé(s)
+push du Swend A : 4 — On a besoin de toi / Eliot Martin te demande de prendre sa place pour un Swend. ## Le Swend est annulé / Personne n’a pu prendre ta place à temps. ## Le Swend est annulé / Eliot ne pourra finalement pas être là. ## Le Swend est annulé / Tu n’as plus besoin de répondre.
 Swend A après le moteur : annule|echeance_h3 ; demande de Kevin : cloturee
+ deplacer_swend 
+----------------
+ 
+(1 row)
+
+00000000-0000-4000-8000-0000000000a1
+
 désistement après H-3 : Swend B annule|echeance_h3 ; Swend C confirme
 push : Le Swend est annulé / Personne n’a pu prendre ta place à temps. ## Le Swend est annulé / Eliot ne pourra finalement pas être là. ## Le Swend est annulé / Tu n’as plus besoin de répondre. ## Le Swend est annulé / Kevin ne peut finalement plus venir. ## Le Swend est annulé / Eliot ne pourra finalement pas être là.
 == rollback après usage
                                   2
+après rollback (usage) : jobs swend-chat-apres [* * * * *], swend-gel-a-h [*/5 * * * *], swend-rappels [*/5 * * * *]
 après rollback (usage) : annulations echeance_h3 conservées = 2
+00000000-0000-4000-8000-0000000000e1
 ancien code après rollback, demande à H-1 : 1 demande envoyée

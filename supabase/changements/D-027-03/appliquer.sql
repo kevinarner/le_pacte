@@ -48,13 +48,13 @@ begin
      or to_regprocedure('cron.schedule(text, text, text)') is null then
     raise exception 'D-027-03 : job swend-echeance-h3 déjà présent, ou pg_cron indisponible';
   end if;
-  -- Aucun Swend en imprévu à moins de 3 heures de son heure : sinon le
-  -- premier passage du moteur l'annulerait aussitôt (arbitrage nécessaire).
+  -- Aucun Swend en imprévu dont l'heure tombe dans les 3 h 10 qui viennent :
+  -- sinon le premier passage du job l'annulerait aussitôt (arbitrage nécessaire).
   if exists (select 1 from public.pactes p
              where p.statut = 'confirme' and p.date_retenue > now()
                and p.date_retenue <= now() + interval '3 hours 10 minutes'
                and exists (select 1 from public.imprevus_declares d where d.pacte_id = p.id)) then
-    raise exception 'D-027-03 : un Swend en imprévu est déjà à moins de 3 heures (arbitrage nécessaire)';
+    raise exception 'D-027-03 : un Swend en imprévu a son heure dans moins de 3 h 10 (arbitrage nécessaire)';
   end if;
   -- Sauvegarde faite (étape « sauvegarde » de ce paquet).
   if to_regclass('sauvegarde.d027_03_fonctions_20261020') is null
@@ -865,6 +865,12 @@ begin
   if (select count(*) from cron.job where jobname = 'swend-echeance-h3' and active
       and schedule = '* * * * *' and command = 'select public.appliquer_echeances_h3()') <> 1 then
     raise exception 'D-027-03 : job swend-echeance-h3 absent ou différent';
+  end if;
+  -- Exécuté par le même rôle, sur la même base, que swend-rappels.
+  if exists (select 1 from cron.job e, cron.job r
+             where e.jobname = 'swend-echeance-h3' and r.jobname = 'swend-rappels'
+               and (e.username is distinct from r.username or e.database is distinct from r.database)) then
+    raise exception 'D-027-03 : job swend-echeance-h3 sous un autre rôle ou une autre base que swend-rappels';
   end if;
 end $$;
 

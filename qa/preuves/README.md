@@ -21,8 +21,19 @@ uniquement ; aucune donnée ni aucun identifiant de production.
   `…_suites_base_paquet.sh.txt`.
 - `2026-10-20_D-027-03_repetition.txt` : répétition du paquet D-027-03
   (échéance H-3 ferme) sur une base reproduisant la production attendue
-  (lot 2 appliqué, sans l'échéance ; table `cron.job` simulée : pg_cron
-  n'existe pas sur le banc). Scripts et données : `…_base_avant_d03.sh.txt`,
-  `…_donnees.sql.txt`, `…_repetition.sh.txt`.
+  (lot 2 appliqué, sans l'échéance ; pg_cron n'existe pas sur le banc :
+  table `cron.job` et fonctions `cron.schedule` / `cron.unschedule`
+  simulées aux signatures de pg_cron 1.6 ; création du job
+  `swend-echeance-h3`, refus s'il existe déjà ou sous un autre rôle que
+  `swend-rappels`, exécution de sa commande enregistrée, retrait au
+  rollback). Scripts et données : `…_base_avant_d03.sh.txt`,
+  `…_donnees.sql.txt`, `…_repetition.sh.txt`. Ce que seul pg_cron réel
+  peut montrer (déclenchement chaque minute, `cron.job_run_details`) :
+  `paquet.md` de D-027-03, « Vérifications après exécution ».
 - `2026-10-20_D-027-03_suites_base_paquet.txt` : suites SQL métier sur une
   base où l'échéance vient du paquet ; script `…_suites_base_paquet.sh.txt`.
+- `2026-10-20_D-027-03_mutation_6ter.txt` : la course 6 ter de
+  `qa/metier/concurrence.sh` (acceptation demandée avant H-3, en attente du
+  verrou jusqu'après H-3) échoue si l'heure est lue au début de la
+  transaction (`now()`) au lieu d'après les verrous (`clock_timestamp()`) ;
+  fonction d'origine restaurée et vérifiée par empreinte.

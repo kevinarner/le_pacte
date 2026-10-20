@@ -1,0 +1,28 @@
+# D-027-03 — preuve que la course 6 ter (concurrence.sh) détecte un contrôle de l'heure fait trop tôt.
+# Base swend_d027_03_suites (échéance issue du paquet). repondre_demande_remplacement() modifiée le temps du test :
+#   echeance_h3_atteinte(v_date, clock_timestamp())  →  echeance_h3_atteinte(v_date, now())
+# (heure de début de transaction au lieu de l'heure une fois les verrous obtenus), puis QA_COURSES=3 qa/metier/concurrence.sh.
+# Attendu : 6 ter en échec (acceptation validée après H-3), toutes les autres courses réussies.
+# Fonction d'origine restaurée ensuite, empreinte vérifiée : 8f6e448b412d297ec245d74d53468ee7 (celle du paquet).
+
+PASS — [concurrence] acceptation en attente de verrou : la seconde perd (place_deja_prise)
+PASS — [concurrence] 3 courses simultanées : un seul gagnant à chaque fois
+PASS — [concurrence] même personne des deux côtés en même temps : une seule place, Swend toujours scellé
+PASS — [concurrence] rappels : 3 exécutions simultanées du moteur, jamais de push en double
+PASS — [concurrence] annulation et acceptation simultanées : remplacé → plus d'annulation, ou annulé → Kevin prévenu une seule fois
+PASS — [concurrence] échéance H-3 : acceptation commencée avant H-3, échéance en attente du verrou → Swend maintenu, aucune push d'annulation
+FAIL — [concurrence] échéance H-3 : acceptation demandée avant H-3 mais en attente du verrou jusqu'après H-3 → refusée (echeance_h3), puis Swend annulé — requête avant H-3=true erreur= avant échéance=acceptee+sel|confirme après=acceptee+sel|confirme|aucun push=0
+PASS — [concurrence] échéance H-3 : 10 courses acceptation / échéance au moment de H-3, toujours une seule issue cohérente (5 acceptées avant H-3, 5 annulées)
+PASS — [concurrence] échéance H-3 : 3 exécutions simultanées, une seule annulation, une push par personne
+PASS — [concurrence] échéance H-3 : job de l'échéance et moteur des rappels simultanés, une seule annulation, aucun doublon ni rappel
+PASS — [concurrence] gel à H : 3 exécutions simultanées du moteur, jamais de doublon
+PASS — [concurrence] chat après le Swend : 3 moteurs simultanés, un seul chat, une seule ouverture
+PASS — [concurrence] nouveau Swend : 2 scellements simultanés sur le même chat, une seule fermeture, un seul message
+PASS — [concurrence] chat pas encore ouvert : moteur et scellement simultanés, jamais un chat resté ouvert
+PASS — [concurrence] nouveau Swend : créations simultanées par les deux personnes, un seul Swend en cours
+PASS — [concurrence] accueil : créations simultanées pour la même paire, un seul Swend en cours
+PASS — [concurrence] retour du titulaire et acceptation simultanés : l'un ou l'autre, jamais les deux
+PASS — [concurrence] envoi groupé et acceptation simultanés : tout le groupe ou rien, jamais en attente à côté de la place prise
+PASS — [concurrence] double annulation simultanée : une seule annulation, un seul chat, une push au seul perdant
+PASS — [concurrence] annulation et double remplacement simultanés : l'un ou l'autre, un seul chat, aucune push en double
+PASS — [concurrence] annulation et scellement Eliot–Kevin simultanés : conversation toujours fermée, un seul événement

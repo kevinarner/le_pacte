@@ -1,6 +1,6 @@
 #!/bin/bash
 # Base locale = production attendue avant D-027-03 (toutes les migrations sauf l'échéance H-3),
-# table cron.job simulée (pg_cron absent du banc) avec les 3 jobs de production.
+# table cron.job et fonctions schedule/unschedule simulées (pg_cron absent du banc), avec les 3 jobs de production.
 . /home/user/le_pacte/qa/lib/commun.sh
 BASE="$1"
 qa_psql postgres -c "select pg_terminate_backend(pid) from pg_stat_activity where datname = '$BASE' and pid <> pg_backend_pid()" >/dev/null
@@ -12,7 +12,29 @@ for f in "$QA_ROOT/db/replica/00_schema_initial.sql" $(ls "$REPO_ROOT"/supabase/
 done
 qa_psql "$BASE" -v ON_ERROR_STOP=1 -q <<'SQL'
 create schema if not exists cron;
-create table cron.job (jobid serial primary key, jobname text, schedule text, command text, active boolean default true);
+create table cron.job (jobid bigserial primary key, jobname text, schedule text, command text,
+  active boolean default true, username text default current_user, database text default current_database());
+-- Signatures de pg_cron 1.6 (version de production) : schedule crée ou remplace
+-- le job du même nom et rend son jobid ; unschedule le supprime.
+create function cron.schedule(job_name text, schedule text, command text) returns bigint language plpgsql as $f$
+declare v bigint;
+begin
+  update cron.job j set schedule = $2, command = $3, active = true where j.jobname = $1 returning jobid into v;
+  if v is null then insert into cron.job (jobname, schedule, command) values ($1, $2, $3) returning jobid into v; end if;
+  return v;
+end $f$;
+create function cron.unschedule(job_id bigint) returns boolean language plpgsql as $f$
+begin
+  delete from cron.job where jobid = $1;
+  if not found then raise exception 'could not find valid entry for job %', $1; end if;
+  return true;
+end $f$;
+create function cron.unschedule(job_name text) returns boolean language plpgsql as $f$
+begin
+  delete from cron.job where jobname = $1;
+  if not found then raise exception 'could not find valid entry for job %', $1; end if;
+  return true;
+end $f$;
 insert into cron.job (jobname, schedule, command) values
   ('swend-chat-apres', '* * * * *', 'select public.ouvrir_chats_apres_swend()'),
   ('swend-gel-a-h', '*/5 * * * *', 'select public.figer_swends_passes()'),
