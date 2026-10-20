@@ -9,6 +9,7 @@ import '../../models/remplacant.dart';
 import '../../services/contact_picker_service.dart';
 import '../../services/pacte_repository.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/date_fr.dart';
 import '../../utils/telephone.dart';
 import '../../utils/textes_invitation.dart';
 import '../../widgets/envoi_invitation.dart';
@@ -123,8 +124,63 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       ];
     }
     if (s.phase == PhaseImprevu.accepte) return _vueAcceptee(s);
+    // Échéance H-3 (D-027, 20/10) : plus de recherche ; une recherche non
+    // résolue annule le Swend, un nouvel imprévu aussi.
+    if (echeanceH3Atteinte(widget.pacte, DateTime.now())) {
+      return _vueTropTard(s);
+    }
     if (_selection || s.phase == PhaseImprevu.choix) return _vueChoix(s);
     return _vueRecherche(s);
+  }
+
+  // --- Dès H-3 ---
+
+  List<Widget> _vueTropTard(SituationImprevu s) {
+    if (s.etat == EtatCote.cherche) {
+      // La base annule le Swend (au plus tard au passage suivant du moteur).
+      return [
+        _titre(TextesImprevu.titreTropTardRecherche),
+        const SizedBox(height: 8),
+        _sousTitre(TextesImprevu.corpsTropTardRecherche),
+      ];
+    }
+    return [
+      _titre(TextesImprevu.titreChoix),
+      const SizedBox(height: 8),
+      _sousTitre(TextesImprevu.corpsTropTard),
+      _messageErreur(),
+      const SizedBox(height: 20),
+      FilledButton(
+        style: FilledButton.styleFrom(backgroundColor: AppColors.erreur),
+        onPressed: _enCours ? null : _annulerTardif,
+        child: const Text(TextesImprevu.annulerLeSwend),
+      ),
+    ];
+  }
+
+  Future<void> _annulerTardif() async {
+    final annule = await confirmerEtAnnuler(context, pacte: widget.pacte);
+    if (!mounted) return;
+    if (annule) {
+      widget.onChanged();
+      Navigator.pop(context);
+    } else {
+      await _charger();
+    }
+  }
+
+  /// « Si personne n'a accepté avant mardi 17 novembre à 16h00, le Swend
+  /// sera annulé. » — pendant la recherche, avant H-3.
+  Widget _ligneEcheance() {
+    final e = echeanceH3(widget.pacte);
+    if (e == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Text(
+        TextesImprevu.echeance(formaterJourEtHeure(e)),
+        style: const TextStyle(fontSize: 12.5, color: AppColors.texteAttenue),
+      ),
+    );
   }
 
   // --- Choix des personnes (pas d'imprévu, ou « Solliciter quelqu'un d'autre ») ---
@@ -149,6 +205,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       _titre(titre),
       const SizedBox(height: 6),
       _sousTitre(sousTitre),
+      _ligneEcheance(),
       const SizedBox(height: 16),
       for (final r in s.sollicitables)
         Card(
@@ -215,6 +272,7 @@ class _ImprevuScreenState extends State<ImprevuScreen> {
       _titre(titre),
       const SizedBox(height: 6),
       _sousTitre(sousTitre),
+      _ligneEcheance(),
       const SizedBox(height: 16),
       for (final r in s.sollicitees) _ligne(r, avecActions: true),
       _messageErreur(),

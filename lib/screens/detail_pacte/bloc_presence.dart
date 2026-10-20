@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/cote_pacte.dart';
 import '../../models/demande_statut.dart';
+import '../../models/gel_swend.dart';
 import '../../models/imprevu.dart';
 import '../../models/pacte.dart';
 import '../../models/remplacant.dart';
@@ -60,9 +61,16 @@ class BlocPresence extends StatelessWidget {
     // n'a pu prendre ta place. » ou le désistement, mêmes textes que
     // « Un imprévu ? ». Jamais visible de l'autre titulaire.
     final s = situation;
+    // Dès H-3 (D-027, 20/10) : la recherche est close, le Swend va être
+    // annulé.
     final enRecherche =
         designe == null && s != null && s.etat == EtatCote.cherche
-        ? s.entete
+        ? (echeanceH3Atteinte(pacte, DateTime.now())
+              ? (
+                  TextesImprevu.titreTropTardRecherche,
+                  TextesImprevu.corpsTropTardRecherche,
+                )
+              : s.entete)
         : null;
 
     return Card(

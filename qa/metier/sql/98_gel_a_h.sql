@@ -1,7 +1,8 @@
 -- Gel à l'heure du Swend (D-023a). Utilise les outils de 10_imprevu.sql
 -- (verifier, en_tant_que, compter_en_tant_que, statut_fiche, ajouter_fiche).
 -- Les Swends sont datés par rapport à l'horloge réelle (« juste avant » :
--- dans une heure ; « juste après » : il y a une seconde) : chaque instruction
+-- dans quatre heures, avant H-3 — dès H-3 la recherche est close, D-027 du
+-- 20/10, suite 99h ; « juste après » : il y a une seconde) : chaque instruction
 -- psql est une transaction, now() avance d'une instruction à l'autre.
 -- Le moteur est appelé avec l'instant réel, sauf pour le changement d'heure
 -- (instant contrôlé).
@@ -70,7 +71,7 @@ select figer_swends_passes();
 -- ===================================================================
 -- A. Juste avant H : toutes les actions restent possibles
 -- ===================================================================
-select g_swend(now() + interval '1 hour') as p \gset
+select g_swend(now() + interval '4 hours') as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Camille', '0600000004') as c \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Thomas', '0600000005') as t \gset
@@ -97,7 +98,7 @@ select verifier('A', 'annuler le Swend reste possible avant H (non exécuté ici
 -- ===================================================================
 -- B. Juste après H : tout est refusé avec swend_passe, rien ne bouge
 -- ===================================================================
-select g_swend(now() + interval '1 hour') as p2 \gset
+select g_swend(now() + interval '4 hours') as p2 \gset
 select ajouter_fiche(:'E', :'p2', 'initiateur', 'Kevin', '0600000003') as k2 \gset
 select ajouter_fiche(:'E', :'p2', 'initiateur', 'Camille', '0600000004') as c2 \gset
 select ajouter_fiche(:'E', :'p2', 'initiateur', 'Tom', '0700000010') as v2 \gset
@@ -185,7 +186,7 @@ select verifier('C', 'le statut reste confirme (aucun indicateur modifié)', (se
 -- ===================================================================
 -- D. Même personne sollicitée des deux côtés : une seule push
 -- ===================================================================
-select g_swend(now() + interval '1 hour') as p3 \gset
+select g_swend(now() + interval '4 hours') as p3 \gset
 select ajouter_fiche(:'E', :'p3', 'initiateur', 'Kevin', '0600000003') as ke3 \gset
 select ajouter_fiche(:'D', :'p3', 'destinataire', 'Kevin', '0600000003') as kd3 \gset
 select g_rpc(:'E', 'envoyer_demande_remplacement', :'ke3') \gset
@@ -202,7 +203,7 @@ select verifier('D', 'événement de fin dans les deux conversations',
 -- ===================================================================
 -- E. Moteur en retard de plus de 12 heures : état corrigé, sans push
 -- ===================================================================
-select g_swend(now() + interval '1 hour') as p4 \gset
+select g_swend(now() + interval '4 hours') as p4 \gset
 select ajouter_fiche(:'E', :'p4', 'initiateur', 'Kevin', '0600000003') as k4 \gset
 select g_rpc(:'E', 'envoyer_demande_remplacement', :'k4') \gset
 select g_dater(:'p4', now() - interval '13 hours');
@@ -300,7 +301,7 @@ select verifier('H', 'fiche retirée : aucun événement de fin', g_codes(:'t9')
 -- ===================================================================
 -- I. Ancien rappel cliqué après H : jamais « Un imprévu ? »
 -- ===================================================================
-select g_swend(now() + interval '1 hour') as p10 \gset
+select g_swend(now() + interval '4 hours') as p10 \gset
 select ajouter_fiche(:'E', :'p10', 'initiateur', 'Kevin', '0600000003') as k10 \gset
 select g_rpc(:'E', 'envoyer_demande_remplacement', :'k10') \gset
 select g_rpc(:'K', 'repondre_demande_remplacement', :'k10', 'false') \gset
@@ -413,7 +414,7 @@ create or replace function g_acces(p_user uuid, p_pacte uuid, p_fiche uuid) retu
       || compter_en_tant_que(p_user, format('select count(*)::int from evenements_fil where remplacant_id = %L', p_fiche))
 $$;
 
-select g_swend(now() + interval '1 hour') as p13 \gset
+select g_swend(now() + interval '4 hours') as p13 \gset
 -- Côté David : Yann accepte puis se désiste, Walter refuse.
 select ajouter_fiche(:'D', :'p13', 'destinataire', 'Yann', '0600000008') as y13 \gset
 select ajouter_fiche(:'D', :'p13', 'destinataire', 'Walter', '0600000007') as w13 \gset
@@ -472,7 +473,7 @@ select verifier('M', 'après H : les données restent en base (fiches et message
 
 -- Même personne des deux côtés : Kevin sollicité par David, puis il prend la
 -- place d'Eliot. Après H : le Swend et sa fiche côté Eliot, pas l'autre.
-select g_swend(now() + interval '1 hour') as p15 \gset
+select g_swend(now() + interval '4 hours') as p15 \gset
 select ajouter_fiche(:'D', :'p15', 'destinataire', 'Kevin', '0600000003') as kd15 \gset
 select ajouter_fiche(:'E', :'p15', 'initiateur', 'Kevin', '0600000003') as ke15 \gset
 select g_rpc(:'D', 'envoyer_demande_remplacement', :'kd15') \gset
@@ -548,7 +549,7 @@ begin
   return coalesce(v, '');
 end $$;
 
-select g_swend(now() + interval '1 hour') as p17 \gset
+select g_swend(now() + interval '4 hours') as p17 \gset
 select ajouter_fiche(:'E', :'p17', 'initiateur', 'Kevin', '0600000003') as k17 \gset
 select ajouter_fiche(:'E', :'p17', 'initiateur', 'Camille', '0600000004') as c17 \gset
 select ajouter_fiche(:'E', :'p17', 'initiateur', 'Thomas', '0600000005') as t17 \gset

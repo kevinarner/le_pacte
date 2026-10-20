@@ -124,4 +124,27 @@ void main() {
       expect(messageSwendPasse, contains('L’heure du Swend est passée'));
     });
   });
+
+  group('Échéance H-3 (D-027, 20/10)', () {
+    final p = swend(StatutPacte.confirme, h);
+    final h3 = h.subtract(const Duration(hours: 3));
+    test('échéance à H-3 exactement, incluse', () {
+      expect(echeanceH3(p), h3);
+      final juste = h3.subtract(const Duration(seconds: 1));
+      expect(echeanceH3Atteinte(p, juste), isFalse);
+      expect(echeanceH3Atteinte(p, h3), isTrue);
+      expect(echeanceH3Atteinte(p, h3.add(const Duration(minutes: 1))), isTrue);
+      final sansDate = swend(StatutPacte.confirme, null);
+      expect(echeanceH3(sansDate), isNull);
+      expect(echeanceH3Atteinte(sansDate, h), isFalse);
+    });
+    test('entre H-3 et H : annulation encore possible, recherche close', () {
+      final entre = h.subtract(const Duration(hours: 1));
+      expect(imprevuOuvert(p, entre), isTrue);
+      expect(echeanceH3Atteinte(p, entre), isTrue);
+    });
+    test('message propre si la base refuse dès H-3', () {
+      expect(messageEcheanceH3, contains('à moins de 3 heures du Swend'));
+    });
+  });
 }

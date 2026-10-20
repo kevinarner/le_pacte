@@ -379,13 +379,19 @@ class _BlocTiersState extends State<BlocTiers> {
   }
 
   Future<void> _seDesister() async {
+    // Dès H-3 (D-027, 20/10) : personne d'autre ne peut plus prendre la
+    // place, le désistement annule le Swend (texte proposé).
+    final tardif = echeanceH3Atteinte(widget.pacte, DateTime.now());
     final confirme = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Tu ne peux finalement plus venir ?'),
         content: Text(
-          "Tu ne prendras plus la place ${deNom(_titulaire)}, qui devra chercher quelqu'un d'autre. "
-          'Pense à lui écrire un mot.',
+          tardif
+              ? 'À moins de 3 heures du Swend, personne d’autre ne pourra prendre la place '
+                    '${deNom(_titulaire).replaceAll("'", '’')} : le Swend sera annulé.'
+              : "Tu ne prendras plus la place ${deNom(_titulaire)}, qui devra chercher quelqu'un d'autre. "
+                    'Pense à lui écrire un mot.',
         ),
         actions: [
           TextButton(
@@ -413,6 +419,8 @@ class _BlocTiersState extends State<BlocTiers> {
             content: Text(
               code == 'swend_passe'
                   ? messageSwendPasse
+                  : code == 'echeance_h3'
+                  ? messageEcheanceH3
                   : code == 'swend_inactif'
                   ? "Ce Swend n'est plus actif."
                   : code == 'demande_non_active'

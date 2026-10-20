@@ -101,5 +101,8 @@ export async function modifierComme(nom, table, filtre, valeurs) {
 }
 
 // Base E2E avec le lot 2 de D-027 (migration annulation_et_conversations,
-// paquet D-027-02) ou sans (QA_BASE=avant-D-027-02, production actuelle).
+// paquet D-027-02) ou sans (QA_BASE=avant-D-027-02, production d'avant le 20/10).
 export const baseAvecLot2 = () => sql("select to_regclass('public.fils_imprevu_fermes') is not null") === 't';
+// Base E2E avec l'échéance H-3 ferme (migration echeance_h3, D-027 du 20/10)
+// ou sans (QA_BASE=avant-D-027-03, production depuis le 20/10).
+export const baseAvecEcheanceH3 = () => sql("select to_regprocedure('public.appliquer_echeances_h3(timestamptz)') is not null") === 't';

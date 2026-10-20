@@ -68,6 +68,13 @@ String formaterHeure(TimeOfDay t) => '${t.hour}h${t.minute.toString().padLeft(2,
 String formaterDateEtHeure(DateTime instant) =>
     '${formaterDateEnToutesLettres(instant)} à ${formaterHeure(heureParis(instant))}';
 
+/// « mardi 17 novembre à 16h00 »
+String formaterJourEtHeure(DateTime instant) {
+  final d = enParis(instant);
+  return '${joursSemaine[d.weekday - 1]} ${d.day} ${moisAnnee[d.month - 1]} '
+      'à ${formaterHeure(heureParis(instant))}';
+}
+
 /// « Mardi 17 novembre · 19h00 »
 String formaterJourEtHeureCourt(DateTime instant) {
   final d = enParis(instant);

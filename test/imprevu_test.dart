@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:le_pacte/models/demande_statut.dart';
 import 'package:le_pacte/models/imprevu.dart';
 import 'package:le_pacte/models/remplacant.dart';
+import 'package:le_pacte/utils/date_fr.dart';
 
 /// « Un imprévu ? » (D-027, lot 3) : situation de mon côté, phases, actions
 /// proposées et textes, indépendamment de l'écran.
@@ -266,8 +267,28 @@ void main() {
         'Envoyer les demandes',
       ));
     });
+    test('échéance H-3 : textes (proposés le 20/10) et refus de la base', () {
+      // Mardi 17/11/2026 20:00 Paris (UTC+1) : H-3 = 17:00 Paris = 16:00 UTC.
+      final h3 = DateTime.utc(2026, 11, 17, 16);
+      expect(formaterJourEtHeure(h3), 'mardi 17 novembre à 17h00');
+      expect(
+        TextesImprevu.echeance(formaterJourEtHeure(h3)),
+        'Si personne n’a accepté avant mardi 17 novembre à 17h00, le Swend sera annulé.',
+      );
+      expect(
+        TextesImprevu.titreTropTardRecherche,
+        'Personne n’a pu prendre ta place à temps.',
+      );
+      expect(
+        TextesImprevu.erreur('echeance_h3'),
+        contains('à moins de 3 heures du Swend'),
+      );
+    });
     test('personne sans compte (textes validés le 20/10)', () {
-      expect(TextesImprevu.sansCompte('Tom'), 'Tom n’a pas encore de compte Swend.');
+      expect(
+        TextesImprevu.sansCompte('Tom'),
+        'Tom n’a pas encore de compte Swend.',
+      );
       expect(
         TextesImprevu.messageAEnvoyer('Tom'),
         'Tom n’a pas encore de compte Swend : envoie-lui un message pour lui '

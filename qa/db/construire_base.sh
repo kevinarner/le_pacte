@@ -24,14 +24,22 @@ appliquer() {
     qa_erreur "échec de $(basename "$1")"; tail -5 "$QA_LOGS/migration.log" >&2; exit 1
   fi
 }
-# QA_BASE=avant-D-027-02 : la production actuelle (sans la migration du
-# lot 2 de D-027, deux fonctions dans leur version de production), pour
-# vérifier une app sur les deux bases (D-027 lot 3).
-exclue() { [ "${QA_BASE:-}" = "avant-D-027-02" ] && [[ "$1" == *_annulation_et_conversations.sql ]]; }
+# QA_BASE=avant-D-027-02 : la production d'avant le 20/10 (sans la migration
+# du lot 2 de D-027, deux fonctions dans leur version de production), pour
+# vérifier une app sur les deux bases (D-027 lot 3) ; sans l'échéance H-3.
+# QA_BASE=avant-D-027-03 : la production depuis le 20/10 (lot 2 appliqué,
+# sans l'échéance H-3 ferme).
+exclue() {
+  case "${QA_BASE:-}" in
+    avant-D-027-02) [[ "$1" == *_annulation_et_conversations.sql || "$1" == *_echeance_h3.sql ]] ;;
+    avant-D-027-03) [[ "$1" == *_echeance_h3.sql ]] ;;
+    *) return 1 ;;
+  esac
+}
 appliquer "$QA_ROOT/db/replica/00_schema_initial.sql"
 for f in "$REPO_ROOT"/supabase/migrations/*.sql; do exclue "$f" || appliquer "$f"; done
 if [ "$REJOUER" = "--rejouer" ]; then
-  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h,confidentialite_telephones,chat_apres_swend,delai_minimum_swend,fuseaux_horaires,nouveau_swend,imprevu_etats_et_actions,annulation_et_conversations}.sql; do
+  for f in "$REPO_ROOT"/supabase/migrations/*_{telephones_phase2,destinataire_a_un_compte,fil_evenements_et_lectures,disponibilite_spontanee_et_notifications,scellage_et_negociation,reservations_suivi,rappels_jour_j,annulation_manuelle,gel_a_h,confidentialite_telephones,chat_apres_swend,delai_minimum_swend,fuseaux_horaires,nouveau_swend,imprevu_etats_et_actions,annulation_et_conversations,echeance_h3}.sql; do
     exclue "$f" || appliquer "$f"
   done
 fi

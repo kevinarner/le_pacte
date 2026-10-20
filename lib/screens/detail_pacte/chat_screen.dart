@@ -673,6 +673,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'demande_non_active' => "Cette demande n'est plus active.",
         'swend_inactif' => "Ce Swend n'est plus actif.",
         'swend_passe' => messageSwendPasse,
+        'echeance_h3' => messageEcheanceH3,
         _ => 'Impossible de répondre pour le moment. Réessaie.',
       };
     }

@@ -460,9 +460,11 @@ select ia_envoyer(:'E', array[:'k', :'c']::uuid[]) \gset
 select g_rpc(:'K', 'repondre_demande_remplacement', :'k', 'false') \gset
 select g_rpc(:'E', 'je_peux_finalement_venir', :'p') \gset
 \ir ../../../supabase/migrations/20261012000000_imprevu_etats_et_actions.sql
--- D-027 lot 2 redéfinit ensuite l'annulation et les accès : état réel rétabli.
+-- D-027 lot 2 redéfinit ensuite l'annulation et les accès, puis l'échéance H-3
+-- les actions : état réel rétabli.
 \o /dev/null
 \ir ../../../supabase/migrations/20261015000000_annulation_et_conversations.sql
+\ir ../../../supabase/migrations/20261020000000_echeance_h3.sql
 \o
 select verifier('S', 'migration rejouée : le retour d''Eliot reste acquis (pas de déclaration recréée)',
   not ia_declare(:'p', 'initiateur') and ia_etat(:'p', 'initiateur') = 'normal');
@@ -483,9 +485,11 @@ select en_tant_que(:'E', format('select annuler_swend(%L)', :'pc')) \gset
 create temp table ia_avant as select pacte_id, cote from imprevus_declares;
 drop table imprevus_declares;
 \ir ../../../supabase/migrations/20261012000000_imprevu_etats_et_actions.sql
--- D-027 lot 2 redéfinit ensuite l'annulation et les accès : état réel rétabli.
+-- D-027 lot 2 redéfinit ensuite l'annulation et les accès, puis l'échéance H-3
+-- les actions : état réel rétabli.
 \o /dev/null
 \ir ../../../supabase/migrations/20261015000000_annulation_et_conversations.sql
+\ir ../../../supabase/migrations/20261020000000_echeance_h3.sql
 \o
 select verifier('S', 'remplissage : côté avec un refus → déclaré ; côté remplacé → déclaré',
   ia_declare(:'pa', 'initiateur') and ia_declare(:'pa', 'destinataire'));

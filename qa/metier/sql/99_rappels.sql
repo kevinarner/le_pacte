@@ -165,14 +165,28 @@ select verifier('B', 'destination au clic : Eliot → Un imprévu ? ; David → 
   compter_en_tant_que(:'E', format('select (destination_rappel(%L) = %L)::int', :'p', 'imprevu')) = 1
   and compter_en_tant_que(:'D', format('select (destination_rappel(%L) = %L)::int', :'p', 'fiche')) = 1);
 select en_tant_que(:'K', format('select repondre_demande_remplacement(%L, false)', :'k')) as r \gset
-select verifier('B', 'refus sans nouvelle demande : Eliot reste en « cherche » (J-3, J-1, Jour J)',
-  rappels_a(:'p', :'J3') = 2 and rappels_a(:'p', :'J1') = 2 and rappels_a(:'p', :'J0') = 2
+select verifier('B', 'refus sans nouvelle demande : Eliot reste en « cherche » (J-3, J-1)',
+  rappels_a(:'p', :'J3') = 2 and rappels_a(:'p', :'J1') = 2
   and rappels_de(:'p', :'E') like '%j3|Plus que 3 jours pour ton Swend avec David|Lundi 12 octobre à 20h00 · Au Père Lapin.' || E'\n' || 'Tente de trouver%'
   and rappels_de(:'p', :'E') like '%j1|C’est demain !|Ton Swend avec David : lundi 12 octobre à 20h00 · Au Père Lapin.' || E'\n'
-      || 'Le temps presse, essaie de trouver quelqu’un pour te remplacer au plus vite.%'
-  and rappels_de(:'p', :'E') like '%j0|Ton Swend avec David est dans 3h !|Aujourd’hui à 20h00 · Au Père Lapin.' || E'\n'
-      || 'Ton Swend est en péril ! Trouve quelqu’un pour te remplacer dès que possible. Et si vraiment personne n’est disponible, annule le Swend pour que le restaurant soit prévenu.',
+      || 'Le temps presse, essaie de trouver quelqu’un pour te remplacer au plus vite.',
   rappels_de(:'p', :'E'));
+-- D-027 (20/10) : H-3 est la limite ferme. Le moteur applique l'échéance avant
+-- tout rappel : recherche non résolue → Swend annulé, aucun rappel du Jour J
+-- (ni « Ton Swend est en péril », ni « Est-ce que tu vas vraiment… »).
+select g0 from (select coalesce(max(id), 0) as g0 from notifications_log) x \gset
+select rappels_a(:'p', :'J0') as rappels_j0 \gset
+select verifier('B', 'Jour J (H-3) : recherche non résolue → Swend annulé (echeance_h3), aucun rappel',
+  :rappels_j0 = 0
+  and (select statut || '|' || annule_motif from pactes where id = :'p') = 'annule|echeance_h3'
+  and not exists (select 1 from notifications_log where id > :g0 and data->>'type' = 'rappel'),
+  (select statut || '|' || coalesce(annule_motif, '') from pactes where id = :'p'));
+select verifier('B', 'Jour J : Eliot « Personne n’a pu prendre ta place à temps. », David « Eliot ne pourra finalement pas être là. »',
+  (select string_agg(titre || '|' || corps, ' ## ' order by id) from notifications_log where id > :g0 and profile_id = :'E')
+    = 'Le Swend est annulé|Personne n’a pu prendre ta place à temps.'
+  and (select string_agg(titre || '|' || corps, ' ## ' order by id) from notifications_log where id > :g0 and profile_id = :'D')
+    = 'Le Swend est annulé|Eliot ne pourra finalement pas être là.'
+  and not exists (select 1 from notifications_log where id > :g0 and profile_id = :'K'));
 select verifier('B', 'David : rappels normaux avec Eliot, sans indice', rappels_de(:'p', :'D') not like '%remplacer%' and rappels_de(:'p', :'D') not like '%Kevin%');
 select swend_rappels() as p \gset
 select ajouter_fiche(:'E', :'p', 'initiateur', 'Kevin', '0600000003') as k \gset

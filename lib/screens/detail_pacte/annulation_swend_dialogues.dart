@@ -38,7 +38,19 @@ Future<ChoixDernierRecours?> jeNaiPersonneDAutre(
     ),
   );
   if (choix != ChoixDernierRecours.annule || !context.mounted) return choix;
+  return await confirmerEtAnnuler(context, pacte: pacte)
+      ? ChoixDernierRecours.annule
+      : null;
+}
 
+/// Confirmation « Annuler ce Swend ? / Cette action est définitive. L'autre
+/// personne sera prévenue. », puis annulation par la base. Aussi utilisée
+/// dès H-3 (D-027, 20/10) : un nouvel imprévu ne lance plus de recherche,
+/// il annule le Swend. Renvoie true si le Swend est annulé.
+Future<bool> confirmerEtAnnuler(
+  BuildContext context, {
+  required Pacte pacte,
+}) async {
   final confirme = await showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
@@ -57,12 +69,12 @@ Future<ChoixDernierRecours?> jeNaiPersonneDAutre(
       ],
     ),
   );
-  if (confirme != true) return null;
+  if (confirme != true) return false;
 
   try {
     await PacteRepository.annulerSwend(pacte.id);
     pacte.statut = StatutPacte.annule;
-    return ChoixDernierRecours.annule;
+    return true;
   } catch (e) {
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -73,6 +85,6 @@ Future<ChoixDernierRecours?> jeNaiPersonneDAutre(
         ),
       );
     }
-    return null;
+    return false;
   }
 }

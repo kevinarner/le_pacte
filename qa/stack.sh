@@ -7,8 +7,9 @@
 #   qa/stack.sh stop     arrête tout
 #   qa/stack.sh status   état des services
 #   qa/stack.sh reset    reconstruit la base e2e de zéro (schéma + migrations)
-#   QA_BASE=avant-D-027-02 qa/stack.sh start   base e2e sans le lot 2 de D-027
-#                        (production actuelle) ; sans QA_BASE : toutes les migrations
+#   QA_BASE=avant-D-027-03 qa/stack.sh start   base e2e sans l'échéance H-3
+#                        (production depuis le 20/10) ; QA_BASE=avant-D-027-02 : sans
+#                        le lot 2 non plus ; sans QA_BASE : toutes les migrations
 #   qa/stack.sh logs     chemins des journaux
 . "$(dirname "$0")/lib/commun.sh"
 . "$QA_ROOT/lib/garde_fou.sh"

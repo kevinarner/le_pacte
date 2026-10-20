@@ -1,4 +1,5 @@
 import 'demande_statut.dart';
+import 'gel_swend.dart';
 import 'remplacant.dart';
 
 /// « En cas d'imprévu » côté titulaire (D-027) : où en est MON côté d'un
@@ -271,6 +272,21 @@ abstract final class TextesImprevu {
   static const demandeAttendDeNouveau =
       'La demande attend de nouveau sa réponse.';
 
+  // Échéance H-3 (D-027, 20/10 ; textes proposés).
+  /// Pendant la recherche : jusqu'à quand une acceptation est possible.
+  static String echeance(String quand) =>
+      'Si personne n’a accepté avant $quand, le Swend sera annulé.';
+
+  /// Dès H-3, recherche non résolue (la base annule le Swend).
+  static const titreTropTardRecherche =
+      'Personne n’a pu prendre ta place à temps.';
+  static const corpsTropTardRecherche =
+      'À moins de 3 heures du Swend, on ne peut plus chercher personne : le Swend va être annulé.';
+
+  /// Dès H-3, sans imprévu en cours : plus de recherche, l'annulation.
+  static const corpsTropTard =
+      'À moins de 3 heures du Swend, il n’est plus possible de chercher quelqu’un pour prendre ta place. Si tu ne peux pas venir, le Swend sera annulé.';
+
   static const heurePassee = 'L’heure du Swend est passée.';
   static const heurePasseeCorps =
       'Il n’est plus possible de demander à quelqu’un de prendre ta place.';
@@ -290,6 +306,7 @@ abstract final class TextesImprevu {
     'swend_inactif' => 'Ce Swend n’est plus actif.',
     'swend_passe' =>
       'L’heure du Swend est passée : cette action n’est plus possible.',
+    'echeance_h3' => messageEcheanceH3,
     'champs_manquants' => 'Renseigne le prénom, le nom et le téléphone.',
     'personne_est_participant' =>
       'Cette personne participe déjà à ce Swend : elle ne peut pas prendre ta place.',
