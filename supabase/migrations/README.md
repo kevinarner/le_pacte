@@ -76,15 +76,16 @@ pour le banc QA (`qa/`), qui les rejoue sur une base locale.
   avec la base sans D-027). Elle redéfinit 9 fonctions
   d'`gel_a_h.sql` et `fil_evenements_et_lectures.sql` : ne plus ré-exécuter
   ces migrations seules après elle (la rejouer ensuite).
-  `20261015000000_annulation_et_conversations.sql` : **pas encore exécutée
-  en production** (D-027 lot 2, « En cas d'imprévu » : annulation réservée
+  `20261015000000_annulation_et_conversations.sql` : **exécutée en production
+  le 20/10** par le paquet `D-027-02` (`RESULTAT: SUCCES`, reçu
+  `journal/20261020T092835Z-appliquer.log`, branche `recu/D-027-02`) (D-027 lot 2, « En cas d'imprévu » : annulation réservée
   au titulaire non remplacé, annulation unique avec motif et notifications,
   chat d'annulation entre titulaires, conversations d'imprévu conservées et
   écrivables après annulation, fermeture paire par paire, D-024 inchangé ;
-  aucune donnée existante modifiée). À exécuter par le change packet
-  `supabase/changements/D-027-02/` (niveau 2, préparé, sans validation),
-  **après** D-027-01 et **après** la publication d'une app du lot 3
-  compatible (voir le paquet). Elle redéfinit 9 fonctions
+  aucune donnée existante modifiée). Exécutée par le change packet
+  `supabase/changements/D-027-02/` (niveau 2), **après** D-027-01 et
+  **après** la publication de l'app du lot 3
+  compatible (voir le paquet). Elle redéfinit 10 fonctions
   (`gel_a_h.sql`, `annulation_manuelle.sql`, `chat_apres_swend.sql`,
   `nouveau_swend.sql`, `confidentialite_telephones.sql`) et la contrainte
   des événements de `imprevu_etats_et_actions.sql` : ne plus ré-exécuter
