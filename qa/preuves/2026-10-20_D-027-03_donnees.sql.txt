@@ -1,0 +1,19 @@
+\set ON_ERROR_STOP 1
+-- Données fictives : Swend A (Eliot cherche : Kevin sollicité, H dans 2 jours),
+-- Swend B (Eliot remplacé par Kevin, H dans 3 jours), Swend C (normal, H dans 4 jours).
+select qa.reinitialiser();
+insert into pactes (id, statut, type, date_retenue, dates_proposees, restaurant_id, initiateur_id, initiateur_nom, destinataire_id, destinataire_nom, destinataire_telephone)
+select v.id::uuid, 'confirme', 'diner', now() + v.d, to_jsonb(array[now() + v.d]), qa.id('restaurant'), qa.id('eliot'), 'Eliot Martin', qa.id('david'), 'David Schlang', '+33 6 02 03 04 05'
+from (values ('00000000-0000-4000-a300-000000000001', interval '2 days'), ('00000000-0000-4000-a300-000000000002', interval '3 days'),
+             ('00000000-0000-4000-a300-000000000003', interval '4 days')) v(id, d);
+insert into remplacants (id, pacte_id, cote, prenom, nom, telephone, email, profil_id) values
+ ('00000000-0000-4000-a300-0000000000a1', '00000000-0000-4000-a300-000000000001', 'initiateur', 'Kevin', 'Arner', '0600001234', '', qa.id('kevin')),
+ ('00000000-0000-4000-a300-0000000000a2', '00000000-0000-4000-a300-000000000002', 'initiateur', 'Kevin', 'Arner', '0600001234', '', qa.id('kevin'));
+select qa.id('eliot') as eliot, qa.id('kevin') as kevin \gset
+select set_config('request.jwt.claim.sub', :'eliot', false);
+set role authenticated;
+select count(*) from envoyer_demandes_remplacement(array['00000000-0000-4000-a300-0000000000a1'::uuid]);
+select count(*) from envoyer_demandes_remplacement(array['00000000-0000-4000-a300-0000000000a2'::uuid]);
+select set_config('request.jwt.claim.sub', :'kevin', false);
+select repondre_demande_remplacement('00000000-0000-4000-a300-0000000000a2', true);
+reset role;

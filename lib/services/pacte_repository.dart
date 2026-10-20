@@ -551,6 +551,7 @@ class PacteRepository {
       'non_autorise',
       'aucun_imprevu',
       'aucune_personne',
+      'echeance_h3',
       'remplacement_accepte',
     ];
     for (final code in codes) {

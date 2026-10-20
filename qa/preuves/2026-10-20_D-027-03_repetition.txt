@@ -1,0 +1,38 @@
+# D-027-03 — répétition du paquet sur une base reproduisant la production attendue (lot 2 appliqué, sans l'échéance H-3 ; table cron.job simulée avec les 3 jobs de production, pg_cron absent du banc ; données fictives)
+# Scripts : …_base_avant_d03.sh.txt, …_donnees.sql.txt, …_repetition.sh.txt ; artefacts du paquet du commit indiqué dans DECISIONS.md
+avant : confirme/envoyee confirme/acceptee+sel confirme/-
+empreintes de production reproduites : 7/7
+== sauvegarde, job swend-rappels inactif (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : job swend-rappels différent de celui relu (paquet à refaire)
+== sauvegarde, Swend en imprévu à moins de 3 h (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : un Swend en imprévu est déjà à moins de 3 heures (arbitrage nécessaire)
+== appliquer sans sauvegarde (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:59: ERROR:  D-027-03 : sauvegarde absente
+== sauvegarde
+== appliquer
+== verifier
+                       0 |      3 |                  3 |              0
+== appliquer de nouveau (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/appliquer.sql:59: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
+== sauvegarde de nouveau (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/sauvegarde.sql:57: ERROR:  D-027-03 : déjà appliqué (en tout ou partie)
+== rollback immédiat
+                                  0
+après rollback : md5 et droits 7/7 identiques ; fonctions de l'échéance : 0
+== verifier après rollback (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/verifier.sql:31: ERROR:  D-027-03 vérification : objets absents
+== rollback de nouveau (refus attendu)
+psql:/home/user/le_pacte/supabase/changements/D-027-03/rollback.sql:16: ERROR:  D-027-03 rollback : D-027-03 n'est pas appliqué
+== réapplication
+== verifier
+                       0 |      3 |                  3 |              0
+== usage réel simulé
+NOTICE:  acceptation refusée : echeance_h3
+moteur des rappels (job) : 0 rappel(s) envoyé(s)
+Swend A après le moteur : annule|echeance_h3 ; demande de Kevin : cloturee
+désistement après H-3 : Swend B annule|echeance_h3 ; Swend C confirme
+push : Le Swend est annulé / Personne n’a pu prendre ta place à temps. ## Le Swend est annulé / Eliot ne pourra finalement pas être là. ## Le Swend est annulé / Tu n’as plus besoin de répondre. ## Le Swend est annulé / Kevin ne peut finalement plus venir. ## Le Swend est annulé / Eliot ne pourra finalement pas être là.
+== rollback après usage
+                                  2
+après rollback (usage) : annulations echeance_h3 conservées = 2
+ancien code après rollback, demande à H-1 : 1 demande envoyée

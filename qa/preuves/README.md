@@ -19,3 +19,10 @@ uniquement ; aucune donnée ni aucun identifiant de production.
 - `2026-10-15_D-027-02_suites_base_paquet.txt` : suites SQL métier sur une
   base où le lot 2 vient du paquet (et non de la migration) ; script
   `…_suites_base_paquet.sh.txt`.
+- `2026-10-20_D-027-03_repetition.txt` : répétition du paquet D-027-03
+  (échéance H-3 ferme) sur une base reproduisant la production attendue
+  (lot 2 appliqué, sans l'échéance ; table `cron.job` simulée : pg_cron
+  n'existe pas sur le banc). Scripts et données : `…_base_avant_d03.sh.txt`,
+  `…_donnees.sql.txt`, `…_repetition.sh.txt`.
+- `2026-10-20_D-027-03_suites_base_paquet.txt` : suites SQL métier sur une
+  base où l'échéance vient du paquet ; script `…_suites_base_paquet.sh.txt`.
