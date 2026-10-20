@@ -197,7 +197,8 @@ abstract final class TextesImprevu {
   // « Solliciter quelqu'un d'autre » et ajout (textes proposés, lot 3).
   static const choisisDesPersonnes =
       'Choisis une ou plusieurs personnes de ta liste.';
-  static String sansCompte(String prenom) => '$prenom n’a pas encore Swend';
+  static String sansCompte(String prenom) =>
+      '$prenom n’a pas encore de compte Swend.';
   static const ajoutCorps =
       'Cette personne recevra directement ta demande de prendre ta place.';
   static const ajoutAction = 'Lui demander de prendre ma place';
@@ -221,14 +222,14 @@ abstract final class TextesImprevu {
       };
 
   /// Confirmation avant l'envoi : (titre, corps, action).
-  /// Une personne : texte validé rendu neutre (« S’il accepte, il… » →
-  /// « Si Kevin accepte, Kevin… », même règle que l'acceptation du 12/10).
+  /// Une personne : formulation neutre validée le 20/10 (« En acceptant,
+  /// Kevin… » ; le genre n'est jamais déduit d'un prénom).
   static (String, String, String) confirmationEnvoi(List<Remplacant> choisis) {
     if (choisis.length == 1) {
       final p = choisis.first.prenom.trim();
       return (
         'Envoyer la demande à $p ?',
-        'Si $p accepte, $p prendra ta place et tu ne pourras plus revenir en arrière.',
+        'En acceptant, $p prendra ta place et tu ne pourras plus revenir en arrière.',
         'Envoyer la demande',
       );
     }
@@ -261,7 +262,7 @@ abstract final class TextesImprevu {
 
   // Personne sans compte : le titulaire envoie lui-même le message.
   static String messageAEnvoyer(String prenom) =>
-      '$prenom n’a pas encore Swend : envoie-lui un message pour lui expliquer '
+      '$prenom n’a pas encore de compte Swend : envoie-lui un message pour lui expliquer '
       'et lui permettre de répondre depuis l’app.';
   static const plusTard = 'Plus tard';
   static const envoyerLeMessage = 'Envoyer le message';

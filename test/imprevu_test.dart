@@ -256,7 +256,7 @@ void main() {
     test('confirmations avant l\'envoi (une personne : formulation neutre)', () {
       expect(TextesImprevu.confirmationEnvoi([fiche('Kevin')]), (
         'Envoyer la demande à Kevin ?',
-        'Si Kevin accepte, Kevin prendra ta place et tu ne pourras plus revenir en arrière.',
+        'En acceptant, Kevin prendra ta place et tu ne pourras plus revenir en arrière.',
         'Envoyer la demande',
       ));
       expect(TextesImprevu.confirmationEnvoi([fiche('Kevin'), fiche('Tom')]), (
@@ -265,6 +265,14 @@ void main() {
             'Une fois ta place prise, tu ne pourras plus revenir en arrière.',
         'Envoyer les demandes',
       ));
+    });
+    test('personne sans compte (textes validés le 20/10)', () {
+      expect(TextesImprevu.sansCompte('Tom'), 'Tom n’a pas encore de compte Swend.');
+      expect(
+        TextesImprevu.messageAEnvoyer('Tom'),
+        'Tom n’a pas encore de compte Swend : envoie-lui un message pour lui '
+        'expliquer et lui permettre de répondre depuis l’app.',
+      );
     });
     test('dernier recours et annulation : textes validés D-027', () {
       expect(TextesImprevu.titrePersonneDAutre, 'Tu n’as personne d’autre ?');

@@ -554,7 +554,7 @@ Le titulaire choisit une ou plusieurs personnes prévues, puis un seul bouton ad
 
 Confirmation avant l’envoi :
 
-- une personne : « Envoyer la demande à Kevin ? / S’il accepte, il prendra ta place et tu ne pourras plus revenir en arrière. » ;
+- une personne : « Envoyer la demande à Kevin ? / En acceptant, Kevin prendra ta place et tu ne pourras plus revenir en arrière. » (formulation neutre validée le 20/10, au lieu de « S’il accepte, il… ») ;
 - plusieurs : « Envoyer la demande ? / La première personne qui accepte prendra ta place. / Une fois ta place prise, tu ne pourras plus revenir en arrière. ».
 
 Les demandes d’un même envoi sont créées ensemble par la base : toutes ou aucune.

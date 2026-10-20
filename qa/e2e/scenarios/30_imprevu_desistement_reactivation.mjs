@@ -27,7 +27,7 @@ export default {
       await ex.verifier('deux demandes envoyées ensemble', () => demande(FICHES.kevin) === 'envoyee|f' && demande(FICHES.tom) === 'envoyee|f',
         { obtenu: () => `${demande(FICHES.kevin)} / ${demande(FICHES.tom)}` });
       await ex.verifierTexte(eliot, 'Demande envoyée à Tom', 'Tom : « Demande envoyée à Tom »');
-      await ex.verifierTexte(eliot, 'Tom n’a pas encore Swend : envoie-lui un message pour lui expliquer et lui permettre de répondre depuis l’app.', 'Tom : message à envoyer soi-même');
+      await ex.verifierTexte(eliot, 'Tom n’a pas encore de compte Swend : envoie-lui un message pour lui expliquer et lui permettre de répondre depuis l’app.', 'Tom : message à envoyer soi-même');
       await eliot.cliquer('Plus tard');
       await ex.verifierTexte(eliot, 'C’est envoyé.', 'attente : « C’est envoyé. »');
       await ex.verifierTexte(eliot, /Tom Petit\s+En attente/, 'Tom : « En attente »');

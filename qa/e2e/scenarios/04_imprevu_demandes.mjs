@@ -25,7 +25,7 @@ export default {
       await ex.verifierTexte(eliot, 'Tu ne peux plus être là ?', 'titre « Tu ne peux plus être là ? »');
       await ex.verifierTexte(eliot, 'Sollicite l’un de tes remplaçants :)', 'sous-titre « Sollicite l’un de tes remplaçants :) »');
       await ex.verifier('une case par personne prévue (Kevin, Sylvain, Tom)', async () => (await cases(eliot)) === 3);
-      await ex.verifierTexte(eliot, 'Tom n’a pas encore Swend', 'Tom : « n’a pas encore Swend »');
+      await ex.verifierTexte(eliot, 'Tom n’a pas encore de compte Swend.', 'Tom : « n’a pas encore de compte Swend. »');
       await ex.verifier('comptes Swend listés avant Tom',
         async () => (await eliot.positionY('Tom Petit')) > Math.max(await eliot.positionY('Kevin Arner'), await eliot.positionY('Sylvain Landiech')));
       await ex.verifier('aucun bouton d’envoi tant que personne n’est choisi',
@@ -95,7 +95,7 @@ export default {
       await A.cocher(eliot, 'Sylvain Landiech');
       await eliot.cliquer('Demander à Sylvain');
       await ex.verifierTexte(eliot, 'Envoyer la demande à Sylvain ?', 'confirmation : « Envoyer la demande à Sylvain ? »');
-      await ex.verifierTexte(eliot, 'Si Sylvain accepte, Sylvain prendra ta place et tu ne pourras plus revenir en arrière.', 'confirmation : texte neutre');
+      await ex.verifierTexte(eliot, 'En acceptant, Sylvain prendra ta place et tu ne pourras plus revenir en arrière.', 'confirmation : « En acceptant, Sylvain prendra ta place… »');
       await eliot.cliquer('Envoyer la demande');
       await A.repondre(sylvain, false);
       await ex.verifier('refus enregistré', () => demande(FICHES.sylvain) === 'refusee|f', { obtenu: () => demande(FICHES.sylvain) });
