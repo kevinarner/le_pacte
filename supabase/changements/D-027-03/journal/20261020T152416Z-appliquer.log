@@ -1,0 +1,22 @@
+PAQUET: D-027-03
+MODE: appliquer
+NIVEAU: 2
+EMPREINTE: 9a7c35885f2809bfa400540d1cc9003aae92aaa979b3a472029c4617d78e81f1
+VALIDATION: {"go":"Go D-027-03","valide_par":["Eliot"],"valide_le":"2026-10-20T15:09:27Z"}
+COMMIT: 2e9f7de84bca38c3aa427ac49c9034080f6a92de
+DEBUT: 2026-10-20T15:24:16Z
+PLAN:
+  1. sauvegarde — sql_ecriture — sauvegarde.sql — sha256 6afb2b6d0a6406d4e598ce0373166369a4e76571eb7db10194c3946a6935f073
+  2. appliquer — sql_ecriture — appliquer.sql — sha256 f42188ec9e76cec730b986463ef926bf4ae417dbe627732f3b5f2f10227cf89d
+  3. verifier — sql_lecture — verifier.sql — sha256 30bc5930d68ffdca349e6f910f5ce6da39260fc21f8cb338987ef6cdad0ba508
+ETAPE 1: sauvegarde (sql_ecriture, sauvegarde.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: []
+ETAPE 2: appliquer (sql_ecriture, appliquer.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query
+  HTTP: 201
+  REPONSE: [{"schedule":4}]
+ETAPE 3: verifier (sql_lecture, verifier.sql) -> /v1/projects/ssciqjpaibdorvnkkhsk/database/query/read-only
+  HTTP: 201
+  REPONSE: [{"annulations_echeance_h3":0,"swends":2,"swends_sauvegardes":2,"swends_changes":0}]
+RESULTAT: SUCCES
+FIN: 2026-10-20T15:24:20Z
