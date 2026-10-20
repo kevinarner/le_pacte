@@ -37,6 +37,11 @@ uniquement ; aucune donnée ni aucun identifiant de production.
   verrou jusqu'après H-3) échoue si l'heure est lue au début de la
   transaction (`now()`) au lieu d'après les verrous (`clock_timestamp()`) ;
   fonction d'origine restaurée et vérifiée par empreinte.
+- `2026-10-20_D-027-03_preparation.txt` : préparation du déploiement
+  (Go de préparation d'Eliot) : empreinte, préconditions exactes relues en
+  production (lecture seule), état des Swends, build de l'app (commit,
+  identifiant, configuration, reproductibilité). Requêtes de contrôle avant
+  le Go, après l'exécution et sur les jobs : `…_controles.sql`.
 - `2026-10-20_D-027-03_rattrapage_ancien_code.txt` : jobs en échec entre
   H-3 et H, puis reprise après H (section H de `99h_echeance_h3.sql`) ;
   avec le code d'avant la correction, 9 échecs (Swend figé et maintenu,

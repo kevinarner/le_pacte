@@ -1,0 +1,47 @@
+# D-027-03 — préparation du déploiement (Go de préparation d'Eliot, 20/10/2026)
+# Aucune écriture en production, aucun validation.json, aucune publication.
+
+## Paquet
+- commit de travail : 8bc5bed (branche claude/sweet-einstein-ngufz2, poussé)
+- scripts/paquet_controler.sh D-027-03 --avant-go : contrôles OK, niveau 2
+- empreinte : 9a7c35885f2809bfa400540d1cc9003aae92aaa979b3a472029c4617d78e81f1 (= empreinte attendue par Eliot)
+
+## Production, lecture seule (endpoint …/read-only), 20/10/2026 14:51–14:56 UTC
+- D-027-02 appliqué ; D-027-03 absent (ni echeance_h3_atteinte ni appliquer_echeances_h3) ; sauvegarde D-027-03 absente
+- 8/8 fonctions à remplacer à l'empreinte attendue, une seule par nom ; droits relevés
+  (inchangés par le paquet, contrôlés contre la sauvegarde) :
+  ajouter_et_demander_remplacement, annuler_demande_remplacement, repondre_demande_remplacement,
+  se_desister_du_remplacement : =X/postgres authenticated=X/postgres postgres=X/postgres ;
+  envoyer_demandes_remplacement, je_peux_finalement_venir : authenticated=X/postgres postgres=X/postgres ;
+  envoyer_rappels_dus, figer_swends_passes : postgres=X/postgres
+- pg_cron 1.6.4 ; cron.schedule(text, text, text) et cron.unschedule(bigint) présents
+- jobs : swend-chat-apres (* * * * *), swend-gel-a-h (*/5), swend-rappels (*/5) ; actifs ; rôle postgres, base postgres ;
+  aucun swend-echeance-h3
+- dernière heure : swend-chat-apres 60/60, swend-gel-a-h 12/12, swend-rappels 12/12 succeeded, 0 échec
+- Swends : 2
+  * 8c6c9d64… confirmé, scellé, mardi 17/11/2026 19:00 Paris (18:00 UTC) ; H-3 = 16:00 Paris, dans ~672 h ;
+    non figé ; 0 imprévu, 4 fiches, 0 demande, 0 sélection
+  * 6cb94c32… en négociation (enAttenteChoixDateDestinataire), sans date ; 0 imprévu
+- scellés avec H dans les 3 h : 0 ; dans la fenêtre H-3 → H : 0 ; scellés avec H dans les 24 h : 0
+- imprévus déclarés 0 ; demandes envoyées 0 ; chats 0 ; imprévus non résolus passés ou proches : 0
+=> aucune précondition en défaut, aucun état rendant la transition problématique.
+
+## App
+- source : 8bc5bed (copie propre par git worktree, aucun fichier modifié)
+- flutter build web --release --base-href /le_pacte/
+- identifiant de build (.last_build_id) : 0ef9f22b19a28aa1eb1179716064a796
+- empreinte du contenu (sha256 des fichiers hors .last_build_id) :
+  fce0dddf11121875543044a40444a523ec2b22c4a330c6be2b16218995f7917c ;
+  reproductible : une seconde build propre du même commit est identique octet pour octet,
+  sauf .last_build_id (aléatoire à chaque build, ici 752e1437…)
+- configuration : adresse Supabase = celle de lib/constants.dart (projet de production), présente
+  1 fois dans main.dart.js ; base href /le_pacte/ ; aucune trace de QA (127.0.0.1, localhost:,
+  swend-qa, swend.test, qa.deplacer, faux_supabase) ; hôtes de main.dart.js (11) identiques à la
+  build en service a7e5fe07… ; firebase-messaging-sw.js, index.html, manifest.json, flutter.js identiques
+- nouveaux textes présents (« À partir de 3 heures avant le Swend », « Si personne n’a accepté avant »,
+  « Personne n’a pu prendre ta place à temps. »), absents de la build en service
+- commit gh-pages préparé LOCALEMENT, non poussé : 2809eae (parent 70fae74, = origin/gh-pages) ;
+  ne change que .last_build_id et main.dart.js, contenu = build 0ef9f22b octet pour octet
+- main : d61275a, ancêtre de 8bc5bed (fast-forward possible)
+
+## Contrôles prêts : 2026-10-20_D-027-03_controles.sql (A avant le Go, B après l'exécution, C jobs après 6 min)
