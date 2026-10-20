@@ -122,7 +122,7 @@ Le destinataire peut refuser le Swend. Le Swend est alors annulé.
 
 ### 3.5 Annulation d’un Swend scellé (D-022)
 
-> **Révisé par D-027 (12/10/2026).** Une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend` ; plus de bouton générique sur la fiche ; un titulaire dont la place a été prise ne peut plus annuler lui-même ; annulation automatique à H-3 puis à H si un imprévu déclaré n’a trouvé personne ; textes, chat d’annulation entre titulaires et conversations après annulation : `DECISIONS.md`, D-027, points 10 à 17. Les règles ci-dessous étaient celles de l’implémentation en production avant les lots 2 à 4 de D-027 ; depuis le 20/10/2026, les lots 1 à 3 sont en production (notes suivantes) et seules les échéances H-3 et H (lot 4) restent à venir.
+> **Révisé par D-027 (12/10/2026).** Une annulation décidée par un titulaire passe uniquement par `Un imprévu ?` → recherche → `Je n’ai personne d’autre` → `Annuler le Swend` ; plus de bouton générique sur la fiche ; un titulaire dont la place a été prise ne peut plus annuler lui-même ; **H-3 est la limite ferme (révision du 20/10/2026)** : à H-3 une recherche non résolue annule le Swend, et dès H-3 un nouvel imprévu ou le désistement du remplaçant sélectionné l’annulent aussitôt, sans recherche (paquet `D-027-03`, pas encore en production) ; textes, chat d’annulation entre titulaires et conversations après annulation : `DECISIONS.md`, D-027, points 10 à 17. Les règles ci-dessous étaient celles de l’implémentation en production avant les lots 2 à 4 de D-027 ; depuis le 20/10/2026, les lots 1 à 3 sont en production (notes suivantes) et seules les échéances H-3 et H (lot 4) restent à venir.
 
 > **Lot 2 de D-027 (annulation et conversations) : en production depuis le 20/10/2026** (paquet `D-027-02`, exécuté après la publication de l’app du lot 3 ; aucun parcours réel encore exercé). Depuis : un titulaire dont la place a été prise ne peut plus annuler (`remplacement_accepte`), l’autre titulaire le peut ; notifications : autre titulaire « Le Swend est annulé / Eliot ne pourra finalement pas être là. », remplaçant sélectionné « Le Swend est annulé / Tu n’auras finalement pas besoin de prendre la place d’Eliot. », demande en attente « Le Swend est annulé / Tu n’as plus besoin de répondre. », rien pour l’auteur ni pour les refus ; chat d’annulation entre les deux titulaires, ouvert immédiatement, sans push ; conversations d’imprévu conservées et ouvertes à l’écriture pour les personnes réellement sollicitées ou avec qui des messages ont été échangés (voir 3.6). Détail : `DECISIONS.md`, D-027, « Choix techniques (lot 2) ».
 
@@ -622,7 +622,7 @@ Tout le monde a refusé :
 
 ### 6.8 Imprévu déclaré
 
-Un côté est en imprévu dès qu’une demande y a été envoyée, jusqu’à `Je peux finalement venir` ou la fin du Swend. Une acceptation ne l’efface pas (un désistement le remet en recherche) ; retirer de sa liste une personne qui a refusé non plus. C’est cet état qui détermine les rappels (« cherche », 9.7) et, plus tard, l’annulation à H-3 et à H (D-027). Il n’est jamais visible de l’autre titulaire.
+Un côté est en imprévu dès qu’une demande y a été envoyée, jusqu’à `Je peux finalement venir` ou la fin du Swend. Une acceptation ne l’efface pas (un désistement le remet en recherche) ; retirer de sa liste une personne qui a refusé non plus. C’est cet état qui détermine les rappels (« cherche », 9.7) et l’annulation à H-3 (D-027, révisé le 20/10 : H-3 limite ferme ; paquet `D-027-03`, pas encore en production). Il n’est jamais visible de l’autre titulaire.
 
 ---
 
@@ -950,7 +950,7 @@ Rappels « cherche » ([prénom] = l’autre titulaire officiel) :
 | J-7 | Ton Swend avec [prénom] approche | Lundi 13 octobre à 20h00 · Au Père Lapin. / Tente de trouver quelqu’un pour te remplacer tant qu’il en est encore temps. |
 | J-3 | Plus que 3 jours pour ton Swend avec [prénom] | Lundi 13 octobre à 20h00 · Au Père Lapin. / Tente de trouver quelqu’un pour te remplacer tant qu’il en est encore temps. |
 | J-1 | C’est demain ! | Ton Swend avec [prénom] : lundi 13 octobre à 20h00 · Au Père Lapin. / Le temps presse, essaie de trouver quelqu’un pour te remplacer au plus vite. |
-| Jour J | Ton Swend avec [prénom] est dans 3h ! | Aujourd’hui à 20h00 · Au Père Lapin. / Ton Swend est en péril ! Trouve quelqu’un pour te remplacer dès que possible. Et si vraiment personne n’est disponible, annule le Swend pour que le restaurant soit prévenu. |
+| Jour J | Ton Swend avec [prénom] est dans 3h ! | Aujourd’hui à 20h00 · Au Père Lapin. / Ton Swend est en péril ! Trouve quelqu’un pour te remplacer dès que possible. Et si vraiment personne n’est disponible, annule le Swend pour que le restaurant soit prévenu. *(Avec D-027-03 : jamais envoyé — à H-3, une recherche non résolue annule le Swend avant tout rappel.)* |
 
 (« / » = retour à la ligne.)
 

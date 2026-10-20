@@ -37,15 +37,17 @@ qa/run_scenario.sh desistement
 qa/run_metier.sh sql          # (ou dart) une partie des tests métier
 ```
 
-Base de la production actuelle (sans le paquet `D-027-02`) : `QA_BASE=avant-D-027-02`
-exclut la migration du lot 2 et applique les définitions de production de
-`qa/db/production/avant_D-027-02.sql` ; la pile se reconstruit d'elle-même
-quand `QA_BASE` change (empreinte). Les scénarios qui dépendent du lot 2
-s'adaptent (`baseAvecLot2()` dans `e2e/lib/donnees.mjs`) :
+Bases de production passées : `QA_BASE=avant-D-027-03` (production depuis le
+20/10 : toutes les migrations sauf l'échéance H-3) ; `QA_BASE=avant-D-027-02`
+(production d'avant le 20/10 : ni le lot 2 ni l'échéance, définitions de
+production de `qa/db/production/avant_D-027-02.sql`). La pile se reconstruit
+d'elle-même quand `QA_BASE` change (empreinte). Les scénarios qui en
+dépendent s'adaptent (`baseAvecLot2()`, `baseAvecEcheanceH3()` dans
+`e2e/lib/donnees.mjs`) :
 
 ```bash
-QA_BASE=avant-D-027-02 qa/run_full.sh --e2e   # app actuelle sur la base de production
-qa/run_full.sh --e2e                          # app actuelle sur la base avec D-027-02
+QA_BASE=avant-D-027-03 qa/run_full.sh --e2e   # app actuelle sur la base de production
+qa/run_full.sh --e2e                          # app actuelle sur la base avec D-027-03
 ```
 
 Pile locale :
