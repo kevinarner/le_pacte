@@ -9,8 +9,8 @@ import '../models/statut_pacte.dart';
 /// actions principales et les temps forts. Les noms historiques des
 /// constantes sont conservés pour ne pas toucher aux écrans. `accentFonce`
 /// et `accentClair` sont dérivés du bordeaux (le site n'en a pas) ;
-/// `erreur` reste dans une famille orangée, distincte du bordeaux, pour ne
-/// jamais confondre un message d'erreur avec la couleur de marque.
+/// `erreur` est un rouge d'alerte franc, plus vif et plus chaud que le
+/// bordeaux, choisi le 21/11 pour être reconnu d'emblée comme une erreur.
 class AppColors {
   static const background = Color(0xFFFBF3E5); // --sw-bg
   static const backgroundOuter = Color(0xFFF0E3D0);
@@ -24,7 +24,7 @@ class AppColors {
   static const pecheClair = Color(0xFFF4E4CB); // fond du sceau
   static const neutre = Color(0xFFEEE2D0); // fond des encadrés
   static const outline = Color(0xFFDECEBA); // --sw-line
-  static const erreur = Color(0xFFB3492E);
+  static const erreur = Color(0xFFB42318);
 }
 
 /// Polices du site : Georgia (graisse normale) pour les titres, Arial pour
