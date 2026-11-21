@@ -418,6 +418,7 @@ Décisions produit structurantes :
   - l'app n'envoie plus jamais `destinataire_id` ni `profil_id` (calculés par la base) et ne peut plus appeler `trouver_profil_par_telephone` ; l'indicateur "Déjà sur Swend" est retiré ;
   - numéro non modifiable dans "Mes informations".
 - **Envoi par Messages ou WhatsApp** (25/09, `lib/widgets/envoi_invitation.dart`) : les trois messages existants (invitation à un Swend, invitation d'une personne de confiance, demande urgente pendant "Un imprévu ?") passent par un bouton "Envoyer l'invitation" / "Envoyer le message" qui ouvre un choix [Messages] / [WhatsApp]. Même texte quel que soit le canal, numéro toujours en E.164 (`sms:+33…?body=`, `https://wa.me/33…?text=`). Si WhatsApp ne s'ouvre pas : "WhatsApp n'a pas pu s'ouvrir." avec une action "Utiliser Messages". Le canal n'est jamais utilisé pour savoir si la personne a un compte.
+- **Thème du site vitrine** (21/11) : `lib/theme/app_theme.dart` reprend la charte de `swend.fr` (`assets/site.css`, variables `--sw-*`) — fond crème `#FBF3E5`, cartes « papier » `#FFFCF6` bordées `#DECEBA` (arrondi 8, ombre douce), encre `#39291F`, texte atténué `#715448`, bordeaux `#742D43` pour les actions (remplace le bleu ardoise), terre cuite `#BF8A73`. Titres en Georgia graisse normale, texte courant en Arial (polices système iOS) ; les styles de texte courant du thème portent désormais leur police (auparavant ils retombaient sur la police système). Noms des constantes `AppColors` inchangés, aucun écran modifié hormis la seule couleur codée en dur (`chat_apres_swend_screen.dart`). `erreur` reste orangée, distincte du bordeaux. Logotype `logo_swend_wordmark.png` remplacé par celui du site (`swend-logo-150@3x.png`, 450×174).
 
 **Prévu, pas commencé :**
 - Vérification du numéro par SMS (OTP) à l'inscription — le numéro est aujourd'hui déclaratif (voir section 4). Prérequis pour permettre ensuite un changement de numéro en libre-service.
@@ -432,7 +433,7 @@ Décisions produit structurantes :
 - Upload réel des photos de profil/remplaçants (actuellement local au navigateur, jamais envoyé à Supabase Storage).
 - Vraies relances automatiques J-7/J-3/J-1 (garde-fou anti-désistement) — la simulation manuelle par boutons (`BlocCascade`) a été retirée le 24/09 en attendant une implémentation propre, voir section "Fait et déployé".
 - Identifiants Firebase/stores/package non renommés en cohérence avec "Swend" (décision volontairement reportée) : iOS `com.kevinarner.lePacte`, Android `com.kevinarner.le_pacte`, projet Firebase `le-pacte-e6c17`.
-- Wordmark "Swend" définitif — celui en place aujourd'hui est une première ébauche explicitement temporaire fournie par l'utilisateur.
+- Wordmark "Swend" définitif — remplacé le 21/11 par le logotype du site vitrine (450 px de large : une version vectorielle ou plus grande serait plus nette sur les écrans 3x).
 - `ios/` et `android/` sont scaffoldés (`flutter create`) mais l'app n'a jamais été publiée sur aucun store.
 - Vrai suivi lu/non-lu des messages (la notification "{nom} vous a écrit" sur le hub est une approximation sans état persisté, voir section 9).
 - Annulation de la réservation du restaurant quand un Swend est annulé faute de personne disponible ("Un imprévu ?", section 7.6) — le fonctionnement définitif de la réservation n'est pas encore stabilisé, la V1 se contente d'annuler le Swend lui-même.

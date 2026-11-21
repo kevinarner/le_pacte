@@ -4,27 +4,38 @@ import '../models/demande_statut.dart';
 import '../models/remplacant.dart';
 import '../models/statut_pacte.dart';
 
-/// Palette pêche / bleu ardoise / crème, validée le 29/08 (voir la
-/// synthèse UX). L'accent (bleu ardoise) sert aux actions principales et
-/// aux temps forts ; `erreur` reste dans une famille chaude distincte,
-/// pour ne jamais confondre un message d'erreur avec la couleur de marque.
+/// Palette du site vitrine swend.fr (`assets/site.css`, variables `--sw-*`),
+/// reprise le 21/11 : fond crème, papier, encre brune, bordeaux pour les
+/// actions principales et les temps forts. Les noms historiques des
+/// constantes sont conservés pour ne pas toucher aux écrans. `accentFonce`
+/// et `accentClair` sont dérivés du bordeaux (le site n'en a pas) ;
+/// `erreur` reste dans une famille orangée, distincte du bordeaux, pour ne
+/// jamais confondre un message d'erreur avec la couleur de marque.
 class AppColors {
-  static const background = Color(0xFFF5E4CB);
-  static const backgroundOuter = Color(0xFFEAD5AE);
-  static const surface = Color(0xFFFCF0DD);
-  static const texte = Color(0xFF3C2A1B);
-  static const texteAttenue = Color(0xFF93795C);
-  static const accent = Color(0xFF6B7A94);
-  static const accentFonce = Color(0xFF3F4C63);
-  static const accentClair = Color(0xFFDEE3EA);
-  static const peche = Color(0xFFE8A874);
-  static const pecheClair = Color(0xFFFBE2C4);
-  static const neutre = Color(0xFFF1E2C9);
-  static const outline = Color(0xFFEBD8B7);
+  static const background = Color(0xFFFBF3E5); // --sw-bg
+  static const backgroundOuter = Color(0xFFF0E3D0);
+  static const surface = Color(0xFFFFFCF6); // --sw-paper
+  static const texte = Color(0xFF39291F); // --sw-ink
+  static const texteAttenue = Color(0xFF715448);
+  static const accent = Color(0xFF742D43); // --sw-wine
+  static const accentFonce = Color(0xFF5A2234);
+  static const accentClair = Color(0xFFF2E0E3);
+  static const peche = Color(0xFFBF8A73); // terre cuite des soulignés
+  static const pecheClair = Color(0xFFF4E4CB); // fond du sceau
+  static const neutre = Color(0xFFEEE2D0); // fond des encadrés
+  static const outline = Color(0xFFDECEBA); // --sw-line
   static const erreur = Color(0xFFB3492E);
 }
 
+/// Polices du site : Georgia (graisse normale) pour les titres, Arial pour
+/// le texte courant. Toutes deux sont des polices système sur iOS.
+const String policeTitres = 'Georgia';
+const String policeTexte = 'Arial';
+
 const double radiusLg = 16;
+
+/// Arrondi des cartes « papier » du site (cartons d'invitation).
+const double radiusCarte = 8;
 
 class StatutTag {
   final Color fond;
@@ -165,67 +176,93 @@ StatutAffichage statutAffichageTiers(StatutPacte statut, Remplacant fiche) {
 }
 
 ThemeData buildAppTheme() {
+  const titre = TextStyle(
+    fontFamily: policeTitres,
+    fontWeight: FontWeight.w400,
+    color: AppColors.texte,
+  );
   final base = ThemeData(
     useMaterial3: true,
     colorScheme: ColorScheme.fromSeed(
       seedColor: AppColors.accent,
       brightness: Brightness.light,
+      primary: AppColors.accent,
+      onPrimary: AppColors.surface,
       surface: AppColors.background,
+      onSurface: AppColors.texte,
+      error: AppColors.erreur,
+      outline: AppColors.outline,
     ),
     scaffoldBackgroundColor: AppColors.background,
-    fontFamily: 'Georgia',
+    fontFamily: policeTexte,
   );
 
   return base.copyWith(
-    textTheme: base.textTheme.copyWith(
-      titleLarge: const TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 22,
-        color: AppColors.texte,
-      ),
-      titleMedium: const TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 16,
-        color: AppColors.texte,
-      ),
-      bodyMedium: const TextStyle(fontSize: 14, color: AppColors.texte),
-      bodySmall: TextStyle(fontSize: 12.5, color: AppColors.texteAttenue),
-    ),
-    appBarTheme: const AppBarTheme(
+    textTheme: base.textTheme
+        .apply(bodyColor: AppColors.texte, displayColor: AppColors.texte)
+        .copyWith(
+          headlineMedium: titre.copyWith(fontSize: 29, letterSpacing: -0.5),
+          headlineSmall: titre.copyWith(fontSize: 24, letterSpacing: -0.4),
+          titleLarge: titre.copyWith(fontSize: 22, letterSpacing: -0.3),
+          titleMedium: titre.copyWith(fontSize: 17),
+          bodyLarge: const TextStyle(
+            fontFamily: policeTexte,
+            fontSize: 15,
+            color: AppColors.texte,
+          ),
+          bodyMedium: const TextStyle(
+            fontFamily: policeTexte,
+            fontSize: 14,
+            color: AppColors.texte,
+          ),
+          bodySmall: const TextStyle(
+            fontFamily: policeTexte,
+            fontSize: 12.5,
+            color: AppColors.texteAttenue,
+          ),
+        ),
+    appBarTheme: AppBarTheme(
       backgroundColor: AppColors.background,
       foregroundColor: AppColors.texte,
+      surfaceTintColor: Colors.transparent,
       elevation: 0,
+      scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: TextStyle(
-        fontWeight: FontWeight.w800,
-        fontSize: 18,
-        color: AppColors.texte,
-        fontFamily: 'Georgia',
-      ),
+      titleTextStyle: titre.copyWith(fontSize: 20, letterSpacing: -0.3),
     ),
     cardTheme: const CardThemeData(
       color: AppColors.surface,
-      elevation: 0,
+      surfaceTintColor: Colors.transparent,
+      elevation: 1.5,
+      shadowColor: Color(0x3339291F),
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(radiusLg)),
+        borderRadius: BorderRadius.all(Radius.circular(radiusCarte)),
+        side: BorderSide(color: AppColors.outline),
       ),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
         backgroundColor: AppColors.accent,
-        foregroundColor: Colors.white,
+        foregroundColor: AppColors.surface,
+        disabledBackgroundColor: AppColors.outline,
+        disabledForegroundColor: AppColors.texteAttenue,
         minimumSize: const Size.fromHeight(46),
         shape: const StadiumBorder(),
-        textStyle: const TextStyle(fontWeight: FontWeight.bold),
+        textStyle: const TextStyle(
+          fontFamily: policeTexte,
+          fontSize: 15,
+          fontWeight: FontWeight.w400,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: AppColors.texte,
+        foregroundColor: AppColors.accent,
         minimumSize: const Size.fromHeight(46),
         shape: const StadiumBorder(),
-        side: const BorderSide(color: AppColors.outline),
+        side: const BorderSide(color: AppColors.accent),
+        textStyle: const TextStyle(fontFamily: policeTexte, fontSize: 15),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
@@ -237,16 +274,31 @@ ThemeData buildAppTheme() {
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(radiusLg),
-        borderSide: BorderSide.none,
+        borderSide: const BorderSide(color: AppColors.outline),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusLg),
+        borderSide: const BorderSide(color: AppColors.outline),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusLg),
+        borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(radiusLg),
+        borderSide: const BorderSide(color: AppColors.erreur),
       ),
     ),
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
       backgroundColor: AppColors.background,
       selectedItemColor: AppColors.accent,
-      unselectedItemColor: Colors.black45,
+      unselectedItemColor: AppColors.texteAttenue,
       type: BottomNavigationBarType.fixed,
       showUnselectedLabels: true,
     ),
     dividerTheme: const DividerThemeData(color: AppColors.outline),
+    progressIndicatorTheme: const ProgressIndicatorThemeData(
+      color: AppColors.accent,
+    ),
   );
 }

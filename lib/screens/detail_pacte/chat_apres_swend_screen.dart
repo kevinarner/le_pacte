@@ -21,7 +21,7 @@ class ChatApresSwendScreen extends StatefulWidget {
 }
 
 class _ChatApresSwendScreenState extends State<ChatApresSwendScreen> {
-  static const _fond = Color(0xFFFFF7EE);
+  static const _fond = AppColors.surface;
   static const _limite = 2000;
 
   ChatApresSwend? _chat;
