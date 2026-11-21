@@ -19,7 +19,9 @@ sortie : 0 si tout passe, 1 sinon.
 - Postgres 16 (binaires `initdb`, `pg_ctl`, `psql` ; détectés dans
   `/usr/lib/postgresql/*/bin`, ou `PG_BIN=...`).
 - Node 18+ et Flutter (le même que pour l'app).
-- Chromium : celui de Playwright (`/opt/pw-browsers`), ou `QA_CHROMIUM=/chemin/vers/chrome`.
+- Chromium : celui de Playwright (`/opt/pw-browsers/chromium`, sinon le
+  `chromium-NNNN/chrome-linux64/chrome` ou `chrome-linux/chrome` le plus récent),
+  ou `QA_CHROMIUM=/chemin/vers/chrome`.
 
 ```bash
 qa/stack.sh setup     # npm install (playwright-core, ws) + PostgREST 12.2.3 (somme SHA-256 vérifiée)
@@ -148,6 +150,11 @@ Règles :
 - ne jamais attendre un délai fixe : `verifier*` réévalue jusqu'à 8 s,
   `attendreCalme()` attend la fin des requêtes ;
 - vérifier l'état métier en base (`sql`, `demande`) **et** l'écran ;
+- remplir un champ avec `acteur.taper(libellé, …)` ou `acteur.saisir(champ, …)`
+  (focus et valeur vérifiés), se connecter avec `acteur.remplirConnexion()` ;
+  ne pas viser un champ par `getByRole('textbox').nth(i)` après une
+  interaction : au focus, Flutter ajoute des `<input>` d'autoremplissage qui
+  décalent les index (le localisateur se réévalue à chaque appel) ;
 - dans tout scénario de remplacement, finir par `verifierDavidNeVoitRien`
   (écran de David, lecture API sous son compte, notifications).
 

@@ -51,12 +51,23 @@ export function urlAutorisee(url) {
 }
 
 export function cheminChromium() {
-  if (env.QA_CHROMIUM && fs.existsSync(env.QA_CHROMIUM)) return env.QA_CHROMIUM;
+  if (env.QA_CHROMIUM) {
+    if (fs.existsSync(env.QA_CHROMIUM)) return env.QA_CHROMIUM;
+    console.warn(`QA_CHROMIUM=${env.QA_CHROMIUM} introuvable : détection automatique`);
+  }
   const base = '/opt/pw-browsers';
   if (fs.existsSync(base)) {
-    for (const d of fs.readdirSync(base).filter((d) => /^chromium-\d+$/.test(d)).sort().reverse()) {
-      const c = path.join(base, d, 'chrome-linux', 'chrome');
-      if (fs.existsSync(c)) return c;
+    // Lien stable fourni par l'image (/opt/pw-browsers/chromium → …/chrome).
+    if (fs.existsSync(path.join(base, 'chromium'))) return path.join(base, 'chromium');
+    // Sinon le chromium-NNNN le plus récent (tri numérique), dans l'une ou
+    // l'autre arborescence de Playwright (chrome-linux64 depuis ~1.49).
+    const versions = fs.readdirSync(base).filter((d) => /^chromium-\d+$/.test(d))
+      .sort((a, b) => Number(b.split('-')[1]) - Number(a.split('-')[1]));
+    for (const d of versions) {
+      for (const sous of ['chrome-linux64', 'chrome-linux']) {
+        const c = path.join(base, d, sous, 'chrome');
+        if (fs.existsSync(c)) return c;
+      }
     }
   }
   return undefined; // playwright-core utilisera son propre chemin

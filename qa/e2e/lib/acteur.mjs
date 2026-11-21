@@ -79,12 +79,36 @@ export class Acteur {
   }
 
   async seConnecter() {
-    await this.page.getByRole('textbox').first().waitFor({ timeout: DELAI });
-    await this.saisir(this.page.getByRole('textbox').nth(0), this.compte.email);
-    await this.saisir(this.page.getByRole('textbox').nth(1), config.QA_MOT_DE_PASSE);
-    await this.cliquer('Se connecter');
+    await this.remplirConnexion();
     await this.attendreTexte(`Bonjour ${this.compte.prenom}`);
     await this.accueilCharge();
+  }
+
+  // Écran de connexion : email + mot de passe (valeurs vérifiées), puis
+  // « Se connecter ». Aussi utilisé après ouverture d'un lien (scénarios 18, 25).
+  async remplirConnexion() {
+    const champs = this.page.getByRole('textbox');
+    await champs.first().waitFor({ timeout: DELAI });
+    // Les deux champs sont figés AVANT toute interaction : dès qu'un champ a le
+    // focus, Flutter ajoute des <input> d'autoremplissage (dans un <form>) qui
+    // décalent les index — nth(1) désignerait alors de nouveau l'email.
+    await this.attendre(async () => (await champs.count()) === 2, 'les deux champs de connexion');
+    const [email, motDePasse] = await champs.elementHandles();
+    await this.saisir(email, this.compte.email);
+    try {
+      await this.saisir(motDePasse, config.QA_MOT_DE_PASSE, { secret: true });
+    } catch (e) {
+      // Repli : le clic n'a pas déplacé le focus → passer de l'email au mot de
+      // passe au clavier, comme un utilisateur.
+      this.noter(`connexion : repli par Tab (${e.message})`);
+      await this.focaliser(email);
+      await this.page.keyboard.press('Tab');
+      await this.saisir(motDePasse, config.QA_MOT_DE_PASSE, { secret: true, cliquer: false });
+    }
+    // Contrôle final : chaque champ contient exactement sa valeur.
+    if (await this.valeurDe(email) !== this.compte.email) throw new Error(`${this.nom} : champ email incorrect avant connexion`);
+    if (await this.valeurDe(motDePasse) !== config.QA_MOT_DE_PASSE) throw new Error(`${this.nom} : champ mot de passe incorrect avant connexion`);
+    await this.cliquer('Se connecter');
   }
 
   async fermer() { await this.contexte?.close().catch(() => {}); }
@@ -127,18 +151,46 @@ export class Acteur {
   }
 
   // --- Actions ----------------------------------------------------------------
-  async saisir(champ, texte) {
-    await champ.click();
-    await this.page.waitForTimeout(150);
-    await this.page.keyboard.press('Control+A');
-    await this.page.keyboard.press('Backspace');
-    if (texte) await this.page.keyboard.type(texte, { delay: 20 });
-    // Flutter peut perdre la toute première frappe : on vérifie et on corrige.
-    const valeur = await champ.inputValue().catch(() => null);
-    if (valeur !== null && texte && valeur !== texte) {
-      await champ.click(); await this.page.keyboard.press('Control+A'); await this.page.keyboard.press('Backspace');
-      await this.page.keyboard.type(texte, { delay: 40 });
+  // Saisit [texte] dans [champ] (Locator ou ElementHandle) et vérifie le
+  // résultat. Le champ est figé une fois pour toutes : un Locator se réévalue à
+  // chaque appel, et Flutter modifie le DOM au focus (formulaire
+  // d'autoremplissage, aria-label retiré), si bien qu'un nth() peut changer de
+  // cible entre le clic, la frappe et la vérification.
+  async saisir(champ, texte, { secret = false, cliquer = true } = {}) {
+    const el = champ.asElement ? champ : await champ.elementHandle({ timeout: DELAI });
+    const attendu = texte || '';
+    let valeur = null;
+    for (let essai = 1; essai <= 3; essai++) {
+      if (cliquer || essai > 1) await this.focaliser(el);
+      else if (!(await this.aLeFocus(el))) throw new Error(`${this.nom} : le champ visé n'a pas le focus`);
+      await this.page.keyboard.press('Control+A');
+      await this.page.keyboard.press('Backspace');
+      // Flutter peut perdre la toute première frappe : on vérifie et on recommence.
+      if (attendu) await this.page.keyboard.type(attendu, { delay: essai === 1 ? 20 : 40 });
+      valeur = await this.valeurDe(el);
+      if (valeur === null || valeur === attendu) return;
+      this.noter(`saisie : essai ${essai} incorrect (${secret ? `${valeur.length} car. au lieu de ${attendu.length}` : JSON.stringify(valeur)})`);
     }
+    throw new Error(`${this.nom} : saisie impossible dans le champ (${secret ? 'valeur masquée' : `« ${valeur} » au lieu de « ${attendu} »`})`);
+  }
+  async aLeFocus(el) {
+    return el.evaluate((e) => e === document.activeElement || e.contains(document.activeElement)).catch(() => false);
+  }
+  async valeurDe(el) {
+    return el.evaluate((e) => ('value' in e ? e.value : null)).catch(() => null);
+  }
+  // Donne le focus à [el] et le vérifie (clic, puis focus() direct en repli).
+  async focaliser(el) {
+    for (let essai = 1; essai <= 3; essai++) {
+      if (essai < 3) await el.click(); else await el.focus();
+      const limite = Date.now() + 1500;
+      while (Date.now() < limite) {
+        if (await this.aLeFocus(el)) { await this.page.waitForTimeout(100); return; }
+        await this.page.waitForTimeout(100);
+      }
+      this.noter(`focus : essai ${essai} sans effet`);
+    }
+    throw new Error(`${this.nom} : impossible de donner le focus au champ`);
   }
   async taper(libelle, texte, n = 0) {
     const champ = this.page.getByRole('textbox', { name: libelle, exact: true }).nth(n);

@@ -14,10 +14,7 @@ const IMPREVU = /Tu ne peux plus être là \?|C’est envoyé\.|Personne n’a p
 async function ouvrirLien(a, url) {
   await a.page.goto(url, { waitUntil: 'load' });
   await a.activerAccessibilite();
-  await a.page.getByRole('textbox').first().waitFor({ timeout: 15000 });
-  await a.saisir(a.page.getByRole('textbox').nth(0), a.compte.email);
-  await a.saisir(a.page.getByRole('textbox').nth(1), config.QA_MOT_DE_PASSE);
-  await a.cliquer('Se connecter');
+  await a.remplirConnexion();
   await a.attendreCalme();
 }
 
