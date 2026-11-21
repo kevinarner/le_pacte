@@ -78,6 +78,17 @@ export class Acteur {
     await this.page.waitForSelector('flt-semantics-host', { state: 'attached', timeout: DELAI });
   }
 
+  // Champs de saisie de l'écran, cherchés dans l'arbre d'accessibilité
+  // seulement : Flutter garde dans flt-text-editing-host des <input> d'édition
+  // (formulaire d'autoremplissage de la connexion, champ de message déjà
+  // utilisé) qui portent le même nom (placeholder) que le vrai champ.
+  champs(libelle, { exact = true } = {}) {
+    const tous = this.page.locator('flt-semantics-host').getByRole('textbox');
+    return libelle === undefined ? tous : this.page.locator('flt-semantics-host').getByRole('textbox', { name: libelle, exact });
+  }
+  champ(libelle, n = 0) { return this.champs(libelle).nth(n); }
+  async nombreDeChamps(libelle) { return this.champs(libelle).count(); }
+
   async seConnecter() {
     await this.remplirConnexion();
     await this.attendreTexte(`Bonjour ${this.compte.prenom}`);
@@ -87,7 +98,7 @@ export class Acteur {
   // Écran de connexion : email + mot de passe (valeurs vérifiées), puis
   // « Se connecter ». Aussi utilisé après ouverture d'un lien (scénarios 18, 25).
   async remplirConnexion() {
-    const champs = this.page.getByRole('textbox');
+    const champs = this.champs();
     await champs.first().waitFor({ timeout: DELAI });
     // Les deux champs sont figés AVANT toute interaction : dès qu'un champ a le
     // focus, Flutter ajoute des <input> d'autoremplissage (dans un <form>) qui
@@ -193,7 +204,7 @@ export class Acteur {
     throw new Error(`${this.nom} : impossible de donner le focus au champ`);
   }
   async taper(libelle, texte, n = 0) {
-    const champ = this.page.getByRole('textbox', { name: libelle, exact: true }).nth(n);
+    const champ = this.champ(libelle, n);
     await champ.waitFor({ timeout: DELAI });
     await this.saisir(champ, texte);
     await this.attendreCalme();

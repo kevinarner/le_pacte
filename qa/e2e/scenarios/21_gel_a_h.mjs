@@ -17,7 +17,7 @@ import { COMPTES } from '../lib/config.mjs';
 const pushDepuis = (n0) => sql(`select coalesce(string_agg(p.prenom || '|' || n.titre || '|' || n.corps, ' ## ' order by n.id), '')
   from notifications_log n left join profiles p on p.id = n.profile_id where n.id > ${n0}`);
 const n0 = () => sql('select coalesce(max(id), 0) from notifications_log');
-const champSaisie = (a) => a.page.getByRole('textbox', { name: 'Écrire un message…' }).count();
+const champSaisie = (a) => a.nombreDeChamps('Écrire un message…');
 
 export default {
   nom: 'gel_a_h',
@@ -57,7 +57,7 @@ export default {
       // Seulement sollicité : après H, il n'a plus accès à la conversation.
       await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin : conversation plus accessible');
       await ex.verifier('Kevin : aucune zone de saisie',
-        async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+        async () => (await kevin.nombreDeChamps('Écrire un message…')) === 0);
       await ex.verifier('Kevin : plus de bouton « Appeler »', async () => (await kevin.nombreDeBoutons('Appeler')) === 0);
       const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
       await ex.verifier('après H : API → aucun numéro', () => t.ok && !t.corps.includes('06'), { obtenu: () => t.corps });

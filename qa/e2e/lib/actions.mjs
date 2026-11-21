@@ -53,7 +53,7 @@ export async function creerSwend(a, { prenom, nom, tel, personnes, ouEtQuand }) 
 export async function remplirPersonnes(a, personnes, depart = 0) {
   for (let i = 0; i < personnes.length; i++) {
     const n = depart + i;
-    if ((await a.page.getByRole('textbox', { name: 'Prénom', exact: true }).count()) <= n) await a.cliquer('Ajouter une personne');
+    if ((await a.nombreDeChamps('Prénom')) <= n) await a.cliquer('Ajouter une personne');
     await a.taper('Prénom', personnes[i].prenom, n);
     await a.taper('Nom', personnes[i].nom, n);
     await a.taper('Numéro de mobile', personnes[i].tel, n);
@@ -93,7 +93,7 @@ export async function contreProposer(a, motif) {
 // --- Personnes de confiance -------------------------------------------------
 export async function ajouterPersonnes(a, personnes, motif = /Swend avec/) {
   await ouvrirModifierMaListe(a, motif);
-  const deja = await a.page.getByRole('textbox', { name: 'Prénom', exact: true }).count();
+  const deja = await a.nombreDeChamps('Prénom');
   await remplirPersonnes(a, personnes, deja);
   await a.cliquer('Enregistrer');
 }
@@ -192,7 +192,7 @@ export async function seDesister(a, titulaire = 'Eliot', autre = 'David') {
 
 // --- Conversations -----------------------------------------------------------
 export async function envoyerMessage(a, texte) {
-  const champ = a.page.getByRole('textbox', { name: 'Écrire un message…' });
+  const champ = a.champ('Écrire un message…');
   await champ.waitFor({ timeout: 15000 });
   await a.saisir(champ, texte); // vérifie la saisie (première frappe parfois perdue)
   await a.page.keyboard.press('Enter');

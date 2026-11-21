@@ -12,7 +12,7 @@
 import * as A from '../lib/actions.mjs';
 import { sql, lireComme, appelerComme, FICHES, baseAvecLot2 } from '../lib/donnees.mjs';
 
-const champSaisie = (a) => a.page.getByRole('textbox', { name: 'Écrire un message…' }).count();
+const champSaisie = (a) => a.nombreDeChamps('Écrire un message…');
 
 export default {
   nom: 'gel_relecture_annulation',

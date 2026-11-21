@@ -168,7 +168,7 @@ export default {
       await ouvrirLien(sylvain, `${config.appUrl}/?chat_apres=${id}`);
       await ex.verifierTexte(sylvain, "Cette conversation n'est plus accessible.", 'Sylvain : message propre, pas d\'erreur');
       await ex.verifier('Sylvain : aucune zone de saisie',
-        async () => (await sylvain.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+        async () => (await sylvain.nombreDeChamps('Écrire un message…')) === 0);
     });
 
     await ex.etape('Aucun numéro inutile dans les réponses réseau (D-024)', async () => {

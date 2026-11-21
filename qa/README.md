@@ -150,11 +150,15 @@ Règles :
 - ne jamais attendre un délai fixe : `verifier*` réévalue jusqu'à 8 s,
   `attendreCalme()` attend la fin des requêtes ;
 - vérifier l'état métier en base (`sql`, `demande`) **et** l'écran ;
-- remplir un champ avec `acteur.taper(libellé, …)` ou `acteur.saisir(champ, …)`
-  (focus et valeur vérifiés), se connecter avec `acteur.remplirConnexion()` ;
-  ne pas viser un champ par `getByRole('textbox').nth(i)` après une
-  interaction : au focus, Flutter ajoute des `<input>` d'autoremplissage qui
-  décalent les index (le localisateur se réévalue à chaque appel) ;
+- champs de saisie : `acteur.champ(libellé)` / `acteur.nombreDeChamps(libellé)`
+  (arbre d'accessibilité seulement), remplir avec `acteur.taper(libellé, …)` ou
+  `acteur.saisir(champ, …)` (élément figé, focus et valeur vérifiés), se
+  connecter avec `acteur.remplirConnexion()`. Ne pas utiliser
+  `page.getByRole('textbox')` directement : Flutter garde dans
+  `flt-text-editing-host` des `<input>` d'édition (autoremplissage de la
+  connexion, champ de message déjà utilisé) qui portent le même nom et
+  décalent les index — le localisateur se réévalue à chaque appel. Un champ
+  sémantique n'expose son libellé (l'indication) que tant qu'il est vide ;
 - dans tout scénario de remplacement, finir par `verifierDavidNeVoitRien`
   (écran de David, lecture API sous son compte, notifications).
 

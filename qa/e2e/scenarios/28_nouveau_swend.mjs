@@ -182,7 +182,7 @@ export default {
       await ex.verifierTexte(eliot, 'Un nouveau Swend a été scellé.', 'message système dans le fil');
       await ex.verifierTexte(eliot, 'Conversation fermée', 'état « Conversation fermée » à la place de la saisie');
       await ex.verifier('aucune zone de saisie',
-        async () => (await eliot.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+        async () => (await eliot.nombreDeChamps('Écrire un message…')) === 0);
       const r = await appelerComme('eliot', 'envoyer_message_apres_swend', { p_chat_id: chatId(), p_contenu: 'encore ?' });
       await ex.verifier('API : écriture refusée (chat_ferme)', () => !r.ok && r.corps.includes('chat_ferme'), { obtenu: () => r.corps });
       await A.ouvrirMesSwends(eliot);

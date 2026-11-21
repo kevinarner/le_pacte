@@ -34,7 +34,7 @@ export default {
     });
 
     await ex.etape('Kevin écrit dans la conversation restée ouverte', async () => {
-      const champ = kevin.page.getByRole('textbox', { name: 'Écrire un message…' });
+      const champ = kevin.champ('Écrire un message…');
       await kevin.saisir(champ, 'Oui bien sûr');
       await kevin.page.keyboard.press('Enter');
       await kevin.attendreCalme();
@@ -46,7 +46,7 @@ export default {
         await ex.verifier('base sans D-027-02 : message refusé', () => n() === '0', { obtenu: n });
         // Kevin, seulement prévu, perd l'accès (règle D-023a de la base actuelle).
         await ex.verifierTexte(kevin, "Cette conversation n'est plus accessible.", 'Kevin : conversation plus accessible (D-023a)');
-        await ex.verifier('Kevin : plus de zone de saisie', async () => (await kevin.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+        await ex.verifier('Kevin : plus de zone de saisie', async () => (await kevin.nombreDeChamps('Écrire un message…')) === 0);
       }
       const t = await appelerComme('kevin', 'telephone_titulaire_accessible', { p_remplacant_id: FICHES.kevin });
       await ex.verifier('aucun numéro pour Kevin (D-024 inchangé)', () => !t.corps.includes('06'), { obtenu: () => t.corps });
@@ -68,7 +68,7 @@ export default {
         await ex.verifierTexte(eliot, 'Tu seras dispo ?', 'Eliot : historique relu');
         await ex.verifierAbsent(eliot, 'Relire la conversation avec…', 'Eliot : pas de choix (une seule conversation active)');
         await ex.verifier('Eliot : aucune zone de saisie',
-          async () => (await eliot.page.getByRole('textbox', { name: 'Écrire un message…' }).count()) === 0);
+          async () => (await eliot.nombreDeChamps('Écrire un message…')) === 0);
         const r = await insererComme('eliot', 'messages', { remplacant_id: FICHES.kevin, expediteur_id: COMPTES.eliot.id, contenu: 'Désolé' });
         await ex.verifier('API : écriture d\'Eliot refusée (base sans D-027-02)', () => !r.ok, { obtenu: () => `${r.statut} ${r.corps}` });
       }

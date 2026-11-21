@@ -17,7 +17,7 @@ import * as A from '../lib/actions.mjs';
 import { sql, lireComme, appelerComme, insererComme, FICHES, baseAvecLot2 } from '../lib/donnees.mjs';
 import { COMPTES } from '../lib/config.mjs';
 
-const champSaisie = (a) => a.page.getByRole('textbox', { name: 'Écrire un message…' }).count();
+const champSaisie = (a) => a.nombreDeChamps('Écrire un message…');
 const messagesDe = (nom) => sql(`select count(*) from messages where expediteur_id = '${COMPTES[nom].id}'`);
 const derniereNotif = (nom) => sql(`select coalesce((select titre || '|' || corps from notifications_log
   where profile_id = '${COMPTES[nom].id}' order by id desc limit 1), '')`);
